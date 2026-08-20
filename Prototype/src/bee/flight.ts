@@ -49,36 +49,44 @@ export class FlightController {
     //   forward = ( sin, 0,  cos)
     //   right   = forward x up = (-cos, 0, sin)
     // Strafe must follow +right, or A/D come out backwards.
-    const ax = (sin * input.forward - cos * input.strafe) * p.accel * boost;
-    const az = (cos * input.forward + sin * input.strafe) * p.accel * boost;
-    const ay =
-      input.vertical > 0
+    let fx = (sin * input.forward - cos * input.strafe) * p.accel * boost * m;
+    let fz = (cos * input.forward + sin * input.strafe) * p.accel * boost * m;
+    let fy =
+      (input.vertical > 0
         ? p.ascend * boost
         : input.vertical < 0
           ? -p.descend * boost
-          : 0;
+          : 0) * m;
 
-    this.body.resetForces(true);
-    this.body.addForce({ x: ax * m, y: ay * m, z: az * m }, true);
-
-    // soft speed cap (horizontal and vertical separately)
+    // Speed limiting is DRAG, not a hard clamp. A clamp would erase every
+    // external impulse the instant it lands — grapple swings, swat knockback,
+    // fan gusts — which is exactly the momentum the game is built on. Drag
+    // limits powered flight while letting borrowed speed bleed off naturally.
     const v = this.body.linvel();
     const maxH = p.maxSpeed * boost;
     const hs = Math.hypot(v.x, v.z);
-    let clamped = false;
-    let { x, y, z } = v;
     if (hs > maxH) {
-      const s = maxH / hs;
-      x *= s;
-      z *= s;
-      clamped = true;
+      const k = (p.overspeedDrag * m * (hs - maxH)) / hs;
+      fx -= v.x * k;
+      fz -= v.z * k;
     }
     const maxV = maxH * 0.75;
-    if (Math.abs(y) > maxV) {
-      y = Math.sign(y) * maxV;
-      clamped = true;
+    const vs = Math.abs(v.y);
+    if (vs > maxV) {
+      fy -= Math.sign(v.y) * p.overspeedDrag * m * (vs - maxV);
     }
-    if (clamped) this.body.setLinvel({ x, y, z }, true);
+
+    this.body.resetForces(true);
+    this.body.addForce({ x: fx, y: fy, z: fz }, true);
+  }
+
+  /** External hit — a swat, a gust. Applied as a real impulse. */
+  knockback(dir: THREE.Vector3, speed: number) {
+    const m = this.body.mass();
+    this.body.applyImpulse(
+      { x: dir.x * speed * m, y: dir.y * speed * m, z: dir.z * speed * m },
+      true,
+    );
   }
 
   position(out: THREE.Vector3): THREE.Vector3 {

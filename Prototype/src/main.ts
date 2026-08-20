@@ -10,6 +10,9 @@ import { FlightController } from './bee/flight';
 import { Grapple } from './bee/grapple';
 import { Carry } from './bee/carry';
 import { Aiming } from './bee/aiming';
+import { Human } from './world/human';
+import { Exposure } from './game/exposure';
+import { mulberry32 } from './core/rng';
 
 async function main() {
   const physics = await initPhysics();
@@ -37,6 +40,38 @@ async function main() {
   scene.add(carry.beam);
   const aiming = new Aiming(yard);
   const aim = Aiming.emptyResult();
+
+  // --- M2: one human, one exposure meter ---
+  const human = new Human(physics, new THREE.Vector3(-26, 0, -34));
+  scene.add(human.root);
+  const exposure = new Exposure();
+  const humanRand = mulberry32(params.world.seed ^ 0x5bf03635);
+
+  const swatFlash = document.getElementById('swatFlash');
+  const expFill = document.getElementById('expFill');
+  const expLevel = document.getElementById('expLevel');
+  const expQuote = document.getElementById('expQuote');
+  const expBox = document.getElementById('exposure');
+
+  function flashSwat() {
+    if (!swatFlash) return;
+    swatFlash.classList.add('hit');
+    setTimeout(() => swatFlash.classList.remove('hit'), 90);
+  }
+
+  human.onSwatHit = (dir) => {
+    // Drop whatever you were holding — getting hit should cost you something.
+    if (carry.isCarrying) carry.drop();
+    if (grapple.state !== 'idle') grapple.release();
+    flight.knockback(dir, params.human.swatImpulse);
+    exposure.spike(6);
+    flashSwat();
+  };
+  human.onSwatMiss = (dir, distance) => {
+    // Near miss: the air moves. Being *almost* hit should be a thrill.
+    const falloff = Math.max(0, 1 - distance / (params.human.swatRange * 2.2));
+    if (falloff > 0) flight.knockback(dir, params.human.swatImpulse * 0.45 * falloff);
+  };
 
   const input = new Input(renderer.domElement);
   const followCam = new FollowCamera(window.innerWidth / window.innerHeight);
@@ -74,6 +109,23 @@ async function main() {
   let fpsAccum = 0;
   let fpsFrames = 0;
 
+  let lastLevel = -1;
+  function updateExposureHud(seen: boolean) {
+    if (expFill) expFill.style.width = `${exposure.value}%`;
+    if (expBox) expBox.classList.toggle('seen', seen);
+    const lvl = exposure.level;
+    if (lvl !== lastLevel) {
+      lastLevel = lvl;
+      const info = exposure.levelInfo;
+      if (expLevel) expLevel.textContent = `EXPOSURE ${lvl} · ${info.name}`;
+      if (expQuote) expQuote.textContent = info.quote;
+      if (expBox) {
+        expBox.classList.remove('lvl1', 'lvl2', 'lvl3', 'lvl4');
+        if (lvl > 0) expBox.classList.add(`lvl${lvl}`);
+      }
+    }
+  }
+
   const beePos = new THREE.Vector3();
   const beeVel = new THREE.Vector3();
   const aimDir = new THREE.Vector3();
@@ -81,7 +133,7 @@ async function main() {
   let firstFrame = true;
   (window as unknown as Record<string, unknown>).__debug = {
     beePos, beeVel, params, grapple, carry, yard, physics, flight, followCam, scene,
-    aiming, aim,
+    aiming, aim, human, exposure,
   };
 
   function frame(now: number) {
@@ -136,6 +188,14 @@ async function main() {
 
     flight.position(beePos);
     flight.velocity(beeVel);
+
+    // --- human + exposure ---
+    const { seen } = human.update(dt, physics, beePos, flight.collider, humanRand);
+    // Using tech in plain view is far more incriminating than merely existing.
+    const techVisible = grapple.state !== 'idle' || carry.isCarrying;
+    exposure.update(dt, seen, techVisible);
+    updateExposureHud(seen);
+
     bee.update(dt, beePos, beeVel, state.boost);
     grapple.update(dt, beePos);
     syncProps(yard.dynamicProps);

@@ -1,6 +1,6 @@
 # The Bees Have Tech! — Prototype
 
-**M0 — Flight ✅ · M1 — Grapple & Carry ✅**
+**M0 — Flight ✅ · M1 — Grapple & Carry ✅ · M2 — One Human ✅**
 
 See `../CONCEPT_PILLARS.md` and `../SLICE_PLAN.md` for what this slice exists
 to validate: **flight feel, comedy, toy interactions, tiny-world scale,
@@ -30,10 +30,19 @@ Open http://localhost:5173, click to lock the mouse, fly.
 | **Right click** | Tractor beam — hold to carry, release to drop |
 | **F** | Throw carried object |
 | Mouse | Look |
+| H | Hide the dev UI |
 | Esc | Release mouse |
 
-Gamepad: L-stick fly · R-stick look · RT/LT altitude (analog) · **A** overdrive ·
-**RB** grapple · **LB** carry · **X** throw
+Gamepad: L-stick fly · R-stick look · **LT up / RT down** (analog; swappable in
+the Controller folder) · **A** overdrive · **RB** grapple · **LB** carry ·
+**X** throw
+
+### Sharing tuning values
+
+The **Settings I/O** folder copies every tuning value to the clipboard as JSON
+(or shows it in a selectable box if the clipboard is blocked), and pastes a
+JSON blob back in. Paste-apply only writes keys that already exist and match
+types, so a stale blob can't inject junk.
 
 ### Reticle states
 
@@ -70,6 +79,23 @@ shots miss by the parallax between camera and bee.
 so a raw raycast catches it constantly. If a shot would land on ground and a
 real target sits within the assist cone, it snaps to that target. Deliberate
 ground shots still work — you just need nothing better nearby.
+
+**Altitude is the risk dial.** This fell out of M2 rather than being designed
+up front, and it's the best thing in the milestone. Fly at head or chest
+height and the human connects almost every swing. Fly low and he swings and
+whiffs — all the thrill, none of the damage. Drop into the grass and he can't
+see you at all. Height, visibility and danger are one axis, and it's teachable
+without a word of tutorial.
+
+**The human's blind spots are real and exploitable.** Vertical FOV is ±75°, so
+directly overhead or right at his feet is genuinely safe. He also won't walk so
+close that you fall into his own blind spot — otherwise he'd stroll up, lose
+you, and wander off looking silly.
+
+**Swat hit detection sweeps, it doesn't snapshot.** The hand is tested against
+the bee every frame of the swing. Resolving at one chosen instant means the arm
+only ever connects at whatever height it happens to be passing then — the first
+version swiped at ankle level and whiffed every bee at head height.
 
 **Heavy cargo taxes flight; it never falls out of the beam.** A bee hauling a
 battery flies like a sluggish pig (readable, funny). Dropping the battery

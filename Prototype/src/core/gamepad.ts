@@ -52,7 +52,7 @@ export class Gamepads {
     return null;
   }
 
-  read(deadzone: number): PadState {
+  read(deadzone: number, swapTriggers = false): PadState {
     const p = this.active();
     if (!p) {
       if (this.lastConnected) this.lastConnected = false;
@@ -75,8 +75,8 @@ export class Gamepads {
       lookX: ax(2),
       lookY: ax(3),
       // Triggers are analog — perfect for fine altitude control while hovering.
-      ascend: btn(7),
-      descend: btn(6),
+      ascend: swapTriggers ? btn(6) : btn(7),
+      descend: swapTriggers ? btn(7) : btn(6),
       boost: pressed(0) || pressed(10), // A / left-stick click
       grapple: pressed(5), // RB
       carry: pressed(4), // LB

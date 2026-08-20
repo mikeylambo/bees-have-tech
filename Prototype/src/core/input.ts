@@ -92,7 +92,7 @@ export class Input {
 
   state(): InputState {
     const k = this.keys;
-    const p = this.pads.read(params.pad.deadzone);
+    const p = this.pads.read(params.pad.deadzone, params.pad.swapTriggers);
     this.padConnected = p.connected;
 
     const kForward = (k.has('KeyW') ? 1 : 0) - (k.has('KeyS') ? 1 : 0);
@@ -112,7 +112,7 @@ export class Input {
 
   // Edge-detected action buttons. Call once per frame.
   actions(): Actions {
-    const p = this.pads.read(params.pad.deadzone);
+    const p = this.pads.read(params.pad.deadzone, params.pad.swapTriggers);
     const grapple = this.mouseButtons.has(0) || this.keys.has('KeyE') || p.grapple;
     const carry = this.mouseButtons.has(2) || this.keys.has('KeyQ') || p.carry;
     const thrown = this.keys.has('KeyF') || p.throwBtn;
@@ -134,7 +134,7 @@ export class Input {
 
   // Consume accumulated look input for this frame.
   takeLook(): LookDelta {
-    const p = this.pads.read(params.pad.deadzone);
+    const p = this.pads.read(params.pad.deadzone, params.pad.swapTriggers);
     const look = {
       mouseDX: this.mouseDX,
       mouseDY: this.mouseDY,

@@ -133,7 +133,20 @@ anchor/liftable states.
 **Question:** is *interacting* with the yard as fun as flying through it?
 **Status:** mechanics verified in-engine; awaiting feel feedback.
 
-### M2 — One Human + Exposure 0–2
+### M2 — One Human + Exposure ✅ BUILT
+A 100-unit human patrols the yard with three perception gates (range, split
+yaw/pitch FOV, line of sight) plus **grass concealment** — fly below the grass
+line and you're invisible unless you're in his face. States: idle → suspicious
+→ investigate → swat → recoil. A connecting swat flings the bee, drops your
+cargo and spikes exposure. Exposure decays when unseen, so it's reversible.
+
+**Emergent finding — altitude is the risk dial.** Head/chest height: he
+connects nearly every swing. Low: he swings and misses (thrill, no damage).
+In the grass: never seen. Height, visibility and danger turned out to be one
+axis, teachable without a tutorial. This wasn't designed up front and is the
+best thing to come out of M2.
+
+### M2 — original brief
 A single reactive NPC in the yard. They notice, investigate, swat, flee, and
 raise a visible Exposure meter. Bug spray and a swatter as counterplay.
 **Question:** does being noticed feel thrilling rather than punishing?
