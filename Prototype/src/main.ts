@@ -45,11 +45,24 @@ async function main() {
 
   const reticle = document.getElementById('reticle');
 
-  window.addEventListener('resize', () => {
-    followCam.camera.aspect = window.innerWidth / window.innerHeight;
-    followCam.camera.updateProjectionMatrix();
-    renderer.setSize(window.innerWidth, window.innerHeight);
+  window.addEventListener('keydown', (e) => {
+    if (e.code === 'KeyH') document.body.classList.toggle('hide-ui');
   });
+
+  // Observe the element, not just window resize: the canvas must re-fit when
+  // the page is embedded in a pane that changes size without a window event.
+  function fitToViewport() {
+    const w = window.innerWidth;
+    const h = window.innerHeight;
+    if (w === 0 || h === 0) return;
+    followCam.camera.aspect = w / h;
+    followCam.camera.updateProjectionMatrix();
+    renderer.setSize(w, h, true);
+  }
+  window.addEventListener('resize', fitToViewport);
+  window.addEventListener('orientationchange', fitToViewport);
+  new ResizeObserver(fitToViewport).observe(document.documentElement);
+  fitToViewport();
 
   // fixed-step physics, per-frame render
   const FIXED_DT = 1 / 60;

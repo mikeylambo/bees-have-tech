@@ -44,6 +44,28 @@
       #reticle.liftable { border-color: #7fd8ff; transform: scale(1.15); }
       #reticle.attached { border-color: #ffd75e; transform: scale(0.6); }
       #reticle.carrying { border-color: #7fd8ff; transform: scale(0.6); }
+
+      /* H hides the dev UI so the yard can be seen (and screenshotted) clean. */
+      body.hide-ui .hud,
+      body.hide-ui .tp-dfwv { display: none; }
+
+      /* Small viewports: the tuning panel would otherwise eat the screen. */
+      @media (max-width: 760px), (max-height: 460px) {
+        .tp-dfwv { transform: scale(0.7); transform-origin: top right; }
+        .hud { font-size: 10px; padding: 6px 9px; line-height: 1.5; }
+      }
+
+      /* Touch devices can't play this — say so instead of showing a dead canvas. */
+      #touchNote {
+        position: fixed; inset: 0; z-index: 30; display: none;
+        align-items: center; justify-content: center; text-align: center;
+        padding: 24px; background: rgba(12, 18, 10, 0.94); color: #fff;
+        font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+        font-size: 14px; line-height: 1.7;
+      }
+      @media (pointer: coarse) {
+        #touchNote { display: flex; }
+      }
     </style>
   </head>
   <body>
@@ -55,8 +77,17 @@
       <b>L-click</b> grapple <span style="opacity:.6">(hold to reel)</span> &nbsp;
       <b>R-click</b> tractor beam &nbsp; <b>F</b> throw<br />
       <b>Pad:</b> sticks fly/look &nbsp; <b>RT/LT</b> altitude &nbsp; <b>A</b> overdrive &nbsp;
-      <b>RB</b> grapple &nbsp; <b>LB</b> carry &nbsp; <b>X</b> throw
+      <b>RB</b> grapple &nbsp; <b>LB</b> carry &nbsp; <b>X</b> throw &nbsp;
+      <b>H</b> hide UI
       <span id="padStatus" style="color:#7dff9b"></span>
+    </div>
+    <div id="touchNote">
+      <div>
+        🐝 <b>The Bees Have Tech!</b><br /><br />
+        This prototype needs a mouse and keyboard,<br />
+        or a game controller.<br /><br />
+        Open it on a desktop to fly.
+      </div>
     </div>
     <script type="module" src="/src/main.ts"></script>
   </body>
