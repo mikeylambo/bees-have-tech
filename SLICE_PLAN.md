@@ -1,0 +1,188 @@
+# The Bees Have Tech! — Vertical Slice Plan
+
+**Status:** v2 — 2026-08-20 · supersedes the "one backyard corner" slice in CONCEPT_PILLARS.md
+**Target:** the seven-verb chain — Flight → Physics → Gadget → Hack → Swarm →
+Human Reaction → Chain Reaction.
+**Web version (phone-friendly):** https://claude.ai/code/artifact/1fb7ce48-5aa3-4dd8-9f45-98c0ce69c9e1
+
+---
+
+## Scope: one property plus family
+
+**Launch footprint = one property, fully realized.** Yard, shed, garage, house
+interior, roof, wall cavities — plus the family who lives there. Not a
+backyard; a home with people in it.
+
+### What the references actually shipped
+- **Goat Simulator (2014):** ONE map (GoatVille, small suburban). ~10 weeks,
+  ~10 devs, $10. Second map free 2 months later. The big world is Goat
+  Simulator 3 (2022), ~18× bigger, 8 years and a franchise later.
+- **Bee Simulator (2019):** ONE map (Central Park), ~3h main story. Premium
+  price; thinness was the standard review complaint.
+
+Neither shipped a town. But the argument for going bigger than a backyard isn't
+square footage — **the tech needs somewhere to escalate into.** A government
+response must be provoked somewhere; a lone yard can't host that fiction, so
+the top of the exposure ladder would be unreachable.
+
+### Why one property is bigger than it sounds
+**Volume, not area.** At bee scale a house is a layered dungeon:
+roof/gutters → attic → interior → **wall cavities (the hive)** → yard/deck/
+driveway → shed/garage → crawlspace/drains.
+
+**The family is the content.** 4–5 humans who react to evidence *differently*
+turn exposure from a meter into a social system:
+
+| Member | Role | Effect on exposure |
+|---|---|---|
+| The Handy One | Fixes things, notices missing parts | Raises — investigates |
+| The Kid | Thinks the bee is awesome, hides it from adults | Lowers — conceals, can ally |
+| The Short Fuse | No patience, reaches for spray, tells everyone | Escalates fastest |
+| The Skeptic | Explains away every piece of evidence | Dampens — buys time |
+| The Dog | Kaiju; can't be reasoned with | Chaos — ignores the social system |
+
+Getting caught by the Kid is a *resource*. Caught by the Short Fuse in front of
+the Skeptic is survivable. Both at once is how the government ends up on the lawn.
+
+## Growth: three axes, one of them nearly free
+
+1. **Repopulate — same house, new tenants.** ⭐ Strongest and cheapest. The
+   people were always the content, so swapping them is a new game that reuses
+   every expensive system (AI, exposure, hacking) at full value.
+   *Friends on vacation · company retreat · family reunion · parade staging in
+   the street · house going up for sale.*
+2. **Deeper — more of the same property.** Sewer line, neighbor's fence, the
+   car, storm drains. Reuses the art vocabulary. Free-update territory.
+3. **Wider — neighborhood, then town.** Genuinely new geography, most
+   expensive. Much cheaper *after* one house exists, since a second house is
+   mostly reuse — which is the argument for making the first one deep.
+
+**The unlock:** the government arriving is just a *tenant swap*. Containment
+tents, black SUVs, a scientist where the dad used to be — same geometry,
+different game. **Escalation and episodic content are the same system.**
+
+---
+
+## The core loop, in one sentence
+
+**Steal human tech → reverse-engineer it into bee tech → using bee tech gets
+you noticed → humans escalate → escalation creates better tech to steal.**
+
+That's a closed loop, and it's the whole game. Reverse Engineering and Human
+Exposure are not two systems — they're the two halves of one flywheel.
+Progression *causes* the difficulty curve. Nothing else in the design needs
+to carry the arc.
+
+## Why this is the differentiator
+
+Goat Simulator gives you verbs and a world that reacts. Bee Simulator gives
+you scale and flight. Neither has a reason to *keep* playing beyond content.
+Our loop means every ridiculous thing you do has a consequence that makes the
+world more interesting, which is what neither reference has.
+
+**The design lens:** every mundane object has a second interpretation. The
+lawn mower is a boss, a vehicle, a power source, a salvage field, a hazard,
+*and* a hackable weapon. If a new object only has one interpretation, it isn't
+finished.
+
+---
+
+## The verb that matters most: HACK
+
+Physics lets you *move* objects. Hacking makes objects into **systems you can
+turn against each other** — and that's what produces chains nobody scripted.
+A sprinkler you can shove is a prop. A sprinkler you can *trigger on demand*
+is a weather machine, a distraction, a weapon, and an electrical hazard
+depending on what else is nearby.
+
+Design rule: **every hackable object exposes one simple verb** (on/off,
+aim, speed up). Complexity comes from combining them, never from any single
+object's interface.
+
+---
+
+## Exposure ladder (drives everything)
+
+| Level | Human read | World response |
+|---|---|---|
+| 0 — Nature | "Just a bee." | Nothing |
+| 1 — Nuisance | "Annoying bee." | Swatting, bug spray, closed windows |
+| 2 — Infestation | "We have a problem." | Traps, exterminator visits, hive searches |
+| 3 — Anomaly | "That bee has a LASER." | Cameras, drones, a scientist |
+| 4 — Species | "First contact." | The property is no longer theirs — new tenants, in hazmat |
+
+Exposure should be **partially reversible** — lie low, sabotage evidence,
+hack the cameras. Otherwise the ladder is a one-way difficulty ratchet and
+players will avoid using the fun toys, which kills the game.
+
+---
+
+## Milestones (sequenced, not all at once)
+
+Each milestone ends with a playable build and a specific question answered.
+
+### M0 — Flight ✅ DONE
+Flight feel, tiny-world scale, instanced grass, physics props, tuning panel,
+gamepad + KBM. **Answered:** does bee flight feel good? Yes.
+
+### M1 — Physics + Gadget ✅ BUILT
+Stinger grapple (rope joint — you *swing*, not winch) and tractor beam
+(velocity servo — stable at any mass, weight reads visually). Springy flower
+stems on spring joints, salvage batteries, targeting reticle with
+anchor/liftable states.
+**Question:** is *interacting* with the yard as fun as flying through it?
+**Status:** mechanics verified in-engine; awaiting feel feedback.
+
+### M2 — One Human + Exposure 0–2
+A single reactive NPC in the yard. They notice, investigate, swat, flee, and
+raise a visible Exposure meter. Bug spray and a swatter as counterplay.
+**Question:** does being noticed feel thrilling rather than punishing?
+*This is the highest-risk unknown in the whole design — it comes early on purpose.*
+
+### M3 — Hack + Chain Reactions
+Three hackable objects with overlapping effects: sprinkler (water), bug
+zapper (electricity), box fan (wind/force). Water + electricity must
+interact. Add the Human Threat Database beat where the human reacts to
+*evidence* rather than to the bee directly.
+**Question:** do unscripted chains actually happen, and are they funny?
+
+### M4 — Swarm + Reverse Engineering
+Recruit 2–3 bees with simple jobs (distract, lift, harvest). Salvage parts
+from hacked objects, carry them home, spend them on a small research tree
+that unlocks the next gadget.
+**Question:** does the loop close — does stealing tech feel like progress?
+
+**M1–M4 completed = the full seven-verb chain is playable.** That is the real
+vertical slice, and the point where this becomes pitchable.
+
+---
+
+## Deliberately deferred
+
+- **Neighborhood & town** — real new geography. Far cheaper once one house
+  exists, which is the argument for making the first property deep.
+- **Roomba/vehicle piloting** — depends on hacking being proven first (M3).
+- **Combat depth** — wasps arrive as a *threat*, not a combat system, until
+  the sandbox works. Systemic over combo-heavy, per the reference doc.
+- **Collectibles, minigames, customization, multiplayer** — content
+  multipliers. They multiply zero if the simulation isn't fun.
+- **Full hive construction sim** — the hive should *visibly upgrade* as a
+  reward, not become a second game with build queues (see pillar: no RTS).
+
+---
+
+## Open risks
+
+1. **The humans are the hard part, not the physics.** A person who reacts
+   believably at bee scale — noticing something an inch long, at distance,
+   with escalating suspicion — is genuinely difficult, and we now need five who
+   disagree with each other. M2 exists to find out how hard early rather than late.
+2. **Interiors are a real cost, not a free layer.** Opening the house means new
+   navigation, occlusion, lighting and art. In scope because the humans are
+   worth it, but budget it honestly rather than treating it as "more rooms."
+3. **Web ceiling.** M0 runs fine, but NPCs + hackable systems + swarm AI +
+   persistence will push it. The plan is to prove the loop in web, then port
+   to a native engine for the commercial build (per the OG doc).
+4. **Persistence scope.** "Chaos compounds rather than resetting" is right,
+   but full world simulation is a trap. Start with: knocked-over objects stay
+   knocked over, salvaged parts stay gone, Exposure persists. Nothing more.
