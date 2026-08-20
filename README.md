@@ -10,7 +10,10 @@ Standalone IP. Not part of the Soulfire Legends Universe.
 
 ## Play the prototype
 
-The live build is the current milestone, deployed from `Prototype/`.
+**▶ https://bees-have-tech.vercel.app**
+
+Desktop only — needs a mouse and keyboard, or a game controller.
+Auto-deploys from `main`; build root is `Prototype/`.
 
 | Input | Action |
 |---|---|
