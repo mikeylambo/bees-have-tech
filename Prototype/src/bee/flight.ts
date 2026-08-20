@@ -4,6 +4,7 @@ import type { Physics } from '../core/physics';
 import type { InputState } from '../core/input';
 import { params } from '../core/tuning';
 
+
 // The whole prototype bet lives in this file: does hover-flight feel good?
 // Model: zero-G dynamic body + linear damping ("air thickness") + camera-
 // relative acceleration. Damping gives the floaty drift; accel/maxSpeed give
@@ -30,14 +31,16 @@ export class FlightController {
     this.lastDamping = params.flight.damping;
   }
 
-  applyInput(input: InputState, cameraYaw: number) {
+  /** `load` is 0..1 from a carried object — heavy cargo slows the bee down. */
+  applyInput(input: InputState, cameraYaw: number, load = 0) {
     if (params.flight.damping !== this.lastDamping) {
       this.body.setLinearDamping(params.flight.damping);
       this.lastDamping = params.flight.damping;
     }
 
     const p = params.flight;
-    const boost = input.boost ? p.boostMul : 1;
+    const haul = 1 - load * params.carry.haulPenalty;
+    const boost = (input.boost ? p.boostMul : 1) * haul;
     const m = this.body.mass();
 
     const sin = Math.sin(cameraYaw);

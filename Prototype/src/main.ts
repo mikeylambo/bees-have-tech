@@ -9,6 +9,7 @@ import { Bee } from './bee/bee';
 import { FlightController } from './bee/flight';
 import { Grapple } from './bee/grapple';
 import { Carry } from './bee/carry';
+import { Aiming } from './bee/aiming';
 
 async function main() {
   const physics = await initPhysics();
@@ -34,6 +35,8 @@ async function main() {
   scene.add(grapple.line);
   const carry = new Carry(physics, flight.body);
   scene.add(carry.beam);
+  const aiming = new Aiming(yard);
+  const aim = Aiming.emptyResult();
 
   const input = new Input(renderer.domElement);
   const followCam = new FollowCamera(window.innerWidth / window.innerHeight);
@@ -78,6 +81,7 @@ async function main() {
   let firstFrame = true;
   (window as unknown as Record<string, unknown>).__debug = {
     beePos, beeVel, params, grapple, carry, yard, physics, flight, followCam, scene,
+    aiming, aim,
   };
 
   function frame(now: number) {
@@ -89,16 +93,19 @@ async function main() {
     const state = input.state();
     const act = input.actions();
 
-    // Aim comes from the camera, so the crosshair tells the truth.
+    // The crosshair finds a point; gadgets then fire from the BEE toward it,
+    // so close-range shots don't miss by camera parallax.
     followCam.camera.getWorldDirection(aimDir);
     followCam.camera.getWorldPosition(camPos);
+    flight.position(beePos);
+    aiming.resolve(physics, camPos, aimDir, beePos, flight.collider, flight.body, aim);
 
     // --- grapple ---
     if (act.grapplePressed) {
       if (carry.isCarrying) {
-        carry.throwIt(aimDir); // grapple button doubles as throw while carrying
+        carry.throwIt(aim.dirFromBee); // doubles as throw while carrying
       } else if (grapple.state === 'idle') {
-        grapple.fire(camPos, aimDir, flight.collider);
+        grapple.fire(beePos, aim.dirFromBee, flight.collider);
       }
     }
     if (act.grappleReleased && grapple.state !== 'idle' && !carry.isCarrying) {
@@ -107,21 +114,22 @@ async function main() {
 
     // --- carry ---
     if (act.carryPressed && !carry.isCarrying) {
-      carry.tryGrab(physics, camPos, aimDir, flight.collider);
+      carry.tryGrab(physics, beePos, aim.dirFromBee, flight.collider);
     }
     if (act.carryReleased && carry.isCarrying) {
       carry.drop();
     }
     if (act.throwPressed && carry.isCarrying) {
-      carry.throwIt(aimDir);
+      carry.throwIt(aim.dirFromBee);
     }
 
     accumulator += dt;
+    const load = carry.loadFactor();
     while (accumulator >= FIXED_DT) {
-      flight.applyInput(state, followCam.forwardYaw());
+      flight.applyInput(state, followCam.forwardYaw(), load);
       grapple.reel(FIXED_DT, act.grappleHeld);
       flight.position(beePos);
-      carry.update(beePos, aimDir);
+      carry.update(beePos, aim.dirFromBee);
       physics.world.step();
       accumulator -= FIXED_DT;
     }
@@ -136,29 +144,15 @@ async function main() {
     followCam.update(dt, beePos, firstFrame);
     firstFrame = false;
 
-    // Reticle state: what would this shot hit?
+    // Reticle state: what would this shot do?
     if (reticle) {
       let cls = '';
       if (carry.isCarrying) cls = 'carrying';
       else if (grapple.state === 'attached') cls = 'attached';
-      else {
-        const ray = new physics.RAPIER.Ray(
-          { x: camPos.x, y: camPos.y, z: camPos.z },
-          { x: aimDir.x, y: aimDir.y, z: aimDir.z },
-        );
-        const hit = physics.world.castRay(
-          ray, params.grapple.range, true,
-          undefined, undefined, flight.collider, flight.body,
-        );
-        if (hit) {
-          const b = hit.collider.parent();
-          const liftable =
-            b !== null &&
-            b.isDynamic() &&
-            b.mass() <= params.carry.maxMass &&
-            hit.timeOfImpact <= params.carry.range;
-          cls = liftable ? 'liftable' : 'anchor';
-        }
+      else if (aim.liftable) cls = 'liftable';
+      else if (aim.hasTarget) cls = 'anchor';
+      if (aim.assisted && !carry.isCarrying && grapple.state === 'idle') {
+        cls += ' assisted';
       }
       reticle.className = cls;
     }

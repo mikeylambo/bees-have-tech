@@ -29,6 +29,8 @@ export interface Yard {
   group: THREE.Group;
   dynamicProps: DynamicProp[];
   flowers: Flower[];
+  /** Aim assist demotes this so the lawn stops eating every grapple shot. */
+  groundColliderHandle: number;
 }
 
 export function buildYard(physics: Physics, scene: THREE.Scene, seed: number): Yard {
@@ -64,7 +66,7 @@ export function buildYard(physics: Physics, scene: THREE.Scene, seed: number): Y
   ground.rotation.x = -Math.PI / 2;
   ground.receiveShadow = true;
   group.add(ground);
-  world.createCollider(
+  const groundCollider = world.createCollider(
     RAPIER.ColliderDesc.cuboid(140, 0.5, 140).setTranslation(0, -0.5, 0).setFriction(1),
   );
 
@@ -228,7 +230,12 @@ export function buildYard(physics: Physics, scene: THREE.Scene, seed: number): Y
   }
 
   scene.add(group);
-  return { group, dynamicProps, flowers };
+  return {
+    group,
+    dynamicProps,
+    flowers,
+    groundColliderHandle: groundCollider.handle,
+  };
 }
 
 export function syncProps(props: DynamicProp[]) {

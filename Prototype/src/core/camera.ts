@@ -10,6 +10,7 @@ export class FollowCamera {
   readonly camera: THREE.PerspectiveCamera;
   private desired = new THREE.Vector3();
   private lookTarget = new THREE.Vector3();
+  private aimAt = new THREE.Vector3();
 
   constructor(aspect: number) {
     this.camera = new THREE.PerspectiveCamera(60, aspect, 0.1, 600);
@@ -29,11 +30,21 @@ export class FollowCamera {
   }
 
   update(dt: number, target: THREE.Vector3, snap = false) {
-    const d = params.camera.distance;
+    const c = params.camera;
+    const d = c.distance;
+
+    // Over-the-shoulder offset. Without it the bee sits under the crosshair
+    // and blocks the very thing you are aiming at.
+    // View dir is -(sin yaw, 0, cos yaw), so screen-right is (cos yaw, 0, -sin yaw).
+    const rx = Math.cos(this.yaw) * c.shoulder;
+    const rz = -Math.sin(this.yaw) * c.shoulder;
+
+    this.aimAt.set(target.x + rx, target.y + c.shoulderUp, target.z + rz);
+
     this.desired.set(
-      target.x + Math.sin(this.yaw) * Math.cos(this.pitch) * d,
-      target.y + Math.sin(this.pitch) * d + params.camera.height,
-      target.z + Math.cos(this.yaw) * Math.cos(this.pitch) * d,
+      this.aimAt.x + Math.sin(this.yaw) * Math.cos(this.pitch) * d,
+      this.aimAt.y + Math.sin(this.pitch) * d + c.height,
+      this.aimAt.z + Math.cos(this.yaw) * Math.cos(this.pitch) * d,
     );
     if (snap) {
       this.camera.position.copy(this.desired);
@@ -41,7 +52,7 @@ export class FollowCamera {
       const t = 1 - Math.exp(-params.camera.smoothing * dt);
       this.camera.position.lerp(this.desired, t);
     }
-    this.lookTarget.lerp(target, snap ? 1 : 1 - Math.exp(-20 * dt));
+    this.lookTarget.lerp(this.aimAt, snap ? 1 : 1 - Math.exp(-20 * dt));
     this.camera.lookAt(this.lookTarget);
   }
 

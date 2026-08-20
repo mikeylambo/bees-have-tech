@@ -17,6 +17,11 @@ export const params = {
     smoothing: 14, // higher = snappier follow
     invertX: false,
     invertY: false,
+    shoulder: 1.15, // lateral offset so the bee doesn't sit under the crosshair
+    shoulderUp: 0.55, // raises the aim point so the bee rides lower in frame
+  },
+  aim: {
+    assistAngle: 0.13, // radians (~7.5°) — cone that rescues a shot from the lawn
   },
   pad: {
     deadzone: 0.14,
@@ -33,10 +38,12 @@ export const params = {
     maxMass: 0.35, // heavier than this and you can only grapple it
     holdDistance: 2.4,
     holdDrop: 0.5,
-    pullSpeed: 26,
+    pullSpeed: 40,
     refMass: 0.05, // a light pebble: the "feels weightless" reference
-
-    breakDistance: 7, // yanked out of the beam past this
+    minFollow: 0.4, // floor on the weight-lag factor, so heavy ≠ unusable
+    breakDistance: 26, // safety net only — you should never lose a load by flying
+    haulMass: 0.3, // mass at which flight is fully taxed
+    haulPenalty: 0.55, // fraction of speed/accel a full load costs you
     throwImpulse: 26,
   },
   flower: {
@@ -70,6 +77,13 @@ export function createTuning(
   c.addBinding(params.camera, 'smoothing', { min: 2, max: 30 });
   c.addBinding(params.camera, 'invertX', { label: 'invert look X' });
   c.addBinding(params.camera, 'invertY', { label: 'invert look Y' });
+  c.addBinding(params.camera, 'shoulder', { min: -3, max: 3 });
+  c.addBinding(params.camera, 'shoulderUp', { min: -2, max: 3, label: 'shoulder up' });
+
+  const am = pane.addFolder({ title: 'Aim assist' });
+  am.addBinding(params.aim, 'assistAngle', {
+    min: 0, max: 0.4, label: 'assist cone (rad)',
+  });
 
   const g = pane.addFolder({ title: 'Controller' });
   g.addBinding(params.pad, 'deadzone', { min: 0, max: 0.4 });
@@ -85,8 +99,10 @@ export function createTuning(
   ca.addBinding(params.carry, 'range', { min: 3, max: 40 });
   ca.addBinding(params.carry, 'maxMass', { min: 0.02, max: 3, label: 'max lift mass' });
   ca.addBinding(params.carry, 'holdDistance', { min: 1, max: 8 });
-  ca.addBinding(params.carry, 'pullSpeed', { min: 4, max: 60 });
+  ca.addBinding(params.carry, 'pullSpeed', { min: 4, max: 90 });
   ca.addBinding(params.carry, 'refMass', { min: 0.01, max: 0.5, label: 'weightless mass' });
+  ca.addBinding(params.carry, 'minFollow', { min: 0.1, max: 1, label: 'heavy follow floor' });
+  ca.addBinding(params.carry, 'haulPenalty', { min: 0, max: 0.9, label: 'haul speed cost' });
   ca.addBinding(params.carry, 'throwImpulse', { min: 2, max: 90 });
 
   const fl = pane.addFolder({ title: 'Flower springiness' });

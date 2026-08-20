@@ -49,6 +49,16 @@ export class Carry {
     return this.held !== null;
   }
 
+  /**
+   * 0..1 — how much the current load taxes flight. A bee hauling a battery
+   * should fly like a sluggish pig; that's readable and funny, where randomly
+   * dropping the battery is just punishment.
+   */
+  loadFactor(): number {
+    if (!this.held) return 0;
+    return THREE.MathUtils.clamp(this.held.mass() / params.carry.haulMass, 0, 1);
+  }
+
   /** Grab the nearest dynamic body within reach of the aim ray. */
   tryGrab(
     physics: Physics,
@@ -134,7 +144,9 @@ export class Carry {
 
     const dist = this.tmp.length();
     if (dist > params.carry.breakDistance) {
-      // Yanked out of the beam — a heavy prop dragging you around wins.
+      // Safety net for a wedged object, not a gameplay rule. You should never
+      // lose a load just for flying enthusiastically — heavy things tax your
+      // flight instead (see loadFactor).
       this.restore();
       return;
     }
@@ -144,7 +156,7 @@ export class Carry {
     // weighs well under a kilo, so an absolute scale would call them all light.
     const massFactor = THREE.MathUtils.clamp(
       params.carry.refMass / Math.max(0.005, body.mass()),
-      0.15,
+      params.carry.minFollow,
       1,
     );
     const speed = params.carry.pullSpeed * massFactor;

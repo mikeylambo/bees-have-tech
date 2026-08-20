@@ -56,6 +56,26 @@ Gamepad: L-stick fly · R-stick look · RT/LT altitude (analog) · **A** overdri
 
 ## Design notes worth keeping
 
+**Simulate honestly, assist generously.** The world's physics stay real —
+that's where the comedy comes from, because real physics doing stupid things is
+funnier than fake physics. The player's *gadgets* are arcade-y and cheat in
+their favour: aim assist, no accidental drops, forgiving reel. Same trick Goat
+Simulator plays with honest ragdolls and an absurdly sticky tongue.
+
+**Aim is two-stage.** The camera ray finds a point; the gadget fires from the
+*bee* toward that point. Firing straight from the camera makes close-range
+shots miss by the parallax between camera and bee.
+
+**The lawn is demoted.** The ground is enormous and always under the crosshair,
+so a raw raycast catches it constantly. If a shot would land on ground and a
+real target sits within the assist cone, it snaps to that target. Deliberate
+ground shots still work — you just need nothing better nearby.
+
+**Heavy cargo taxes flight; it never falls out of the beam.** A bee hauling a
+battery flies like a sluggish pig (readable, funny). Dropping the battery
+because you turned too fast is just punishment. `carry.breakDistance` is a
+safety net for wedged objects, not a gameplay rule.
+
 **Mass ratio decides who moves.** Grapple a pebble and it comes to you; grapple
 the fence and you go to it. Nothing special-cases this — it falls out of the
 physics, and it's free comedy.
