@@ -87,6 +87,31 @@ finished.
 
 ---
 
+## Atmosphere is a system, not a setting
+
+Came out of tuning M2: **`damping` — how thick the air is — should be a
+property of the space, not a global constant.** The bee's whole feel changes
+with it, so the air becomes a gameplay layer we get almost for free.
+
+- Open lawn: baseline
+- In front of a box fan: low damping, high push — you get flung
+- Inside the house: still, heavy air — precise, claustrophobic flying
+- Steam over a kettle / humid greenhouse: high damping, sluggish
+- Rain or sprinkler spray: damping plus downward force
+- A/C vent or draft under a door: a current you can ride like a highway
+
+**Why it matters:** it makes *where you are* change *how you fly*, which is
+the cheapest possible way to make one property feel like many places. It also
+gives the fan a real reason to exist beyond blowing props around.
+
+**How to apply:** damping and gravity/force become fields sampled at the bee's
+position rather than globals. Start with one zone type in M3 (the fan) and
+prove the sampling architecture; everything else is then content.
+
+Generalized rule worth hunting for elsewhere: **look for constants that should
+be fields.** Light level (seen/unseen), noise, temperature and wind are all
+candidates.
+
 ## The verb that matters most: HACK
 
 Physics lets you *move* objects. Hacking makes objects into **systems you can
