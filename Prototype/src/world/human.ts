@@ -17,6 +17,7 @@ import { params } from '../core/tuning';
 export type HumanState = 'idle' | 'suspicious' | 'investigate' | 'swat' | 'recoil';
 
 const ARM_LENGTH = 0.37; // fraction of body height, shoulder to hand
+const SHOULDER_OFFSET = 0.19; // fraction of body height, centre to shoulder
 const SWING_TIME = 0.28; // seconds of forward whip after the windup
 
 const _toBee = new THREE.Vector3();
@@ -40,6 +41,7 @@ export class Human {
   private moveTarget: THREE.Vector3 | null = null;
   private stopDistance = 3;
   private arrived = false;
+  private leadShoulder = false;
   private didStrike = false;
 
   // parts we animate
@@ -253,10 +255,15 @@ export class Human {
       case 'idle': {
         this.moveTarget = this.patrolTarget;
         this.stopDistance = 3;
+        this.leadShoulder = false;
         if (this.root.position.distanceTo(this.patrolTarget) < 6 || this.stateT > 9) {
           const a = rand() * Math.PI * 2;
-          const r = 12 + rand() * 34;
-          this.patrolTarget.set(Math.cos(a) * r, 0, Math.sin(a) * r);
+          const r = 12 + rand() * (p.yardRadius - 14);
+          this.patrolTarget.set(
+            Math.cos(a) * r,
+            0,
+            Math.max(p.fenceLimitZ, Math.sin(a) * r),
+          );
           this.stateT = 0;
         }
         if (seen) this.setState('suspicious');
@@ -264,6 +271,7 @@ export class Human {
       }
       case 'suspicious': {
         this.moveTarget = null; // stop and stare
+        this.leadShoulder = false;
         this.faceToward(this.lastKnown, dt, p.turnSpeed * 1.6);
         if (!seen && this.stateT > 1.4) this.setState('idle');
         else if (seen && this.stateT > 0.55) this.setState('investigate');
@@ -271,6 +279,7 @@ export class Human {
       }
       case 'investigate': {
         this.moveTarget = this.lastKnown;
+        this.leadShoulder = true;
         // Close to the distance that puts the bee ON the hand's sweep sphere,
         // which depends on how high it's flying. A fixed standoff leaves low
         // bees permanently out of reach and high ones overshot.
@@ -292,7 +301,9 @@ export class Human {
         const canConnect = Math.abs(reachDist - armLen) < p.swatRange * 0.55;
         // If he's already as close as he's going to get, let him take the
         // hopeless swipe anyway. A near miss is a thrill; being ignored isn't.
-        const desperate = this.arrived && reachDist < armLen + p.swatRange * 2;
+        // Kept tight — swinging at a bee an arm's length beyond reach reads as
+        // frustration, swinging at one across the yard reads as broken.
+        const desperate = this.arrived && reachDist < armLen + p.swatHitRadius;
         if (seen && (canConnect || desperate) && this.swatCooldownT <= 0) {
           this.setState('swat');
         } else if (!seen && this.stateT > p.investigateTime) {
@@ -302,13 +313,14 @@ export class Human {
       }
       case 'swat': {
         this.moveTarget = null;
+        this.leadShoulder = true;
         this.faceToward(this.lastKnown, dt, p.turnSpeed * 2.2);
         // The hand sweeps an arc, so test it CONTINUOUSLY rather than at one
         // chosen instant. A fixed strike frame only ever connects with bees at
         // whatever height the arm happens to be passing then — it whiffed
         // every bee at head height while swiping at ankle level.
         if (!this.didStrike && this.stateT >= p.swatWindup) {
-          if (this.handPosition(_hand).distanceTo(beePos) <= p.swatRange) {
+          if (this.handPosition(_hand).distanceTo(beePos) <= p.swatHitRadius) {
             this.didStrike = true;
             this.resolveStrike(beePos, true);
           }
@@ -358,10 +370,19 @@ export class Human {
   }
 
   private faceToward(target: THREE.Vector3, dt: number, speed: number) {
-    const want = Math.atan2(
-      target.x - this.root.position.x,
-      target.z - this.root.position.z,
-    );
+    const dx = target.x - this.root.position.x;
+    const dz = target.z - this.root.position.z;
+    let want = Math.atan2(dx, dz);
+
+    // People turn side-on to swat. The arm sweeps in a plane through the
+    // shoulder, which sits well off the body's centre line — squared up, that
+    // plane misses the target by the whole shoulder offset.
+    if (this.leadShoulder) {
+      const s = SHOULDER_OFFSET * params.human.height;
+      const horiz = Math.hypot(dx, dz);
+      want -= horiz > s ? Math.asin(s / horiz) : Math.PI / 2;
+    }
+
     let d = want - this.yaw;
     while (d > Math.PI) d -= Math.PI * 2;
     while (d < -Math.PI) d += Math.PI * 2;
@@ -389,6 +410,22 @@ export class Human {
     this.root.position.x += (dx / dist) * step;
     this.root.position.z += (dz / dist) * step;
     this.walkPhase += (step / 14) * Math.PI;
+    this.clampToYard();
+  }
+
+  /**
+   * A kinematic body isn't stopped by static geometry, so he'd stroll straight
+   * through the fence. Keep him inside the yard by hand.
+   */
+  private clampToYard() {
+    const p = params.human;
+    const pos = this.root.position;
+    const r = Math.hypot(pos.x, pos.z);
+    if (r > p.yardRadius) {
+      pos.x *= p.yardRadius / r;
+      pos.z *= p.yardRadius / r;
+    }
+    if (pos.z < p.fenceLimitZ) pos.z = p.fenceLimitZ;
   }
 
   private animate(dt: number) {

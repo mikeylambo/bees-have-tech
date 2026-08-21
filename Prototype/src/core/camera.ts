@@ -11,6 +11,19 @@ export class FollowCamera {
   private desired = new THREE.Vector3();
   private lookTarget = new THREE.Vector3();
   private aimAt = new THREE.Vector3();
+  private offsetDir = new THREE.Vector3();
+  private currentDistance = 0;
+
+  /**
+   * Returns the distance to the first solid thing between the bee and the
+   * camera's desired spot, or null for a clear line. Without this the camera
+   * happily sits inside the human's chest and he looks like a hologram.
+   */
+  occlusionTest?: (
+    from: THREE.Vector3,
+    dir: THREE.Vector3,
+    maxDist: number,
+  ) => number | null;
 
   constructor(aspect: number) {
     this.camera = new THREE.PerspectiveCamera(60, aspect, 0.1, 600);
@@ -46,6 +59,27 @@ export class FollowCamera {
       this.aimAt.y + Math.sin(this.pitch) * d + c.height,
       this.aimAt.z + Math.cos(this.yaw) * Math.cos(this.pitch) * d,
     );
+
+    // Pull the camera in if something solid is in the way. Springs back out
+    // smoothly, but snaps in instantly — popping outward looks like a glitch,
+    // popping inward looks like the camera avoiding a wall.
+    this.offsetDir.subVectors(this.desired, this.aimAt);
+    const wantDist = this.offsetDir.length();
+    if (wantDist > 1e-4) {
+      this.offsetDir.divideScalar(wantDist);
+      let allowed = wantDist;
+      const hit = this.occlusionTest?.(this.aimAt, this.offsetDir, wantDist);
+      if (hit !== null && hit !== undefined) {
+        allowed = Math.max(c.minDistance, hit - c.collisionBuffer);
+      }
+      if (snap || allowed < this.currentDistance) {
+        this.currentDistance = allowed;
+      } else {
+        const t = 1 - Math.exp(-c.uncollideSpeed * dt);
+        this.currentDistance += (allowed - this.currentDistance) * t;
+      }
+      this.desired.copy(this.aimAt).addScaledVector(this.offsetDir, this.currentDistance);
+    }
     if (snap) {
       this.camera.position.copy(this.desired);
     } else {

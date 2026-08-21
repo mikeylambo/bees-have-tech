@@ -2,7 +2,7 @@ import * as THREE from 'three';
 import { initPhysics } from './core/physics';
 import { Input } from './core/input';
 import { FollowCamera } from './core/camera';
-import { params, createTuning } from './core/tuning';
+import { params, createTuning, loadSavedSettings } from './core/tuning';
 import { GrassField } from './world/grass';
 import { buildYard, syncProps, syncFlowers, applyFlowerSpring } from './world/yard';
 import { Bee } from './bee/bee';
@@ -15,6 +15,10 @@ import { Exposure } from './game/exposure';
 import { mulberry32 } from './core/rng';
 
 async function main() {
+  // Before anything is built — the yard, human and flower springs all read
+  // these values at construction time.
+  loadSavedSettings();
+
   const physics = await initPhysics();
 
   const renderer = new THREE.WebGLRenderer({ antialias: true });
@@ -75,6 +79,19 @@ async function main() {
 
   const input = new Input(renderer.domElement);
   const followCam = new FollowCamera(window.innerWidth / window.innerHeight);
+
+  // Keep the camera out of solid geometry — otherwise it slips inside the
+  // human and he reads as a hologram you can fly through.
+  followCam.occlusionTest = (from, dir, maxDist) => {
+    const ray = new physics.RAPIER.Ray(
+      { x: from.x, y: from.y, z: from.z },
+      { x: dir.x, y: dir.y, z: dir.z },
+    );
+    const hit = physics.world.castRay(
+      ray, maxDist, true, undefined, undefined, flight.collider, flight.body,
+    );
+    return hit ? hit.timeOfImpact : null;
+  };
 
   createTuning(
     (seed) => grass.scatter(seed),

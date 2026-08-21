@@ -2,33 +2,41 @@ import { Pane } from 'tweakpane';
 
 // Every number that affects feel lives here and is live-editable in the panel.
 export const params = {
+  // Playtested defaults, 2026-08-20 — these are Mikey's "feels like a bee" values.
   flight: {
-    accel: 46, // horizontal accel, u/s^2
-    ascend: 34,
-    descend: 28,
-    damping: 2.6, // linear damping — the "air thickness"
-    maxSpeed: 16,
-    boostMul: 2.2, // Wing Overdrive multiplier (accel + max speed)
-    overspeedDrag: 5, // how hard borrowed speed (swings, knockback) bleeds off
+    accel: 120, // horizontal accel, u/s^2
+    ascend: 100,
+    descend: 100,
+    // How thick the air is. Applied ALWAYS, proportional to speed: it decides
+    // how fast you coast to a stop when you let go of the stick.
+    damping: 2.6,
+    maxSpeed: 60,
+    boostMul: 5, // Wing Overdrive multiplier (accel + max speed)
+    // Only bites ABOVE maxSpeed. Decides how long borrowed speed — grapple
+    // swings, swat knockback — stays with you before settling back down.
+    overspeedDrag: 0.5,
   },
   camera: {
-    distance: 6.5,
-    height: 1.4,
+    distance: 16.67,
+    height: 5.8,
     sensitivity: 0.0024,
-    smoothing: 14, // higher = snappier follow
+    smoothing: 30, // higher = snappier follow
     invertX: false,
     invertY: false,
     // Playtested defaults, 2026-08-20.
     shoulder: 0.26, // lateral offset so the bee doesn't sit under the crosshair
     shoulderUp: 1.15, // raises the aim point so the bee rides lower in frame
+    collisionBuffer: 1.6, // stay this far off whatever the camera bumps into
+    minDistance: 1.2, // never closer than this, even in a corner
+    uncollideSpeed: 6, // how fast the camera eases back out once clear
   },
   aim: {
     assistAngle: 0.13, // radians (~7.5°) — cone that rescues a shot from the lawn
   },
   pad: {
-    deadzone: 0.14,
-    lookSpeed: 2.6, // radians/sec at full stick deflection
-    swapTriggers: true, // LT ascend / RT descend
+    deadzone: 0.34,
+    lookSpeed: 4.49, // radians/sec at full stick deflection
+    swapTriggers: false, // tried the swap, went back to RT ascend
   },
   grapple: {
     range: 60,
@@ -64,11 +72,14 @@ export const params = {
     grassConcealHeight: 3.6, // fly below the grass line and you're hidden
     closeSeeRange: 18, // ...unless you're right in their face
     // Reaction
-    swatRange: 26,
+    swatRange: 26, // how close he'll get before taking a swing
+    swatHitRadius: 15, // the hand's actual hit sphere — smaller = fairer
     swatImpulse: 46, // velocity change dealt to a struck bee
     swatCooldown: 1.6,
     swatWindup: 0.32,
     investigateTime: 6,
+    yardRadius: 50, // he's kinematic, so the fence won't stop him — this does
+    fenceLimitZ: -54,
   },
   exposure: {
     riseSeen: 7, // per second while plainly visible
@@ -83,10 +94,38 @@ export const params = {
   fps: 0,
 };
 
+const STORAGE_KEY = 'bht.settings.v1';
+
+/** The values shipped in the build, captured before any saved file is applied. */
+const SHIPPED = JSON.parse(JSON.stringify(params)) as typeof params;
+
 /** Everything except live readouts — this is what round-trips to the designer. */
 function exportSettings(): string {
   const { fps: _fps, ...rest } = params;
   return JSON.stringify(rest, null, 2);
+}
+
+/**
+ * Restore saved tuning. MUST run before the world is built — the yard, the
+ * human and the flower springs all read these values at construction time.
+ */
+export function loadSavedSettings(): boolean {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (!raw) return false;
+    applySettings(raw);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+function saveSettings() {
+  try {
+    localStorage.setItem(STORAGE_KEY, exportSettings());
+  } catch {
+    // Private browsing or a full quota — tuning just won't persist.
+  }
 }
 
 function showDump(text: string) {
@@ -141,6 +180,9 @@ export function createTuning(
   c.addBinding(params.camera, 'invertY', { label: 'invert look Y' });
   c.addBinding(params.camera, 'shoulder', { min: -3, max: 3 });
   c.addBinding(params.camera, 'shoulderUp', { min: -2, max: 3, label: 'shoulder up' });
+  c.addBinding(params.camera, 'collisionBuffer', { min: 0, max: 6, label: 'wall buffer' });
+  c.addBinding(params.camera, 'minDistance', { min: 0.4, max: 6, label: 'min distance' });
+  c.addBinding(params.camera, 'uncollideSpeed', { min: 1, max: 20, label: 'ease-out speed' });
 
   const am = pane.addFolder({ title: 'Aim assist' });
   am.addBinding(params.aim, 'assistAngle', {
@@ -216,6 +258,25 @@ export function createTuning(
       pasteBtn.title = '⚠️ not valid JSON';
     }
     setTimeout(() => (pasteBtn.title = '📥 paste settings JSON'), 2400);
+  });
+
+  const resetBtn = io.addButton({ title: '↩︎ reset to shipped defaults' });
+  resetBtn.on('click', () => {
+    applySettings(JSON.stringify(SHIPPED));
+    try {
+      localStorage.removeItem(STORAGE_KEY);
+    } catch { /* nothing to clear */ }
+    pane.refresh();
+    onFlowerSpringChange();
+    resetBtn.title = '✅ back to defaults';
+    setTimeout(() => (resetBtn.title = '↩︎ reset to shipped defaults'), 2000);
+  });
+
+  // Persist every tweak so a reload doesn't cost you an evening of tuning.
+  let saveTimer: number | undefined;
+  pane.on('change', () => {
+    clearTimeout(saveTimer);
+    saveTimer = setTimeout(saveSettings, 400) as unknown as number;
   });
 
   document.getElementById('jsonClose')?.addEventListener('click', () => {

@@ -37,6 +37,32 @@ Gamepad: L-stick fly · R-stick look · **LT up / RT down** (analog; swappable i
 the Controller folder) · **A** overdrive · **RB** grapple · **LB** carry ·
 **X** throw
 
+### What `damping` and `overspeed drag` actually do
+
+Both slow you down, but they act in different places and shape different
+moments.
+
+**damping** — how thick the air is. Applied *always*, proportional to your
+current speed. It decides what happens when you **let go of the stick**: high
+damping stops you almost immediately (twitchy, precise, insect-like); low
+damping lets you coast for ages (floaty, drifty, more like a paper plane).
+Tune this for how the bee feels to *stop*.
+
+**overspeed drag** — only bites *above* `maxSpeed`. Normal flying never touches
+it. It decides how long **borrowed speed** sticks around: a grapple swing, a
+swat sending you flying, a fan gust later on. High values snap you back to
+normal speed almost at once, which makes swings feel abrupt and safe. Low
+values let a good swing fling you across the yard and stay fast for a while.
+Tune this for how far a swing throws you.
+
+Rule of thumb: `damping` is the feel of your own flying; `overspeed drag` is
+the feel of the world throwing you around.
+
+### Settings persistence
+
+Tuning is saved to `localStorage` automatically (debounced) and restored on
+load, before the world is built. **↩︎ reset to shipped defaults** clears it.
+
 ### Sharing tuning values
 
 The **Settings I/O** folder copies every tuning value to the clipboard as JSON
