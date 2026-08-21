@@ -10,6 +10,10 @@ import { params } from '../core/tuning';
 export interface DynamicProp {
   mesh: THREE.Object3D;
   body: RAPIER_API.RigidBody;
+  /** Salvage is what the hive reverse-engineers into new tech. */
+  salvage?: boolean;
+  /** Set once deposited, so it can't be farmed twice. */
+  consumed?: boolean;
 }
 
 // Flower heads are dynamic bodies held to an anchor by a spring, so grappling
@@ -169,6 +173,7 @@ export function buildYard(physics: Physics, scene: THREE.Scene, seed: number): Y
     x: number,
     y: number,
     z: number,
+    salvage = false,
   ) => {
     mesh.castShadow = true;
     group.add(mesh);
@@ -176,7 +181,7 @@ export function buildYard(physics: Physics, scene: THREE.Scene, seed: number): Y
       RAPIER.RigidBodyDesc.dynamic().setTranslation(x, y, z).setAngularDamping(0.6),
     );
     world.createCollider(colliderDesc, body);
-    dynamicProps.push({ mesh, body });
+    dynamicProps.push({ mesh, body, salvage });
   };
 
   // soda can — too heavy to carry, grapple-only. The "you move, not it" test.
@@ -226,6 +231,27 @@ export function buildYard(physics: Physics, scene: THREE.Scene, seed: number): Y
       batt,
       RAPIER.ColliderDesc.cylinder(0.85, 0.55).setDensity(0.06).setFriction(0.8),
       range(-16, 16), 1.2, range(2, 22),
+      true,
+    );
+  }
+
+  // Loose electronics — the rest of the reverse-engineering diet.
+  const boardMat = new THREE.MeshStandardMaterial({
+    color: 0x1f6b3a, roughness: 0.6, metalness: 0.2,
+  });
+  const traceMat = new THREE.MeshStandardMaterial({
+    color: 0xc9a227, roughness: 0.3, metalness: 0.9,
+  });
+  for (let i = 0; i < 5; i++) {
+    const board = new THREE.Mesh(new THREE.BoxGeometry(2.2, 0.22, 1.5), boardMat);
+    const chip = new THREE.Mesh(new THREE.BoxGeometry(0.7, 0.24, 0.55), traceMat);
+    chip.position.y = 0.2;
+    board.add(chip);
+    addDynamic(
+      board,
+      RAPIER.ColliderDesc.cuboid(1.1, 0.15, 0.75).setDensity(0.03).setFriction(0.9),
+      range(-34, 34), 1.0, range(-30, 30),
+      true,
     );
   }
 

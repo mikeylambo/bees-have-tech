@@ -78,6 +78,18 @@ export const params = {
     fanForce: 165, // units/sec^2 on the axis at point-blank
     fanDamping: 0.5, // moving air is THIN air — this is why a fan throws you
   },
+  hive: {
+    depositRadius: 9,
+  },
+  swarm: {
+    speed: 34,
+    followRadius: 5.5,
+    orbitRadius: 9,
+    grabRadius: 3.4,
+    beaconTime: 1.4, // converge for this long, then read the situation
+    contextRadius: 26, // how far a bee looks for a job around the beacon
+    distractPerception: 0.45, // human's sight range while being mobbed
+  },
   appliance: {
     sprinklerWetRadius: 46,
     wetGrow: 16, // units/sec the puddle spreads

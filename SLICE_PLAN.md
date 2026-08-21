@@ -226,7 +226,25 @@ interact. Add the Human Threat Database beat where the human reacts to
 *evidence* rather than to the bee directly.
 **Question:** do unscripted chains actually happen, and are they funny?
 
-### M4 — Swarm + Reverse Engineering
+### M4 — Swarm + Reverse Engineering ✅ BUILT
+**Hive** at the fence line — visible to humans, reachable only by bees. Fly
+salvage into the glowing mouth to bank it.
+
+**Salvage**: batteries and circuit boards scattered in the yard, carried by the
+tractor beam or by swarm bees.
+
+**Research** auto-unlocks on total delivered: 3 → Swarm Beacon, 7 → a second
+bee, 12 → Overdrive Mk II. Deliberately not a spend-menu; the fantasy is
+reverse-engineering, not shopping.
+
+**Swarm**: throw a beacon, bees converge, then each picks a job from context —
+haul nearby salvage home, or mob the human. Mobbing cuts his sight range to
+45%, so the beacon is a real tool. No command camera, per the pillar.
+
+**Question answered?** The loop closes: steal → bank → unlock → new capability.
+Whether it's *motivating* over hours needs content, not more systems.
+
+### M4 — original brief
 Recruit 2–3 bees with simple jobs (distract, lift, harvest). Salvage parts
 from hacked objects, carry them home, spend them on a small research tree
 that unlocks the next gadget.

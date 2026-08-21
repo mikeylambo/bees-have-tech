@@ -1,6 +1,7 @@
 import type { TechItem, TechContext } from './tech';
 import type { Grapple } from './grapple';
 import type { Carry } from './carry';
+import type { Swarm } from './swarm';
 import { params } from '../core/tuning';
 
 // Grapple and tractor beam used to be the same verb wearing two hats: both
@@ -40,6 +41,26 @@ export function grappleTech(grapple: Grapple): TechItem {
     },
     status() {
       return grapple.state === 'idle' ? 'idle' : 'engaged';
+    },
+  };
+}
+
+/**
+ * One verb for the player — throw it — with the bees reading context
+ * underneath. Same rule the appliances follow: complexity lives in the
+ * overlap, never in the interface.
+ */
+export function beaconTech(swarm: Swarm): TechItem {
+  return {
+    id: 'beacon',
+    name: 'Swarm Beacon',
+    icon: '🟡',
+    blurb: 'Throw it. Bees converge, then find their own job.',
+    useStart(ctx: TechContext) {
+      swarm.placeBeacon(ctx.aim.point);
+    },
+    status() {
+      return swarm.distracting ? 'engaged' : 'idle';
     },
   };
 }

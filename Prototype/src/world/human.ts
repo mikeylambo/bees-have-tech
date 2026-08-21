@@ -30,6 +30,8 @@ export class Human {
   state: HumanState = 'idle';
   /** 0..1 — short-term "something's over there", drives the lean/turn. */
   alert = 0;
+  /** Set each frame by the swarm: decoy bees are in his face right now. */
+  distracted = false;
 
   private body: RAPIER_API.RigidBody;
   private yaw = 0;
@@ -208,7 +210,12 @@ export class Human {
     const eye = this.eyePosition(_tmp);
     _toBee.subVectors(beePos, eye);
     const dist = _toBee.length();
-    if (dist > p.sightRange || dist < 0.01) return false;
+    // Being mobbed by decoys shortens how far he can pick YOU out of the
+    // noise. This is what makes the beacon a tool rather than decoration.
+    const range = this.distracted
+      ? p.sightRange * params.swarm.distractPerception
+      : p.sightRange;
+    if (dist > range || dist < 0.01) return false;
     _toBee.divideScalar(dist);
 
     // Grass concealment — the reason the grass isn't just scenery.

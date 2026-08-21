@@ -12,7 +12,10 @@ import { Carry } from './bee/carry';
 import { Aiming } from './bee/aiming';
 import { Stinger } from './bee/stinger';
 import { TechBelt } from './bee/tech';
-import { grappleTech, tractorTech } from './bee/techItems';
+import { grappleTech, tractorTech, beaconTech } from './bee/techItems';
+import { Swarm } from './bee/swarm';
+import { Hive } from './game/hive';
+import { Research } from './game/research';
 import { RadialMenu } from './ui/radial';
 import { Human } from './world/human';
 import { Exposure } from './game/exposure';
@@ -65,6 +68,44 @@ async function main() {
   atmosphere.add(fan.zone);
   const air = Atmosphere.emptySample();
 
+  // --- M4: hive, swarm, reverse engineering ---
+  // The hive sits at the fence line: visible to humans, reachable only by bees.
+  const hive = new Hive(physics, new THREE.Vector3(6, 0, -56));
+  scene.add(hive.group);
+  const swarm = new Swarm();
+  scene.add(swarm.group);
+  const research = new Research();
+
+  const salvageEl = document.getElementById('salvageCount');
+  const goalEl = document.getElementById('researchGoal');
+  const researchFill = document.getElementById('researchFill');
+  const unlockEl = document.getElementById('unlock');
+  const unlockName = document.getElementById('unlockName');
+  const unlockBlurb = document.getElementById('unlockBlurb');
+
+  function updateResearchHud() {
+    if (salvageEl) salvageEl.textContent = `${hive.stored} salvage`;
+    const next = research.next();
+    if (goalEl) {
+      goalEl.textContent = next
+        ? `Next: ${next.name} (${hive.stored}/${next.cost})`
+        : 'All tech reverse-engineered';
+    }
+    if (researchFill) {
+      const pct = next ? Math.min(100, (hive.stored / next.cost) * 100) : 100;
+      researchFill.style.width = `${pct}%`;
+    }
+  }
+
+  function announceUnlock(name: string, blurb: string) {
+    if (!unlockEl) return;
+    if (unlockName) unlockName.textContent = name;
+    if (unlockBlurb) unlockBlurb.textContent = blurb;
+    unlockEl.classList.remove('show');
+    void unlockEl.offsetWidth;
+    unlockEl.classList.add('show');
+  }
+
   // --- innate vs tech ---
   // The stinger is the bee's body, so it's never in the belt and never
   // swapped away. Everything else is tech the hive researched.
@@ -80,6 +121,28 @@ async function main() {
     if (human.canSee(physics, a.position, flight.collider)) exposure.spike(14);
   }));
   const radial = new RadialMenu(belt);
+
+  research.onUnlock = (node) => {
+    if (node.id === 'swarm-beacon') {
+      belt.add(beaconTech(swarm));
+      swarm.recruit(hive.mouthPosition(new THREE.Vector3()));
+      radial.rebuild();
+    }
+    if (node.id === 'drone-wingman') {
+      swarm.recruit(hive.mouthPosition(new THREE.Vector3()));
+    }
+    if (node.id === 'overdrive-ii') {
+      params.flight.boostMul *= 1.5;
+    }
+    announceUnlock(node.name, node.blurb);
+    input.rumble(0.6, 0.8, 400);
+  };
+
+  hive.onDeposit = (total) => {
+    research.evaluate(total);
+    updateResearchHud();
+    input.rumble(0.3, 0.5, 120);
+  };
 
   const techIcon = document.getElementById('techIcon');
   const techName = document.getElementById('techName');
@@ -218,12 +281,15 @@ async function main() {
   const camPos = new THREE.Vector3();
   let firstFrame = true;
   let zapCooldown = 0;
+  const hiveMouth = new THREE.Vector3();
   const propBodies = yard.dynamicProps.map((p) => p.body);
   (window as unknown as Record<string, unknown>).__debug = {
     beePos, beeVel, params, grapple, carry, yard, physics, flight, followCam, scene,
     aiming, aim, human, exposure, belt, radial, stinger,
     appliances, sprinkler, zapper, fan, atmosphere, hacker, air,
+    hive, swarm, research,
   };
+  updateResearchHud();
 
   function frame(now: number) {
     requestAnimationFrame(frame);
@@ -327,6 +393,12 @@ async function main() {
       }
     }
     zapCooldown = Math.max(0, zapCooldown - dt);
+
+    // --- M4: hive, swarm, salvage ---
+    hive.update(dt);
+    swarm.update(dt, hive, human.root.position, beePos, yard.dynamicProps);
+    hive.tryDeposit(yard.dynamicProps, hive.mouthPosition(hiveMouth));
+    human.distracted = swarm.distracting;
 
     // --- human + exposure ---
     const { seen } = human.update(dt, physics, beePos, flight.collider, humanRand);

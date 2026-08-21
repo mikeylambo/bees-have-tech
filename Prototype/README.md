@@ -1,7 +1,10 @@
 # The Bees Have Tech! — Prototype
 
 **M0 — Flight ✅ · M1 — Grapple & Carry ✅ · M2 — One Human ✅ ·
-Control pass ✅ · M3 — Hack & Chain Reactions ✅**
+Control pass ✅ · M3 — Hack & Chain Reactions ✅ · M4 — Swarm & Research ✅**
+
+**The seven-verb chain is playable.** Fly → physics → gadget → hack → swarm →
+human reaction → chain reaction.
 
 See `../CONCEPT_PILLARS.md` and `../SLICE_PLAN.md` for what this slice exists
 to validate: **flight feel, comedy, toy interactions, tiny-world scale,
@@ -96,6 +99,22 @@ visibly changes what the world looks actionable.
 - `src/core/rng.ts` — seeded RNG (procgen determinism from commit one)
 
 ## Design notes worth keeping
+
+**The loop closes at the hive.** Salvage (batteries, circuit boards) is
+carried to the hive mouth and reverse-engineered into tech: 3 unlocks the
+Swarm Beacon, 7 a second bee, 12 a hotter overdrive. Auto-unlocking rather
+than a spend-menu on purpose — a shop would make this an economy, and the
+fantasy is reverse-engineering, not shopping.
+
+**The swarm never gets a command camera.** You throw one beacon; bees converge
+and then pick a job from CONTEXT — salvage nearby gets hauled home, a human
+nearby gets mobbed. One verb for the player, contextual behaviour underneath,
+the same rule the appliances follow. Mobbing genuinely shortens the human's
+sight range, so the beacon is a tool rather than decoration.
+
+**Swarm bees are non-physical.** They collide with nothing and push nothing,
+so a dozen cost almost nothing and none of them can ever wedge the player into
+geometry. Only their *cargo* touches physics.
 
 **One verb per hackable object.** Sprinkler, bug zapper and box fan each do
 exactly one thing: on or off. All the depth comes from their effects
