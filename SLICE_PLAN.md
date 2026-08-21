@@ -197,7 +197,29 @@ Grappling Cable = traversal (heavy/static only, moves *you*, lifts nothing);
 Tractor Beam = manipulation (light only, never moves you). One threshold
 divides them so they can never both claim an object.
 
-### M3 — Hack + Chain Reactions
+### M3 — Hack + Chain Reactions ✅ BUILT
+**Hacker Antenna** (third tech): hold on an appliance to flip its one verb.
+Holding rather than tapping means hacking in the open costs you exposure.
+
+Three appliances, one verb each: **sprinkler** (water — wets ground, spreads a
+puddle), **bug zapper** (electricity — arcs, hazard radius), **box fan** (moving
+air — the first atmosphere zone).
+
+**The chain nobody scripted:** water reaching a live zapper electrifies the
+puddle, hazard radius 16 → 38. Neither object knows about the other — the
+sprinkler publishes a wet radius, the zapper asks whether it's standing in one.
+
+**Atmosphere shipped as a field**, per the note above: damping is sampled at
+the bee's position, so the fan's blast is thin air (2.6 → 1.05) plus a shove.
+Every future zone is now content, not engineering.
+
+**Humans react to evidence**, not just to the bee: an appliance running by
+itself in view drives exposure independently of whether you were seen.
+
+**Question answered?** Chains happen and compound. Whether they're *funny*
+needs playtesting, not measurement.
+
+### M3 — original brief
 Three hackable objects with overlapping effects: sprinkler (water), bug
 zapper (electricity), box fan (wind/force). Water + electricity must
 interact. Add the Human Threat Database beat where the human reacts to

@@ -31,11 +31,22 @@ export class FlightController {
     this.lastDamping = params.flight.damping;
   }
 
-  /** `load` is 0..1 from a carried object — heavy cargo slows the bee down. */
-  applyInput(input: InputState, cameraYaw: number, load = 0) {
-    if (params.flight.damping !== this.lastDamping) {
-      this.body.setLinearDamping(params.flight.damping);
-      this.lastDamping = params.flight.damping;
+  /**
+   * `load` is 0..1 from a carried object — heavy cargo slows the bee down.
+   * `air` is the local atmosphere: damping and a steady push, sampled where
+   * the bee actually is. Air being a FIELD rather than a constant is what
+   * makes a fan feel like a place instead of a prop.
+   */
+  applyInput(
+    input: InputState,
+    cameraYaw: number,
+    load = 0,
+    air?: { damping: number; force: THREE.Vector3 },
+  ) {
+    const damping = air ? air.damping : params.flight.damping;
+    if (damping !== this.lastDamping) {
+      this.body.setLinearDamping(damping);
+      this.lastDamping = damping;
     }
 
     const p = params.flight;
@@ -74,6 +85,14 @@ export class FlightController {
     const vs = Math.abs(v.y);
     if (vs > maxV) {
       fy -= Math.sign(v.y) * p.overspeedDrag * m * (vs - maxV);
+    }
+
+    // Wind is a force on the bee's mass, so it shoves you the same way a swat
+    // does — you can fight it, but not ignore it.
+    if (air) {
+      fx += air.force.x * m;
+      fy += air.force.y * m;
+      fz += air.force.z * m;
     }
 
     this.body.resetForces(true);

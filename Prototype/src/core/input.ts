@@ -146,6 +146,11 @@ export class Input {
     return a;
   }
 
+  /** Controller haptics — the clearest hit confirmation on a pad. */
+  rumble(strong: number, weak: number, durationMs: number) {
+    this.pads.rumble(strong, weak, durationMs);
+  }
+
   // Consume accumulated look input for this frame.
   takeLook(): LookDelta {
     const p = this.pads.read(params.pad.deadzone, params.pad.swapTriggers);

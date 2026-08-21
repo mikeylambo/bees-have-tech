@@ -16,6 +16,9 @@ import { grappleTech, tractorTech } from './bee/techItems';
 import { RadialMenu } from './ui/radial';
 import { Human } from './world/human';
 import { Exposure } from './game/exposure';
+import { Sprinkler, BugZapper, BoxFan, type Appliance } from './world/appliances';
+import { Atmosphere } from './world/atmosphere';
+import { Hacker, hackerTech } from './bee/hacker';
 import { mulberry32 } from './core/rng';
 
 async function main() {
@@ -49,13 +52,33 @@ async function main() {
   const aiming = new Aiming(yard);
   const aim = Aiming.emptyResult();
 
+  // --- M3: hackable appliances + atmosphere ---
+  const sprinkler = new Sprinkler(physics, new THREE.Vector3(18, 0, -12));
+  const zapper = new BugZapper(physics, new THREE.Vector3(34, 0, -30));
+  const fan = new BoxFan(
+    physics, new THREE.Vector3(-14, 0, 22), new THREE.Vector3(0.4, 0, -1),
+  );
+  const appliances: Appliance[] = [sprinkler, zapper, fan];
+  for (const a of [sprinkler.group, zapper.group, fan.group]) scene.add(a);
+
+  const atmosphere = new Atmosphere();
+  atmosphere.add(fan.zone);
+  const air = Atmosphere.emptySample();
+
   // --- innate vs tech ---
   // The stinger is the bee's body, so it's never in the belt and never
   // swapped away. Everything else is tech the hive researched.
   const stinger = new Stinger(physics, flight.body, flight.collider);
+  const hacker = new Hacker(appliances);
+  scene.add(hacker.beam);
   const belt = new TechBelt();
   belt.add(grappleTech(grapple));
   belt.add(tractorTech(carry));
+  belt.add(hackerTech(hacker, (a) => {
+    // Flipping a switch in view is far more incriminating than being seen.
+    input.rumble(0.4, 0.65, 130);
+    if (human.canSee(physics, a.position, flight.collider)) exposure.spike(14);
+  }));
   const radial = new RadialMenu(belt);
 
   const techIcon = document.getElementById('techIcon');
@@ -85,6 +108,15 @@ async function main() {
     setTimeout(() => swatFlash.classList.remove('hit'), 90);
   }
 
+  const hitmark = document.getElementById('hitmark');
+  function popHitmark(kind: 'hit' | 'sting') {
+    if (!hitmark) return;
+    hitmark.classList.remove('pop', 'sting');
+    void hitmark.offsetWidth; // restart the animation
+    hitmark.classList.add('pop');
+    if (kind === 'sting') hitmark.classList.add('sting');
+  }
+
   human.onSwatHit = (dir) => {
     // Drop whatever you were holding — getting hit should cost you something.
     if (carry.isCarrying) carry.drop();
@@ -92,17 +124,26 @@ async function main() {
     flight.knockback(dir, params.human.swatImpulse);
     exposure.spike(6);
     flashSwat();
+    input.rumble(1, 0.8, 320); // you got hit by a hand the size of a house
   };
   stinger.onStingHuman = () => {
     // Being stung is not something you explain away as "just a bee."
     exposure.spike(22);
     human.reactToSting();
-    flashSwat();
+    popHitmark('sting');
+    input.rumble(0.85, 0.5, 220); // sharp and unmistakable
+  };
+  stinger.onHitProp = () => {
+    popHitmark('hit');
+    input.rumble(0.25, 0.4, 70);
   };
   human.onSwatMiss = (dir, distance) => {
     // Near miss: the air moves. Being *almost* hit should be a thrill.
     const falloff = Math.max(0, 1 - distance / (params.human.swatRange * 2.2));
-    if (falloff > 0) flight.knockback(dir, params.human.swatImpulse * 0.45 * falloff);
+    if (falloff > 0) {
+      flight.knockback(dir, params.human.swatImpulse * 0.45 * falloff);
+      input.rumble(0.3 * falloff, 0.5 * falloff, 160); // the air moves past you
+    }
   };
 
   const input = new Input(renderer.domElement);
@@ -176,9 +217,12 @@ async function main() {
   const aimDir = new THREE.Vector3();
   const camPos = new THREE.Vector3();
   let firstFrame = true;
+  let zapCooldown = 0;
+  const propBodies = yard.dynamicProps.map((p) => p.body);
   (window as unknown as Record<string, unknown>).__debug = {
     beePos, beeVel, params, grapple, carry, yard, physics, flight, followCam, scene,
     aiming, aim, human, exposure, belt, radial, stinger,
+    appliances, sprinkler, zapper, fan, atmosphere, hacker, air,
   };
 
   function frame(now: number) {
@@ -238,9 +282,13 @@ async function main() {
     accumulator += simDt;
     const load = carry.loadFactor();
     while (accumulator >= FIXED_DT) {
-      flight.applyInput(state, followCam.forwardYaw(), load);
+      atmosphere.sample(beePos, air);
+      flight.applyInput(state, followCam.forwardYaw(), load, air);
       flight.position(beePos);
-      carry.update(beePos, aim.dirFromBee);
+      // Refresh inside the loop — the beam feeds this forward, and a stale
+      // velocity is exactly what loses cargo during hard acceleration.
+      flight.velocity(beeVel);
+      carry.update(beePos, aim.dirFromBee, beeVel);
       physics.world.step();
       accumulator -= FIXED_DT;
     }
@@ -248,11 +296,49 @@ async function main() {
     flight.position(beePos);
     flight.velocity(beeVel);
 
+    // --- appliances + the chain nobody scripted ---
+    for (const a of appliances) a.update(dt);
+    hacker.update(beePos);
+    // Water reaching a live zapper electrifies the puddle. This is the whole
+    // point of M3: two objects with one verb each producing a third thing that
+    // nobody wrote a special case for.
+    zapper.electrifiedWater = zapper.on && sprinkler.wets(zapper.position);
+    fan.applyToProps(propBodies, dt);
+
+    if (zapper.on) {
+      const zapDist = Math.hypot(
+        beePos.x - zapper.position.x,
+        beePos.y - (zapper.position.y + 10),
+        beePos.z - zapper.position.z,
+      );
+      if (zapDist < zapper.hazardRadius && zapCooldown <= 0) {
+        zapCooldown = 1.2;
+        const away = new THREE.Vector3()
+          .subVectors(beePos, zapper.position).normalize();
+        away.y = Math.max(away.y, 0.5);
+        flight.knockback(away.normalize(), params.appliance.zapImpulse);
+        if (carry.isCarrying) carry.drop();
+        if (grapple.state !== 'idle') grapple.release();
+        flashSwat();
+        input.rumble(0.9, 1, 260);
+      }
+    }
+    zapCooldown = Math.max(0, zapCooldown - dt);
+
     // --- human + exposure ---
     const { seen } = human.update(dt, physics, beePos, flight.collider, humanRand);
     // Using tech in plain view is far more incriminating than merely existing.
-    const techVisible = grapple.state !== 'idle' || carry.isCarrying;
+    const techVisible =
+      grapple.state !== 'idle' || carry.isCarrying || hacker.target !== null;
     exposure.update(dt, seen, techVisible);
+
+    // Evidence: an appliance running by itself, in view, with no one near it.
+    // The human reacts to the WORLD behaving impossibly, not just to the bee.
+    for (const a of appliances) {
+      if (!a.conspicuous) continue;
+      if (!human.canSee(physics, a.position, flight.collider)) continue;
+      exposure.spike(params.appliance.evidenceRise * dt);
+    }
     updateExposureHud(seen);
 
     bee.update(dt, beePos, beeVel, state.boost);

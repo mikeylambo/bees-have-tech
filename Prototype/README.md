@@ -1,7 +1,7 @@
 # The Bees Have Tech! — Prototype
 
 **M0 — Flight ✅ · M1 — Grapple & Carry ✅ · M2 — One Human ✅ ·
-Control pass ✅**
+Control pass ✅ · M3 — Hack & Chain Reactions ✅**
 
 See `../CONCEPT_PILLARS.md` and `../SLICE_PLAN.md` for what this slice exists
 to validate: **flight feel, comedy, toy interactions, tiny-world scale,
@@ -96,6 +96,34 @@ visibly changes what the world looks actionable.
 - `src/core/rng.ts` — seeded RNG (procgen determinism from commit one)
 
 ## Design notes worth keeping
+
+**One verb per hackable object.** Sprinkler, bug zapper and box fan each do
+exactly one thing: on or off. All the depth comes from their effects
+overlapping, never from any single object having a complicated interface.
+Three appliances with one verb each beat one appliance with three verbs,
+because the interesting part is the overlap.
+
+**The chain nobody scripted.** Water reaching a live zapper electrifies the
+puddle — hazard radius 16 → 38. Neither object knows about the other; the
+sprinkler publishes a wet radius, the zapper asks whether it's standing in
+one. That's the M3 thesis in one interaction.
+
+**Air is a field, not a constant.** `damping` is sampled at the bee's position
+rather than read from a global, so a fan's blast is thin air (damping 2.6 →
+1.05) plus a shove. That combination is why a fan feels like being *thrown*
+rather than merely pushed — and it's why the fan is a system instead of a prop.
+Every future zone (indoors, steam, a draft, rain) is now content, not
+engineering.
+
+**The tractor beam feeds forward the bee's velocity.** Chasing the hold
+*position* alone loses cargo the moment you outrun the beam's pull speed,
+which overdrive does trivially. Matching your velocity and correcting the
+offset keeps cargo attached at any speed — and means releasing mid-spin
+genuinely launches the thing, because it already carries your momentum.
+
+**Feedback is controller-first.** This is played on a pad, so hits confirm
+through rumble as well as visuals — you're watching the bee, not the reticle.
+Sting, swat, near-miss, zap and hack each have their own haptic signature.
 
 **Innate vs tech.** Flight, wing overdrive and the **stinger** are the bee's
 body — always available, never in the wheel. Everything else is tech the hive

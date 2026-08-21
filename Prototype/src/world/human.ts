@@ -43,6 +43,7 @@ export class Human {
   private arrived = false;
   private leadShoulder = false;
   private didStrike = false;
+  private stungT = 0;
 
   // parts we animate
   private legL!: THREE.Mesh;
@@ -355,10 +356,16 @@ export class Human {
     return { seen };
   }
 
-  /** Got stung. Flinch, then come back angry and swinging without delay. */
+  /** Got stung. Flinch hard, then come back angry and swinging without delay. */
   reactToSting() {
     this.swatCooldownT = 0;
     this.alert = 1;
+    this.stungT = params.stinger.flinchTime;
+    // Stagger back a step — a hundred units of person recoiling is the only
+    // read the player gets from bee altitude, so make it big.
+    this.root.position.x -= Math.sin(this.yaw) * 6;
+    this.root.position.z -= Math.cos(this.yaw) * 6;
+    this.clampToYard();
     this.setState('recoil');
   }
 
@@ -442,6 +449,23 @@ export class Human {
 
   private animate(dt: number) {
     const p = params.human;
+    this.stungT = Math.max(0, this.stungT - dt);
+
+    // Stung: both arms fly up and he rocks back. Unmistakable from any range,
+    // which matters because a subtle reaction on a 100-unit body reads as
+    // nothing at all from bee altitude.
+    if (this.stungT > 0) {
+      const f = this.stungT / params.stinger.flinchTime;
+      const flail = Math.sin(this.stungT * 46) * 0.5 * f;
+      this.armL.rotation.x = -2.4 * f + flail;
+      this.armR.rotation.x = -2.4 * f - flail;
+      this.legL.rotation.x = 0.3 * f;
+      this.legR.rotation.x = -0.3 * f;
+      this.root.rotation.y = this.yaw;
+      this.head.rotation.x = 0.5 * f;
+      return;
+    }
+
     const swing = Math.sin(this.walkPhase) * 0.55;
     this.legL.rotation.x = swing;
     this.legR.rotation.x = -swing;

@@ -47,6 +47,29 @@
       /* aim assist redirected the shot off the lawn onto a real target */
       #reticle.assisted { box-shadow: 0 0 0 2px rgba(255, 215, 94, 0.28); }
 
+      /* Hitmarker — "that connected", for when you're watching the bee. */
+      #hitmark {
+        position: fixed; left: 50%; top: 50%; z-index: 9;
+        width: 46px; height: 46px; margin: -23px 0 0 -23px;
+        pointer-events: none; opacity: 0;
+      }
+      #hitmark::before, #hitmark::after {
+        content: ''; position: absolute; left: 50%; top: 50%;
+        width: 3px; height: 18px; margin: -9px 0 0 -1.5px;
+        background: #fff; border-radius: 2px;
+      }
+      #hitmark::before { transform: rotate(45deg); }
+      #hitmark::after { transform: rotate(-45deg); }
+      #hitmark.pop { animation: hitpop 320ms ease-out; }
+      #hitmark.sting::before, #hitmark.sting::after { background: #ffd75e; }
+      @keyframes hitpop {
+        0% { opacity: 1; transform: scale(0.55); }
+        100% { opacity: 0; transform: scale(1.5); }
+      }
+      @media (prefers-reduced-motion: reduce) {
+        #hitmark.pop { animation: none; opacity: 0; }
+      }
+
       /* H hides the dev UI so the yard can be seen (and screenshotted) clean. */
       body.hide-ui .hud,
       body.hide-ui .tp-dfwv { display: none; }
@@ -193,6 +216,7 @@
     <div id="app"></div>
     <div id="lockHint">🐝 click to fly</div>
     <div id="reticle"></div>
+    <div id="hitmark"></div>
     <div id="swatFlash"></div>
     <div id="exposure">
       <div class="label">

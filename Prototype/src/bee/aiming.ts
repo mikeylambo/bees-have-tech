@@ -31,6 +31,8 @@ export interface AimResult {
   liftable: boolean;
   /** Anything at all in range. */
   hasTarget: boolean;
+  /** Collider hit, so systems can identify specific world objects. */
+  colliderHandle: number;
 }
 
 const _v = new THREE.Vector3();
@@ -71,6 +73,7 @@ export class Aiming {
 
     let body: RAPIER_API.RigidBody | null = null;
     let hitGround = false;
+    out.colliderHandle = hit ? hit.collider.handle : -1;
     if (hit) {
       body = hit.collider.parent();
       // Ground and fence have no rigid body of their own; only the ground is
@@ -104,6 +107,7 @@ export class Aiming {
         out.point.set(t.x, t.y, t.z);
         body = best;
         out.assisted = true;
+        out.colliderHandle = -1; // assisted onto a body, not a specific collider
       }
     }
 
@@ -130,6 +134,7 @@ export class Aiming {
       assisted: false,
       liftable: false,
       hasTarget: false,
+      colliderHandle: -1,
     };
   }
 }

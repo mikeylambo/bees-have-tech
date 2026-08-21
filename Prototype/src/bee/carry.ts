@@ -125,7 +125,7 @@ export class Carry {
     this.beam.visible = false;
   }
 
-  update(beePos: THREE.Vector3, aimDir: THREE.Vector3) {
+  update(beePos: THREE.Vector3, aimDir: THREE.Vector3, beeVel: THREE.Vector3) {
     const body = this.held;
     if (!body) return;
 
@@ -144,10 +144,14 @@ export class Carry {
 
     const dist = this.tmp.length();
     if (dist > params.carry.breakDistance) {
-      // Safety net for a wedged object, not a gameplay rule. You should never
-      // lose a load just for flying enthusiastically — heavy things tax your
-      // flight instead (see loadFactor).
-      this.restore();
+      // The object is wedged inside geometry or otherwise lost. Recover it
+      // rather than dropping it — losing your cargo is never the intended
+      // outcome of flying enthusiastically.
+      body.setTranslation(
+        { x: this.holdPoint.x, y: this.holdPoint.y, z: this.holdPoint.z },
+        true,
+      );
+      body.setLinvel({ x: beeVel.x, y: beeVel.y, z: beeVel.z }, true);
       return;
     }
 
@@ -160,8 +164,22 @@ export class Carry {
       1,
     );
     const speed = params.carry.pullSpeed * massFactor;
-    const desired = this.tmp.normalize().multiplyScalar(Math.min(dist * 8, speed));
-    body.setLinvel({ x: desired.x, y: desired.y, z: desired.z }, true);
+    const correction = this.tmp.normalize().multiplyScalar(Math.min(dist * 8, speed));
+
+    // FEED-FORWARD the bee's own velocity. Chasing the hold POSITION alone
+    // means the beam loses anything once you outrun its pull speed — which
+    // overdrive does easily. Matching your velocity and then correcting the
+    // offset keeps cargo attached at any speed, and means letting go while
+    // spinning genuinely launches the thing, because it already carries your
+    // momentum.
+    body.setLinvel(
+      {
+        x: beeVel.x + correction.x,
+        y: beeVel.y + correction.y,
+        z: beeVel.z + correction.z,
+      },
+      true,
+    );
 
     // Point the beam cone from the bee to the object.
     this.beam.position.copy(beePos);

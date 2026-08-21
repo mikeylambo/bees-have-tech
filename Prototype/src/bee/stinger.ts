@@ -18,6 +18,8 @@ export class Stinger {
 
   /** Fired when the jab connects with the human. */
   onStingHuman?: (dir: THREE.Vector3) => void;
+  /** Fired when the jab connects with anything else. */
+  onHitProp?: () => void;
 
   constructor(
     private physics: Physics,
@@ -62,7 +64,10 @@ export class Stinger {
     if (!hit) return false;
 
     const body = hit.collider.parent();
-    if (!body) return true; // hit static geometry — connected, no effect
+    if (!body) {
+      this.onHitProp?.(); // static geometry — connected, no effect
+      return true;
+    }
 
     if (body.handle === humanBodyHandle) {
       this.onStingHuman?.(dir);
@@ -77,6 +82,7 @@ export class Stinger {
         true,
       );
     }
+    this.onHitProp?.();
     return true;
   }
 }

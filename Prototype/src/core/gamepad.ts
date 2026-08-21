@@ -49,6 +49,30 @@ export class Gamepads {
     });
   }
 
+  /**
+   * Haptics. On a pad this is the clearest "that connected" signal there is —
+   * far better than a visual you're not looking at because you're watching the
+   * bee. Silently no-ops on pads/browsers without an actuator.
+   */
+  rumble(strong: number, weak: number, durationMs: number) {
+    const p = this.active();
+    const actuator = (p as unknown as {
+      vibrationActuator?: {
+        playEffect: (type: string, params: Record<string, number>) => Promise<unknown>;
+      };
+    } | null)?.vibrationActuator;
+    if (!actuator?.playEffect) return;
+    actuator
+      .playEffect('dual-rumble', {
+        duration: durationMs,
+        strongMagnitude: Math.min(1, Math.max(0, strong)),
+        weakMagnitude: Math.min(1, Math.max(0, weak)),
+      })
+      .catch(() => {
+        // Some pads reject overlapping effects — not worth surfacing.
+      });
+  }
+
   private active(): Gamepad | null {
     const pads = navigator.getGamepads?.() ?? [];
     for (const p of pads) {

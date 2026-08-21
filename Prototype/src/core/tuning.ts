@@ -63,9 +63,29 @@ export const params = {
     lungeTime: 0.22,
     lungeImpulse: 14, // the bee throws itself at the target
     propImpulse: 30,
+    flinchTime: 0.85, // how long the human flails after being stung
   },
   radial: {
     timeScale: 0.25, // slow-mo while choosing, so the physics stays readable
+  },
+  hack: {
+    range: 55,
+    time: 0.7, // hold this long to flip an appliance
+  },
+  atmosphere: {
+    fanRange: 95,
+    fanSpread: 0.5, // radians, half-angle of the cone
+    fanForce: 165, // units/sec^2 on the axis at point-blank
+    fanDamping: 0.5, // moving air is THIN air — this is why a fan throws you
+  },
+  appliance: {
+    sprinklerWetRadius: 46,
+    wetGrow: 16, // units/sec the puddle spreads
+    wetDry: 5, // units/sec it dries once off
+    zapperRadius: 16,
+    wetZapMultiplier: 2.4, // an electrified puddle is a much bigger problem
+    zapImpulse: 65,
+    evidenceRise: 26, // exposure/sec when a human watches tech act by itself
   },
   flower: {
     stiffness: 12,
