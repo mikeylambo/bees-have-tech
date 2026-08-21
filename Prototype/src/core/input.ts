@@ -21,13 +21,18 @@ export interface LookDelta {
 
 // Action buttons, reported as edges (pressed/released this frame) plus held.
 export interface Actions {
-  grappleHeld: boolean;
-  grapplePressed: boolean;
-  grappleReleased: boolean;
-  carryHeld: boolean;
-  carryPressed: boolean;
-  carryReleased: boolean;
-  throwPressed: boolean;
+  /** Use the active tech item. */
+  useHeld: boolean;
+  usePressed: boolean;
+  useReleased: boolean;
+  /** Secondary action of the active tech (throw, detach). */
+  altPressed: boolean;
+  /** Innate stinger jab. */
+  stingPressed: boolean;
+  /** Hold to open the tech radial. */
+  radialHeld: boolean;
+  /** Quick-cycle without opening the radial. */
+  cycleDelta: number;
 }
 
 export class Input {
@@ -36,9 +41,10 @@ export class Input {
   private mouseDX = 0;
   private mouseDY = 0;
   private mouseButtons = new Set<number>();
-  private prevGrapple = false;
-  private prevCarry = false;
-  private prevThrow = false;
+  private prevUse = false;
+  private prevSting = false;
+  private prevAlt = false;
+  private wheelDelta = 0;
   locked = false;
   padConnected = false;
 
@@ -50,8 +56,14 @@ export class Input {
     window.addEventListener('mouseup', (e) => this.mouseButtons.delete(e.button));
     canvas.addEventListener('contextmenu', (e) => e.preventDefault());
 
+    canvas.addEventListener('wheel', (e) => {
+      e.preventDefault();
+      this.wheelDelta += Math.sign(e.deltaY);
+    }, { passive: false });
+
     window.addEventListener('keydown', (e) => {
-      if (e.code === 'Space') e.preventDefault();
+      // Tab opens the tech radial; don't let it walk the browser's focus ring.
+      if (e.code === 'Space' || e.code === 'Tab') e.preventDefault();
       this.keys.add(e.code);
     });
     window.addEventListener('keyup', (e) => this.keys.delete(e.code));
@@ -113,22 +125,24 @@ export class Input {
   // Edge-detected action buttons. Call once per frame.
   actions(): Actions {
     const p = this.pads.read(params.pad.deadzone, params.pad.swapTriggers);
-    const grapple = this.mouseButtons.has(0) || this.keys.has('KeyE') || p.grapple;
-    const carry = this.mouseButtons.has(2) || this.keys.has('KeyQ') || p.carry;
-    const thrown = this.keys.has('KeyF') || p.throwBtn;
+    const use = this.mouseButtons.has(0) || this.keys.has('KeyE') || p.use;
+    const sting = this.mouseButtons.has(2) || this.keys.has('KeyQ') || p.sting;
+    const alt = this.keys.has('KeyF') || p.alt;
+    const radial = this.keys.has('Tab') || p.radial;
 
     const a: Actions = {
-      grappleHeld: grapple,
-      grapplePressed: grapple && !this.prevGrapple,
-      grappleReleased: !grapple && this.prevGrapple,
-      carryHeld: carry,
-      carryPressed: carry && !this.prevCarry,
-      carryReleased: !carry && this.prevCarry,
-      throwPressed: thrown && !this.prevThrow,
+      useHeld: use,
+      usePressed: use && !this.prevUse,
+      useReleased: !use && this.prevUse,
+      altPressed: alt && !this.prevAlt,
+      stingPressed: sting && !this.prevSting,
+      radialHeld: radial,
+      cycleDelta: this.wheelDelta,
     };
-    this.prevGrapple = grapple;
-    this.prevCarry = carry;
-    this.prevThrow = thrown;
+    this.prevUse = use;
+    this.prevSting = sting;
+    this.prevAlt = alt;
+    this.wheelDelta = 0;
     return a;
   }
 

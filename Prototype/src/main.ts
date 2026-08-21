@@ -10,6 +10,10 @@ import { FlightController } from './bee/flight';
 import { Grapple } from './bee/grapple';
 import { Carry } from './bee/carry';
 import { Aiming } from './bee/aiming';
+import { Stinger } from './bee/stinger';
+import { TechBelt } from './bee/tech';
+import { grappleTech, tractorTech } from './bee/techItems';
+import { RadialMenu } from './ui/radial';
 import { Human } from './world/human';
 import { Exposure } from './game/exposure';
 import { mulberry32 } from './core/rng';
@@ -45,6 +49,24 @@ async function main() {
   const aiming = new Aiming(yard);
   const aim = Aiming.emptyResult();
 
+  // --- innate vs tech ---
+  // The stinger is the bee's body, so it's never in the belt and never
+  // swapped away. Everything else is tech the hive researched.
+  const stinger = new Stinger(physics, flight.body, flight.collider);
+  const belt = new TechBelt();
+  belt.add(grappleTech(grapple));
+  belt.add(tractorTech(carry));
+  const radial = new RadialMenu(belt);
+
+  const techIcon = document.getElementById('techIcon');
+  const techName = document.getElementById('techName');
+  function refreshTechHud() {
+    const t = belt.active;
+    if (techIcon) techIcon.textContent = t ? t.icon : '';
+    if (techName) techName.textContent = t ? t.name : 'no tech';
+  }
+  refreshTechHud();
+
   // --- M2: one human, one exposure meter ---
   const human = new Human(physics, new THREE.Vector3(-26, 0, -34));
   scene.add(human.root);
@@ -69,6 +91,12 @@ async function main() {
     if (grapple.state !== 'idle') grapple.release();
     flight.knockback(dir, params.human.swatImpulse);
     exposure.spike(6);
+    flashSwat();
+  };
+  stinger.onStingHuman = () => {
+    // Being stung is not something you explain away as "just a bee."
+    exposure.spike(22);
+    human.reactToSting();
     flashSwat();
   };
   human.onSwatMiss = (dir, distance) => {
@@ -150,7 +178,7 @@ async function main() {
   let firstFrame = true;
   (window as unknown as Record<string, unknown>).__debug = {
     beePos, beeVel, params, grapple, carry, yard, physics, flight, followCam, scene,
-    aiming, aim, human, exposure,
+    aiming, aim, human, exposure, belt, radial, stinger,
   };
 
   function frame(now: number) {
@@ -158,9 +186,11 @@ async function main() {
     const dt = Math.min((now - last) / 1000, 1 / 20);
     last = now;
 
-    followCam.addLook(input.takeLook(), dt);
-    const state = input.state();
+    const look = input.takeLook();
     const act = input.actions();
+    // While the radial is open the stick steers the menu, not the camera.
+    if (!act.radialHeld) followCam.addLook(look, dt);
+    const state = input.state();
 
     // The crosshair finds a point; gadgets then fire from the BEE toward it,
     // so close-range shots don't miss by camera parallax.
@@ -169,34 +199,46 @@ async function main() {
     flight.position(beePos);
     aiming.resolve(physics, camPos, aimDir, beePos, flight.collider, flight.body, aim);
 
-    // --- grapple ---
-    if (act.grapplePressed) {
-      if (carry.isCarrying) {
-        carry.throwIt(aim.dirFromBee); // doubles as throw while carrying
-      } else if (grapple.state === 'idle') {
-        grapple.fire(beePos, aim.dirFromBee, flight.collider);
-      }
+    // --- tech radial: switches tools, never uses them ---
+    if (act.radialHeld && !radial.open) radial.show();
+    if (act.radialHeld) {
+      // Right stick on a pad, mouse motion on KBM. Y is inverted so "up" on
+      // the stick points at the top of the ring.
+      radial.update(look.stickX + look.mouseDX * 0.02, look.stickY + look.mouseDY * 0.02);
     }
-    if (act.grappleReleased && grapple.state !== 'idle' && !carry.isCarrying) {
-      grapple.release();
+    if (!act.radialHeld && radial.open) {
+      const chosen = radial.hide();
+      if (chosen >= 0) belt.select(chosen);
+      refreshTechHud();
     }
-
-    // --- carry ---
-    if (act.carryPressed && !carry.isCarrying) {
-      carry.tryGrab(physics, beePos, aim.dirFromBee, flight.collider);
-    }
-    if (act.carryReleased && carry.isCarrying) {
-      carry.drop();
-    }
-    if (act.throwPressed && carry.isCarrying) {
-      carry.throwIt(aim.dirFromBee);
+    if (act.cycleDelta !== 0 && !radial.open) {
+      belt.cycle(act.cycleDelta);
+      refreshTechHud();
     }
 
-    accumulator += dt;
+    // --- active tech ---
+    const techCtx = { physics, beePos, aim, beeCollider: flight.collider, dt };
+    const tech = belt.active;
+    if (!radial.open && tech) {
+      if (act.usePressed) tech.useStart?.(techCtx);
+      if (act.useHeld) tech.useHold?.(techCtx);
+      if (act.useReleased) tech.useEnd?.(techCtx);
+      if (act.altPressed) tech.altUse?.(techCtx);
+    }
+
+    // --- innate stinger ---
+    stinger.update(dt);
+    if (!radial.open && act.stingPressed) {
+      stinger.jab(aim.dirFromBee, beePos, human.bodyHandle);
+    }
+
+    // Slow-mo while the radial is open: readable, and a bee frozen mid-swing
+    // looks broken where a bee in slow motion looks deliberate.
+    const simDt = radial.open ? dt * params.radial.timeScale : dt;
+    accumulator += simDt;
     const load = carry.loadFactor();
     while (accumulator >= FIXED_DT) {
       flight.applyInput(state, followCam.forwardYaw(), load);
-      grapple.reel(FIXED_DT, act.grappleHeld);
       flight.position(beePos);
       carry.update(beePos, aim.dirFromBee);
       physics.world.step();
@@ -223,14 +265,17 @@ async function main() {
 
     // Reticle state: what would this shot do?
     if (reticle) {
+      // The reticle reports what the ACTIVE tool would do here, so switching
+      // tech visibly changes what the world looks actionable.
       let cls = '';
-      if (carry.isCarrying) cls = 'carrying';
-      else if (grapple.state === 'attached') cls = 'attached';
-      else if (aim.liftable) cls = 'liftable';
-      else if (aim.hasTarget) cls = 'anchor';
-      if (aim.assisted && !carry.isCarrying && grapple.state === 'idle') {
-        cls += ' assisted';
+      const engaged = tech?.status?.() === 'engaged';
+      if (engaged) {
+        cls = tech?.id === 'tractor' ? 'carrying' : 'attached';
+      } else if (aim.hasTarget) {
+        if (tech?.id === 'tractor') cls = aim.liftable ? 'liftable' : '';
+        else cls = aim.liftable ? '' : 'anchor'; // grapple ignores light things
       }
+      if (aim.assisted && !engaged && cls) cls += ' assisted';
       reticle.className = cls;
     }
 

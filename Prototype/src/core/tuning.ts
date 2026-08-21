@@ -57,6 +57,16 @@ export const params = {
     haulPenalty: 0.55, // fraction of speed/accel a full load costs you
     throwImpulse: 26,
   },
+  stinger: {
+    range: 4.5, // very short — you have to commit to get in there
+    cooldown: 0.45,
+    lungeTime: 0.22,
+    lungeImpulse: 14, // the bee throws itself at the target
+    propImpulse: 30,
+  },
+  radial: {
+    timeScale: 0.25, // slow-mo while choosing, so the physics stays readable
+  },
   flower: {
     stiffness: 12,
     damping: 1,

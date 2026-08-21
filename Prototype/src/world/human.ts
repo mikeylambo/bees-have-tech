@@ -156,6 +156,11 @@ export class Human {
     });
   }
 
+  /** So other systems can tell "did I just hit the human?" */
+  get bodyHandle(): number {
+    return this.body.handle;
+  }
+
   /** World-space eye position — perception rays start here, not at the feet. */
   eyePosition(out: THREE.Vector3): THREE.Vector3 {
     return out.set(
@@ -348,6 +353,13 @@ export class Human {
     this.animate(dt);
     this.syncBody();
     return { seen };
+  }
+
+  /** Got stung. Flinch, then come back angry and swinging without delay. */
+  reactToSting() {
+    this.swatCooldownT = 0;
+    this.alert = 1;
+    this.setState('recoil');
   }
 
   private setState(s: HumanState) {

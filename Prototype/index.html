@@ -135,8 +135,57 @@
       }
       #swatFlash.hit { opacity: 1; transition: opacity 60ms linear; }
 
+      /* ---- Equipped tech ---- */
+      #techHud {
+        position: fixed; right: 16px; bottom: 16px; z-index: 9;
+        display: flex; align-items: center; gap: 9px;
+        padding: 8px 14px 8px 10px; border-radius: 10px;
+        background: rgba(20, 24, 18, 0.65);
+        font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+        font-size: 12px; color: #fff; pointer-events: none; user-select: none;
+      }
+      #techIcon { font-size: 20px; line-height: 1; }
+      #techHud .hint { color: #9aa89a; }
+
+      /* ---- Tech radial ---- */
+      #radial {
+        position: fixed; inset: 0; z-index: 20; display: none;
+        pointer-events: none;
+        background: radial-gradient(circle at center,
+          rgba(8, 12, 6, 0.34) 0%, rgba(8, 12, 6, 0.72) 70%);
+        font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+      }
+      #radial.show { display: block; }
+      .radial-ring {
+        position: absolute; left: 50%; top: 50%;
+        width: min(46vh, 380px); height: min(46vh, 380px);
+        transform: translate(-50%, -50%);
+      }
+      .radial-wedge {
+        position: absolute; transform: translate(-50%, -50%);
+        width: 62px; height: 62px; border-radius: 50%;
+        display: grid; place-items: center; font-size: 26px;
+        background: rgba(18, 24, 16, 0.9);
+        border: 2px solid rgba(255, 255, 255, 0.22);
+        transition: transform 110ms ease-out, border-color 110ms linear;
+      }
+      .radial-wedge.equipped { border-color: rgba(255, 215, 94, 0.55); }
+      .radial-wedge.hot {
+        border-color: #ffd75e;
+        transform: translate(-50%, -50%) scale(1.22);
+        box-shadow: 0 0 0 4px rgba(255, 215, 94, 0.18);
+      }
+      .radial-center {
+        position: absolute; left: 50%; top: 50%;
+        transform: translate(-50%, -50%); text-align: center;
+        color: #fff; text-shadow: 0 2px 6px rgba(0, 0, 0, 0.75);
+        max-width: 190px;
+      }
+      .radial-label { font-size: 14px; font-weight: 700; letter-spacing: 0.04em; }
+      .radial-blurb { font-size: 11px; color: #b9c7b5; margin-top: 4px; line-height: 1.5; }
+
       @media (prefers-reduced-motion: reduce) {
-        #exposure .fill, #swatFlash { transition: none; }
+        #exposure .fill, #swatFlash, .radial-wedge { transition: none; }
       }
     </style>
   </head>
@@ -158,12 +207,19 @@
     </div>
     <div class="hud">
       <b>WASD</b> fly &nbsp; <b>Space/C</b> altitude &nbsp; <b>Shift</b> overdrive<br />
-      <b>L-click</b> grapple <span style="opacity:.6">(hold to reel)</span> &nbsp;
-      <b>R-click</b> tractor beam &nbsp; <b>F</b> throw<br />
+      <b>L-click</b> use tech &nbsp; <b>R-click</b> sting &nbsp; <b>F</b> alt &nbsp;
+      <b>Tab</b> hold for tech wheel &nbsp; <b>scroll</b> cycle tech<br />
       <b>Pad:</b> sticks fly/look &nbsp; <b>RT/LT</b> altitude &nbsp; <b>A</b> overdrive &nbsp;
-      <b>RB</b> grapple &nbsp; <b>LB</b> carry &nbsp; <b>X</b> throw &nbsp;
-      <b>H</b> hide UI
+      <b>RB</b> use &nbsp; <b>B</b> sting &nbsp; <b>X</b> alt &nbsp;
+      <b>LB</b> hold for wheel &nbsp; <b>H</b> hide UI
       <span id="padStatus" style="color:#7dff9b"></span>
+    </div>
+    <div id="techHud">
+      <span id="techIcon">🪝</span>
+      <span>
+        <span id="techName">Grappling Cable</span><br />
+        <span class="hint">Tab / LB to swap</span>
+      </span>
     </div>
     <div id="touchNote">
       <div>

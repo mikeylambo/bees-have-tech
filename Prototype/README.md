@@ -1,6 +1,7 @@
 # The Bees Have Tech! — Prototype
 
-**M0 — Flight ✅ · M1 — Grapple & Carry ✅ · M2 — One Human ✅**
+**M0 — Flight ✅ · M1 — Grapple & Carry ✅ · M2 — One Human ✅ ·
+Control pass ✅**
 
 See `../CONCEPT_PILLARS.md` and `../SLICE_PLAN.md` for what this slice exists
 to validate: **flight feel, comedy, toy interactions, tiny-world scale,
@@ -26,16 +27,18 @@ Open http://localhost:5173, click to lock the mouse, fly.
 | WASD | Fly (camera-relative) |
 | Space / C | Ascend / descend |
 | Shift | Wing Overdrive (boost) |
-| **Left click** | Stinger grapple — hold to reel in |
-| **Right click** | Tractor beam — hold to carry, release to drop |
-| **F** | Throw carried object |
+| **Left click** | Use the active tech |
+| **Right click** | Stinger jab (innate — never swapped away) |
+| **F** | Alt action of the active tech (throw, detach) |
+| **Tab** (hold) | Tech wheel — flick to choose, release to equip |
+| **Scroll** | Cycle tech without opening the wheel |
 | Mouse | Look |
 | H | Hide the dev UI |
 | Esc | Release mouse |
 
-Gamepad: L-stick fly · R-stick look · **LT up / RT down** (analog; swappable in
-the Controller folder) · **A** overdrive · **RB** grapple · **LB** carry ·
-**X** throw
+Gamepad: L-stick fly · R-stick look · **RT/LT** altitude (analog; swappable in
+the Controller folder) · **A** overdrive · **RB** use tech · **B** sting ·
+**X** alt · **LB** (hold) tech wheel
 
 ### What `damping` and `overspeed drag` actually do
 
@@ -78,6 +81,9 @@ types, so a stale blob can't inject junk.
 | Yellow | Grapple anchor — world geometry or something too heavy to lift |
 | Blue | Light enough for the tractor beam |
 
+The reticle reports what the **active** tool would do here, so switching tech
+visibly changes what the world looks actionable.
+
 ## Structure
 
 - `src/bee/flight.ts` — **the flight model.** Zero-G body + damping as air thickness.
@@ -90,6 +96,28 @@ types, so a stale blob can't inject junk.
 - `src/core/rng.ts` — seeded RNG (procgen determinism from commit one)
 
 ## Design notes worth keeping
+
+**Innate vs tech.** Flight, wing overdrive and the **stinger** are the bee's
+body — always available, never in the wheel. Everything else is tech the hive
+researched, held in a belt and reached through the radial. The original design
+doc's "stinger grappling cable" is the model: anatomy is permanent, tech bolts
+onto it.
+
+**The radial switches; one button uses.** A menu you must open mid-chase would
+kill the pace. Opening it drops time to 25% rather than pausing — a bee frozen
+mid-swing looks broken, a bee in slow motion looks deliberate.
+
+**No slot cap yet, on purpose.** How much a bee can wear at once depends on
+what the gadgets turn out to do, which isn't knowable until they exist. When we
+do cap it, it's a filter over the belt (researched vs. worn), not a rewrite.
+
+**Grapple and tractor beam were the same verb wearing two hats** — both
+"attach to a thing", with the mass ratio quietly deciding who moved. Now split
+hard: the **Grappling Cable is traversal** (anchors to world geometry and
+anything too heavy to lift, moves *you*, picks up nothing) and the **Tractor
+Beam is manipulation** (lifts, holds, throws light things, never moves you).
+One threshold — `carry.maxMass` — divides them, so they can never both claim
+the same object.
 
 **Simulate honestly, assist generously.** The world's physics stay real —
 that's where the comedy comes from, because real physics doing stupid things is
@@ -128,9 +156,10 @@ battery flies like a sluggish pig (readable, funny). Dropping the battery
 because you turned too fast is just punishment. `carry.breakDistance` is a
 safety net for wedged objects, not a gameplay rule.
 
-**Mass ratio decides who moves.** Grapple a pebble and it comes to you; grapple
-the fence and you go to it. Nothing special-cases this — it falls out of the
-physics, and it's free comedy.
+**Mass ratio still decides who moves within a tool.** Grapple a mid-weight prop
+and it drags toward you; grapple the fence and you go to it. Nothing
+special-cases this — it falls out of the physics. (Light objects are the
+tractor beam's department now, so the grapple never claims them.)
 
 **Flower stems are springs, not statics.** Each head is a light dynamic body
 held to an anchor by a spring joint, and the stem mesh is re-aimed from base to

@@ -13,16 +13,21 @@ export interface PadState {
   ascend: number; // 0..1
   descend: number; // 0..1
   boost: boolean;
-  grapple: boolean;
-  carry: boolean;
-  throwBtn: boolean;
+  /** Use the active tech item. */
+  use: boolean;
+  /** Innate stinger jab. */
+  sting: boolean;
+  /** Secondary action of the active tech. */
+  alt: boolean;
+  /** Hold to open the tech radial. */
+  radial: boolean;
 }
 
 const EMPTY: PadState = {
   connected: false,
   moveX: 0, moveY: 0, lookX: 0, lookY: 0,
   ascend: 0, descend: 0, boost: false,
-  grapple: false, carry: false, throwBtn: false,
+  use: false, sting: false, alt: false, radial: false,
 };
 
 function applyDeadzone(v: number, dz: number): number {
@@ -78,9 +83,10 @@ export class Gamepads {
       ascend: swapTriggers ? btn(6) : btn(7),
       descend: swapTriggers ? btn(7) : btn(6),
       boost: pressed(0) || pressed(10), // A / left-stick click
-      grapple: pressed(5), // RB
-      carry: pressed(4), // LB
-      throwBtn: pressed(2), // X / Square
+      use: pressed(5), // RB — always the active tech, whatever it is
+      sting: pressed(1), // B / Circle — innate, never remapped by tech
+      alt: pressed(2), // X / Square
+      radial: pressed(4), // LB held — opens the tech radial
     };
   }
 }

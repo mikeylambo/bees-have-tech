@@ -177,6 +177,26 @@ raise a visible Exposure meter. Bug spray and a swatter as counterplay.
 **Question:** does being noticed feel thrilling rather than punishing?
 *This is the highest-risk unknown in the whole design — it comes early on purpose.*
 
+### Control pass ✅ BUILT (between M2 and M3)
+Done before adding gadget #3, because three is where a control scheme stops
+being a list and becomes a system — and the ladder names ~10 gadgets.
+
+**Innate vs tech.** Flight, wing overdrive and the **stinger** are the bee's
+*body*; everything else is tech in a belt, reached by a radial. Canon basis:
+the OG doc's "stinger grappling cable" — anatomy is permanent, tech bolts onto
+it. This also means nothing is welded to a button forever.
+
+**The radial switches, one button uses.** Holding it drops time to 25% rather
+than pausing, so it never interrupts a chase.
+
+**No slot cap yet, deliberately.** Belt is uncapped until we know what the
+gadgets do; capping later is a filter (researched vs. worn), not a rewrite.
+
+**Grapple and tractor beam were one verb wearing two hats.** Split hard:
+Grappling Cable = traversal (heavy/static only, moves *you*, lifts nothing);
+Tractor Beam = manipulation (light only, never moves you). One threshold
+divides them so they can never both claim an object.
+
 ### M3 — Hack + Chain Reactions
 Three hackable objects with overlapping effects: sprinkler (water), bug
 zapper (electricity), box fan (wind/force). Water + electricity must
