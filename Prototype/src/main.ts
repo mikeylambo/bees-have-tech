@@ -297,7 +297,10 @@ async function main() {
     flight.velocity(beeVel);
 
     // --- appliances + the chain nobody scripted ---
-    for (const a of appliances) a.update(dt);
+    // The sprinkler gets the atmosphere so a fan actually blows its spray.
+    sprinkler.update(dt, atmosphere);
+    zapper.update(dt);
+    fan.update(dt);
     hacker.update(beePos);
     // Water reaching a live zapper electrifies the puddle. This is the whole
     // point of M3: two objects with one verb each producing a third thing that
@@ -332,12 +335,23 @@ async function main() {
       grapple.state !== 'idle' || carry.isCarrying || hacker.target !== null;
     exposure.update(dt, seen, techVisible);
 
-    // Evidence: an appliance running by itself, in view, with no one near it.
-    // The human reacts to the WORLD behaving impossibly, not just to the bee.
+    // Evidence: an appliance running by itself, in view. The human reacts to
+    // the WORLD behaving impossibly, not just to the bee — and he ACTS on it,
+    // because a rising meter is a number, not a reaction.
     for (const a of appliances) {
       if (!a.conspicuous) continue;
       if (!human.canSee(physics, a.position, flight.collider)) continue;
       exposure.spike(params.appliance.evidenceRise * dt);
+      if (!seen) human.investigateEvidence(a.position);
+    }
+
+    // Walking into the sprinkler soaks him — a hack that inconveniences the
+    // human directly, without the bee ever being involved.
+    if (sprinkler.on && sprinkler.wets(human.root.position)) {
+      if (human.getSoaked()) {
+        exposure.spike(4);
+        input.rumble(0.2, 0.3, 90);
+      }
     }
     updateExposureHud(seen);
 

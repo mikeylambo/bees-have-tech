@@ -44,6 +44,7 @@ export class Human {
   private leadShoulder = false;
   private didStrike = false;
   private stungT = 0;
+  private soakedT = 0;
 
   // parts we animate
   private legL!: THREE.Mesh;
@@ -356,6 +357,33 @@ export class Human {
     return { seen };
   }
 
+  /**
+   * Something in the yard is doing something it shouldn't. Go look at it.
+   * Chains only land if the human ACTS on evidence — a rising meter isn't a
+   * reaction, it's a number.
+   */
+  investigateEvidence(at: THREE.Vector3) {
+    if (this.state === 'swat' || this.stungT > 0) return;
+    // Being drawn off by an appliance while hunting the bee is the point:
+    // it's how a hack becomes a distraction rather than just noise.
+    this.lastKnown.copy(at);
+    this.alert = Math.max(this.alert, 0.7);
+    if (this.state !== 'investigate') this.setState('investigate');
+  }
+
+  /** Walked into the sprinkler. Recoil, and remember being annoyed. */
+  getSoaked() {
+    if (this.soakedT > 0) return false;
+    this.soakedT = 1.4;
+    this.alert = 1;
+    this.setState('recoil');
+    return true;
+  }
+
+  get isSoaked(): boolean {
+    return this.soakedT > 0;
+  }
+
   /** Got stung. Flinch hard, then come back angry and swinging without delay. */
   reactToSting() {
     this.swatCooldownT = 0;
@@ -463,6 +491,21 @@ export class Human {
       this.legR.rotation.x = -0.3 * f;
       this.root.rotation.y = this.yaw;
       this.head.rotation.x = 0.5 * f;
+      return;
+    }
+
+    // Soaked: hunched, arms tucked in, shuffling. Different silhouette from
+    // the sting flail so you can tell WHICH thing you did to him.
+    if (this.soakedT > 0) {
+      this.soakedT = Math.max(0, this.soakedT - dt);
+      const f = this.soakedT / 1.4;
+      const shiver = Math.sin(this.soakedT * 30) * 0.12 * f;
+      this.armL.rotation.x = -0.9 * f + shiver;
+      this.armR.rotation.x = -0.9 * f - shiver;
+      this.head.rotation.x = 0.35 * f;
+      this.root.rotation.y = this.yaw;
+      this.legL.rotation.x = 0.15 * f;
+      this.legR.rotation.x = -0.15 * f;
       return;
     }
 

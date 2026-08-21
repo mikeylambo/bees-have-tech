@@ -1,7 +1,7 @@
 import type RAPIER_API from '@dimforge/rapier3d-compat';
 import * as THREE from 'three';
 import type { Physics } from '../core/physics';
-import { FanZone } from './atmosphere';
+import { FanZone, type AirSample } from './atmosphere';
 import { params } from '../core/tuning';
 
 // HACKABLE APPLIANCES — M3's whole point.
@@ -30,12 +30,17 @@ export interface Appliance {
   /** Collider you have to aim at to hack it. */
   colliderHandle: number;
   toggle(): void;
-  update(dt: number): void;
+  update(dt: number, atmosphere?: unknown): void;
   /** True while this appliance is doing something a human would notice. */
   readonly conspicuous: boolean;
 }
 
 const _v = new THREE.Vector3();
+const _perpA = new THREE.Vector3();
+const _perpB = new THREE.Vector3();
+const STREAKS = 90;
+const _drop = new THREE.Vector3();
+const _air: AirSample = { damping: 0, force: new THREE.Vector3() };
 
 // ---------------------------------------------------------------- sprinkler
 export class Sprinkler implements Appliance {
@@ -126,7 +131,7 @@ export class Sprinkler implements Appliance {
     this.spray.visible = this.on;
   }
 
-  update(dt: number) {
+  update(dt: number, atmosphere?: { sample: (p: THREE.Vector3, out: AirSample) => AirSample }) {
     const p = params.appliance;
     if (this.on) {
       this.spin += dt * 5;
@@ -136,6 +141,24 @@ export class Sprinkler implements Appliance {
       const pos = this.sprayGeo.attributes.position.array as Float32Array;
       for (let i = 0; i < this.count; i++) {
         this.velocities[i * 3 + 1] -= 30 * dt;
+
+        // Droplets live in the same air the bee does, so a fan genuinely
+        // blows the spray sideways instead of the two systems ignoring
+        // each other.
+        if (atmosphere) {
+          _drop.set(
+            this.position.x + pos[i * 3],
+            this.position.y + pos[i * 3 + 1],
+            this.position.z + pos[i * 3 + 2],
+          );
+          const air = atmosphere.sample(_drop, _air);
+          if (air.force.lengthSq() > 0) {
+            this.velocities[i * 3] += air.force.x * dt * 1.4;
+            this.velocities[i * 3 + 1] += air.force.y * dt * 1.4;
+            this.velocities[i * 3 + 2] += air.force.z * dt * 1.4;
+          }
+        }
+
         pos[i * 3] += this.velocities[i * 3] * dt;
         pos[i * 3 + 1] += this.velocities[i * 3 + 1] * dt;
         pos[i * 3 + 2] += this.velocities[i * 3 + 2] * dt;
@@ -278,6 +301,10 @@ export class BoxFan implements Appliance {
 
   private blades: THREE.Mesh;
   private spin = 0;
+  private streaks: THREE.LineSegments;
+  private streakGeo: THREE.BufferGeometry;
+  private streakT: Float32Array;
+  private streakOff: Float32Array;
 
   constructor(physics: Physics, at: THREE.Vector3, facing: THREE.Vector3) {
     this.position.copy(at);
@@ -310,9 +337,39 @@ export class BoxFan implements Appliance {
       origin, dir, params.atmosphere.fanRange, params.atmosphere.fanSpread,
     );
 
+    // Wind streaks — without a visual, "is this thing actually blowing?" is
+    // unanswerable, and an invisible force field reads as a broken prop.
+    const streakPos = new Float32Array(STREAKS * 6);
+    this.streakGeo = new THREE.BufferGeometry();
+    this.streakGeo.setAttribute('position', new THREE.BufferAttribute(streakPos, 3));
+    this.streakT = new Float32Array(STREAKS);
+    this.streakOff = new Float32Array(STREAKS * 2);
+    for (let i = 0; i < STREAKS; i++) {
+      this.streakT[i] = Math.random();
+      this.streakOff[i * 2] = (Math.random() - 0.5) * 2;
+      this.streakOff[i * 2 + 1] = (Math.random() - 0.5) * 2;
+    }
+    this.streaks = new THREE.LineSegments(
+      this.streakGeo,
+      new THREE.LineBasicMaterial({
+        color: 0xdff1ff, transparent: true, opacity: 0.42, depthWrite: false,
+      }),
+    );
+    this.streaks.frustumCulled = false;
+    this.streaks.visible = false;
+    // Parented to the scene root via the group would inherit lookAt rotation,
+    // so keep streaks in world space and write absolute positions.
+    this.streaks.position.set(-at.x, -at.y, -at.z);
+    this.group.add(this.streaks);
+
     const { RAPIER, world } = physics;
+    // The mesh is rotated by lookAt; the collider must match or you'd be
+    // aiming at a fan that physics has facing somewhere else.
+    const q = this.group.quaternion;
     const body = world.createRigidBody(
-      RAPIER.RigidBodyDesc.fixed().setTranslation(at.x, at.y, at.z),
+      RAPIER.RigidBodyDesc.fixed()
+        .setTranslation(at.x, at.y, at.z)
+        .setRotation({ x: q.x, y: q.y, z: q.z, w: q.w }),
     );
     const col = world.createCollider(
       RAPIER.ColliderDesc.cuboid(10, 10, 1.7).setTranslation(0, 10, 0),
@@ -328,12 +385,45 @@ export class BoxFan implements Appliance {
   toggle() {
     this.on = !this.on;
     this.zone.enabled = this.on;
+    this.streaks.visible = this.on;
   }
 
   update(dt: number) {
     if (!this.on) return;
     this.spin += dt * 26;
     this.blades.rotation.z = this.spin;
+
+    // Streaks travel down the cone and recycle, so the blast has a visible
+    // length, direction and reach.
+    const v = this.streakGeo.attributes.position.array as Float32Array;
+    const o = this.zone.origin;
+    const dir = this.zone.dir;
+    const range = params.atmosphere.fanRange;
+    const spread = params.atmosphere.fanSpread;
+    // Any two vectors perpendicular to dir, for scattering across the cone.
+    _perpA.set(0, 1, 0).cross(dir).normalize();
+    _perpB.copy(dir).cross(_perpA).normalize();
+
+    for (let i = 0; i < STREAKS; i++) {
+      this.streakT[i] += dt * 0.85;
+      if (this.streakT[i] > 1) this.streakT[i] -= 1;
+      const t = this.streakT[i];
+      const along = t * range;
+      const spreadAt = Math.tan(spread) * along;
+      const ax = this.streakOff[i * 2] * spreadAt;
+      const ay = this.streakOff[i * 2 + 1] * spreadAt;
+      const tail = Math.max(0, along - 6 - t * 10);
+      const spreadTail = Math.tan(spread) * tail;
+      const bx = this.streakOff[i * 2] * spreadTail;
+      const by = this.streakOff[i * 2 + 1] * spreadTail;
+      v[i * 6] = o.x + dir.x * along + _perpA.x * ax + _perpB.x * ay;
+      v[i * 6 + 1] = o.y + dir.y * along + _perpA.y * ax + _perpB.y * ay;
+      v[i * 6 + 2] = o.z + dir.z * along + _perpA.z * ax + _perpB.z * ay;
+      v[i * 6 + 3] = o.x + dir.x * tail + _perpA.x * bx + _perpB.x * by;
+      v[i * 6 + 4] = o.y + dir.y * tail + _perpA.y * bx + _perpB.y * by;
+      v[i * 6 + 5] = o.z + dir.z * tail + _perpA.z * bx + _perpB.z * by;
+    }
+    this.streakGeo.attributes.position.needsUpdate = true;
   }
 
   /** Push loose props too — the fan shouldn't only affect the player. */
