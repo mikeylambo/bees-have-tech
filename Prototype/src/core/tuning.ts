@@ -139,9 +139,11 @@ export const params = {
     // Blades are drawn in a window that follows the bee; this scales how many
     // live in it. Guessed against software rendering — dial it on real
     // hardware and paste the settings back.
-    grassDensity: 0.62,
+    grassDensity: 0.58,
   },
   fps: 0,
+  drawCalls: 0,
+  triangles: 0,
 };
 
 const STORAGE_KEY = 'bht.settings.v1';
@@ -151,7 +153,7 @@ const SHIPPED = JSON.parse(JSON.stringify(params)) as typeof params;
 
 /** Everything except live readouts — this is what round-trips to the designer. */
 function exportSettings(): string {
-  const { fps: _fps, ...rest } = params;
+  const { fps: _fps, drawCalls: _dc, triangles: _tri, ...rest } = params;
   return JSON.stringify(rest, null, 2);
 }
 
@@ -279,7 +281,14 @@ export function createTuning(
     onReshuffle(params.world.seed);
   });
 
-  pane.addBinding(params, 'fps', { readonly: true, format: (v) => v.toFixed(0) });
+  const perf = pane.addFolder({ title: 'Budget' });
+  perf.addBinding(params, 'fps', { readonly: true, format: (v) => v.toFixed(0) });
+  perf.addBinding(params, 'drawCalls', {
+    readonly: true, label: 'draw calls', format: (v) => v.toFixed(0),
+  });
+  perf.addBinding(params, 'triangles', {
+    readonly: true, label: 'triangles', format: (v) => `${(v / 1000).toFixed(0)}k`,
+  });
 
   // ---- settings round-trip ----
   const io = pane.addFolder({ title: 'Settings I/O' });

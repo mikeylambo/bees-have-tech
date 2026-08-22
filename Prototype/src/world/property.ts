@@ -56,8 +56,27 @@ export const GUTTER_Y = HOUSE_H + m(0.12);
 /** Where the bee starts: out on the lawn, low, so the scale lands first. */
 export const SPAWN = new THREE.Vector3(m(-0.6), m(0.12), m(1.5));
 
-/** Footprints a walking human must route around. */
-export const WALK_BLOCKERS: Rect[] = [SHED, HEDGE];
+/** Rectangular footprints a walking human must route around. */
+export const WALK_BLOCKERS: Rect[] = [SHED, HEDGE, DECK];
+
+/**
+ * Round things he'd otherwise stroll through: [x, z, radius].
+ *
+ * Missing this list is why he waded through the deck, the pool and the tree
+ * as though the yard were a texture. A property that isn't solid to the NPC
+ * isn't a property — it's a backdrop he happens to stand in front of.
+ */
+export const WALK_BLOCK_CIRCLES: Array<[number, number, number]> = [
+  [m(-2.55), m(0.35), m(0.95)], // kiddie pool
+  [m(-2.1), m(-1.2), m(0.35)], // bird bath
+  [m(-4.2), m(-2.5), m(0.35)], // tree trunk
+  [m(1.75), m(-3.15), m(0.55)], // woodpile
+  [m(-4.4), m(3.3), m(0.4)], // bin
+  [m(1.0), m(-1.9), m(0.45)], // wheelbarrow
+  [m(-3.1), m(2.35), m(0.3)], // coiled hose
+  [m(-3.4), m(1.9), m(0.2)], // washing-line posts
+  [m(-3.4), m(-2.9), m(0.2)],
+];
 
 export interface Property {
   group: THREE.Group;
@@ -130,7 +149,10 @@ export function buildProperty(physics: Physics, scene: THREE.Scene, seed: number
     // the plane under it has to be the same green or the window's edge reads
     // as a circle of mown lawn following you around.
     lawn: new THREE.MeshLambertMaterial({ color: 0x5c8c3c }),
-    lawnStripe: new THREE.MeshLambertMaterial({ color: 0x4e7a33 }),
+    // Barely a shade apart. Mower stripes should be something you notice from
+    // altitude, not banding you fly over — and with grass only in the near
+    // field, high contrast here just advertises where the blades stop.
+    lawnStripe: new THREE.MeshLambertMaterial({ color: 0x578639 }),
     plank: new THREE.MeshLambertMaterial({ color: 0x7a5b3e }),
     plankDark: new THREE.MeshLambertMaterial({ color: 0x5f4630 }),
     deck: new THREE.MeshLambertMaterial({ color: 0x8a6b47 }),
@@ -639,14 +661,25 @@ export function buildProperty(physics: Physics, scene: THREE.Scene, seed: number
   );
   bathStem.position.set(m(-2.1), m(0.36), m(-1.2));
   add(bathStem);
+  // Open bowl, not a disc on a stalk: a rim you can perch on, water set down
+  // inside it. The flat version read as a mushroom from every angle.
   const bowl = new THREE.Mesh(
-    new THREE.CylinderGeometry(m(0.26), m(0.13), m(0.11), 18), mat.concrete,
+    new THREE.CylinderGeometry(m(0.3), m(0.14), m(0.18), 20, 1, true), mat.concrete,
   );
-  bowl.position.set(m(-2.1), m(0.76), m(-1.2));
+  bowl.material = new THREE.MeshLambertMaterial({
+    color: 0xb0aa9c, side: THREE.DoubleSide,
+  });
+  bowl.position.set(m(-2.1), m(0.78), m(-1.2));
   add(bowl);
-  const bathWater = new THREE.Mesh(new THREE.CircleGeometry(m(0.22), 18), mat.water);
+  const rim = new THREE.Mesh(
+    new THREE.TorusGeometry(m(0.3), m(0.022), 8, 22), mat.concrete,
+  );
+  rim.rotation.x = Math.PI / 2;
+  rim.position.set(m(-2.1), m(0.87), m(-1.2));
+  add(rim);
+  const bathWater = new THREE.Mesh(new THREE.CircleGeometry(m(0.27), 20), mat.water);
   bathWater.rotation.x = -Math.PI / 2;
-  bathWater.position.set(m(-2.1), m(0.805), m(-1.2));
+  bathWater.position.set(m(-2.1), m(0.83), m(-1.2));
   group.add(bathWater);
   world.createCollider(
     RAPIER.ColliderDesc.cylinder(m(0.4), m(0.08)).setTranslation(m(-2.1), m(0.4), m(-1.2)),

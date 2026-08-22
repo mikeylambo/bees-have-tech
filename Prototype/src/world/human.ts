@@ -2,7 +2,9 @@ import type RAPIER_API from '@dimforge/rapier3d-compat';
 import * as THREE from 'three';
 import type { Physics } from '../core/physics';
 import { params } from '../core/tuning';
-import { M, WALK_BLOCKERS, rectContains, type Rect } from './property';
+import {
+  M, WALK_BLOCKERS, WALK_BLOCK_CIRCLES, rectContains, type Rect,
+} from './property';
 
 /**
  * Where a person can actually stand, in metres. Inset from the fence line so
@@ -289,6 +291,9 @@ export class Human {
             const x = WALKABLE.minX + rand() * (WALKABLE.maxX - WALKABLE.minX);
             const z = WALKABLE.minZ + rand() * (WALKABLE.maxZ - WALKABLE.minZ);
             if (WALK_BLOCKERS.some((b) => rectContains(b, x, z, M * 0.2))) continue;
+            if (WALK_BLOCK_CIRCLES.some(([cx, cz, r]) => Math.hypot(x - cx, z - cz) < r + M * 0.2)) {
+              continue;
+            }
             this.patrolTarget.set(x, 0, z);
             break;
           }
@@ -373,6 +378,10 @@ export class Human {
     }
 
     this.move(dt);
+    // Every frame, not just while walking. Clamping inside move() meant a
+    // human who stopped — or got shoved by a sting — could stand inside the
+    // deck indefinitely, because the code that pushes him out never ran.
+    this.clampToYard();
     this.animate(dt);
     this.syncBody();
     return { seen };
@@ -478,7 +487,6 @@ export class Human {
     this.root.position.x += (dx / dist) * step;
     this.root.position.z += (dz / dist) * step;
     this.walkPhase += (step / 14) * Math.PI;
-    this.clampToYard();
   }
 
   /**
@@ -502,6 +510,21 @@ export class Human {
         { d: (b.maxZ + EJECT) - pos.z, set: () => (pos.z = b.maxZ + EJECT) },
       ];
       outs.sort((a, c) => a.d - c.d)[0].set();
+    }
+
+    // Round obstacles: push straight out along the radius.
+    for (const [cx, cz, r] of WALK_BLOCK_CIRCLES) {
+      const dx = pos.x - cx;
+      const dz = pos.z - cz;
+      const d = Math.hypot(dx, dz);
+      const want = r + EJECT;
+      if (d >= want) continue;
+      if (d < 1e-3) {
+        pos.x = cx + want;
+        continue;
+      }
+      pos.x = cx + (dx / d) * want;
+      pos.z = cz + (dz / d) * want;
     }
   }
 

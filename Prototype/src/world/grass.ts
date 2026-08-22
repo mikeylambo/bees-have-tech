@@ -24,10 +24,15 @@ import {
 //     Without that the yard shimmers as you move.
 
 const TILES_ACROSS = 5; // odd, so there's a centre tile
-const TILE0 = M * 0.5; // ~29 units — about half a metre of lawn, at ground level
+// Tile size trades window WIDTH against how often crossing a boundary
+// re-uploads the instance buffer. Bigger tiles = a wider skirt of grass and
+// fewer, larger uploads, which is the better side of that trade at this
+// blade count. (If it ever bites: switch to a tile-major layout and use
+// partial buffer update ranges.)
+const TILE0 = M * 0.68; // ~40 units — two thirds of a metre of lawn
 const TILE_COUNT = TILES_ACROSS * TILES_ACROSS;
 /** Ceiling on instances. `params.world.grassDensity` scales the live count. */
-const BLADE_MAX = 190000;
+const BLADE_MAX = 260000;
 const PER_TILE = Math.floor(BLADE_MAX / TILE_COUNT);
 
 // Three altitude LODs. A window sized for flying THROUGH the grass is about a
@@ -36,8 +41,8 @@ const PER_TILE = Math.floor(BLADE_MAX / TILE_COUNT);
 // the same blades spread over more ground, which is fine, because by then each
 // one is a couple of pixels. Hysteresis keeps a hover at the boundary from
 // re-scattering the field every frame.
-const LOD_UP = [M * 1.2, M * 4.4]; // climb past this and the window widens
-const LOD_DOWN = [M * 0.95, M * 3.6];
+const LOD_UP = [M * 1.0, M * 4.4]; // climb past this and the window widens
+const LOD_DOWN = [M * 0.8, M * 3.6];
 
 /** Circular keep-outs — things that sit ON the lawn. */
 const BARE_SPOTS: Array<[number, number, number]> = [
@@ -136,7 +141,7 @@ export class GrassField {
             // Confined to the outer sliver. A wide gradient over a big
             // window reads as a starburst radiating from the bee; now the
             // ground plane matches the blade colour, a short fade is enough.
-            float edge = 1.0 - smoothstep(uRadius * 0.88, uRadius * 1.0,
+            float edge = 1.0 - smoothstep(uRadius * 0.82, uRadius * 1.0,
                                           length(iPos.xz - uCenter.xz));
             transformed.y *= edge;
             float phase = iPos.x * 0.35 + iPos.z * 0.29;

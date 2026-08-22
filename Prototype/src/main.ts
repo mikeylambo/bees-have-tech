@@ -80,7 +80,10 @@ async function main() {
 
   // --- M4: hive, swarm --- / --- M5: workshop, quests ---
   // The hive sits at the fence line: visible to humans, reachable only by bees.
-  const hive = new Hive(physics, new THREE.Vector3(m(-1.0), 0, m(-3.95)));
+  // Up the fence, not on the ground. At floor level it read as a pile of gold
+  // blocks in the corner; at chest height it reads as something living IN the
+  // fence — visible to humans, reachable only by flying.
+  const hive = new Hive(physics, new THREE.Vector3(m(-1.0), m(0.5), m(-3.95)));
   scene.add(hive.group);
   const swarm = new Swarm();
   scene.add(swarm.group);
@@ -322,6 +325,9 @@ async function main() {
   let wasElectrified = false;
   const hiveMouth = new THREE.Vector3();
   const propBodies = yard.dynamicProps.map((p) => p.body);
+  // Render-budget probe: renderer.info is the only honest source for draw
+  // calls and triangles, and both are what predict how far this world scales.
+  (window as unknown as Record<string, unknown>).__renderer = renderer;
   (window as unknown as Record<string, unknown>).__debug = {
     beePos, beeVel, params, grapple, carry, yard, physics, flight, followCam, scene,
     aiming, aim, human, exposure, belt, radial, stinger,
@@ -551,6 +557,11 @@ async function main() {
     fpsFrames++;
     if (fpsAccum >= 0.5) {
       params.fps = fpsFrames / fpsAccum;
+      // Draw calls and triangles are the two numbers that actually predict how
+      // far this world can grow, and they're hardware-independent — unlike
+      // fps, they mean the same thing on any machine.
+      params.drawCalls = renderer.info.render.calls;
+      params.triangles = renderer.info.render.triangles;
       fpsAccum = 0;
       fpsFrames = 0;
     }
