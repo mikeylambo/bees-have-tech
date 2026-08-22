@@ -1,6 +1,6 @@
 # The Bees Have Tech! — Vertical Slice Plan
 
-**Status:** v4 — 2026-08-22 · supersedes the "one backyard corner" slice in CONCEPT_PILLARS.md
+**Status:** v5 — 2026-08-22 · supersedes the "one backyard corner" slice in CONCEPT_PILLARS.md
 **Target:** the seven-verb chain — Flight → Physics → Gadget → Hack → Swarm →
 Human Reaction → Chain Reaction.
 **Web version (phone-friendly):** https://claude.ai/code/artifact/1fb7ce48-5aa3-4dd8-9f45-98c0ce69c9e1
@@ -404,6 +404,79 @@ same class of mistake at one level up.
 Whether ten metres is the *right* ten metres — enough to explore, not so much
 that it's empty — is the next playtest, and the honest reason the art pass is
 still after this rather than before it.
+
+---
+
+## The estate question, and why it's a greybox
+
+Asked 2026-08-22, before designing the house: *have we hit the limits of this
+engine, and should we port before building something estate-sized?*
+
+**Measured rather than argued.** `renderer.info` across four vantage points in
+the finished backyard:
+
+| | Now | Rough ceiling | Used |
+|---|---|---|---|
+| Draw calls | 65–147 | ~1000–2000 before CPU-bound | ~10% |
+| Triangles | ~920k | 2–5M on desktop | ~20–30% |
+| Colliders / bodies | 225 / 130 | thousands in Rapier | ~5% |
+| Textures | **1** | usually the first web ceiling | ~0% |
+| JS heap | 35 MB | — | nothing |
+
+Extrapolated to a 40 × 30 m estate — **13.8× the area** — the two expensive
+problems are already solved: the grass field follows the bee, so it costs the
+same on an estate as in a yard, and the shadow frustum does too. Static
+geometry scales with *content*, not area: call it 400–900 draw calls in the
+densest views and ~1.5M triangles, still inside budget. The genuine runtime
+risks are per-object frustum culling of ~10k meshes (1–2 ms/frame, fixable by
+merging) and startup build time needing to be chunked. Both are known problems
+with known fixes.
+
+**So the answer is: no engine reason to port.** What would actually be wasted
+is not capacity, it's **authoring**. Every object in `property.ts` is
+hand-written TypeScript geometry, and that is precisely the work that does not
+survive a port — you rebuild it in an editor with real assets. Systems, tuned
+numbers and design decisions transfer. Hand-placed geometry does not.
+
+**Hence the greybox.** `src/world/estateBlockout.ts` is a plain data table —
+54 zones in metres, with a note on each saying what it's *for* at bee scale.
+Nothing in it knows about Three.js. `estate.html` turns it into flat grey
+volumes with human figures for scale, a metre grid and floating zone names;
+a level designer would turn the same table into a level. **The table is the
+artefact that ports.**
+
+### The blockout
+
+40 × 30 m of grounds, 50 m corner to corner. One property, per the scope doc —
+just a much larger one, and a *holiday* one, which matters for more than size:
+"repopulate — same house, new tenants" is already named as the cheapest growth
+axis, and people who don't live somewhere don't know what's normal in its
+garden. That is a better fit for the exposure system than a family who would
+notice everything.
+
+| Zone | What it is at bee scale |
+|---|---|
+| The house, 18 × 9 m, two storeys | 8 m of wall; an 18 m gutter run you fly inside |
+| Swimming pool + terrace | 10 m of open water; a 15 cm terrace lip is a cliff |
+| Garage, door left open | A real interior with a car in it |
+| Greenhouse | Glass, hot, still air — the atmosphere zone the design doc wanted |
+| Sport court, fenced | A cage with an open top |
+| Orchard, 12 trees | Canopy flying with regular gaps |
+| Formal garden | A hedge grid: ankle-height maze, bee-height canyon |
+| Summer house | The folly the property is named for |
+| Potting shed, compost | The dense-loot rooms |
+
+### The number that decides it
+
+At the current flight model the estate is **39 s across at cruise and 7.8 s on
+overdrive**; corner to corner, **49 s and 9.8 s**. The backyard is 9.8 s and
+2.0 s. Those are printed on the greybox HUD, because "is this the right size"
+is a question about seconds, not square metres, and it can only be answered by
+flying it.
+
+**Open:** whether 40 × 30 m reads as an epic open world or as a long empty
+walk. If it's too much, the blockout shrinks by editing four numbers, which is
+the entire reason it exists before the house does.
 
 ---
 

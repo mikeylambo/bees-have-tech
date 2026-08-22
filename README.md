@@ -12,6 +12,11 @@ Standalone IP. Not part of the Soulfire Legends Universe.
 
 **▶ https://bees-have-tech.vercel.app**
 
+**📐 Estate blockout:** `/estate.html` — a greybox of a 40 × 30 m estate you
+can fly, to judge whether that's the right scale before anyone details a
+house. No quests, no human, no grass; flat volumes, human figures for scale
+and a readout of how long everything takes to cross.
+
 Desktop only — needs a mouse and keyboard, or a game controller.
 Auto-deploys from `main`; build root is `Prototype/`.
 
@@ -42,6 +47,7 @@ Gamepad: L-stick fly · R-stick look · RT/LT altitude · **A** overdrive ·
 | [Prototype/src/game/quests.ts](Prototype/src/game/quests.ts) | Quest chain and objective tracking |
 | [Prototype/src/game/blueprints.ts](Prototype/src/game/blueprints.ts) | Workshop catalog — what salvage buys |
 | [Prototype/src/world/grass.ts](Prototype/src/world/grass.ts) | The grass field that rides along with the bee |
+| [Prototype/src/world/estateBlockout.ts](Prototype/src/world/estateBlockout.ts) | The estate layout as plain data — the part that ports to a real engine |
 | [Reference/](Reference/) | Original design brainstorm |
 
 ## Milestones
@@ -53,6 +59,7 @@ Gamepad: L-stick fly · R-stick look · RT/LT altitude · **A** overdrive ·
 - **M4 — Swarm & salvage** ✅ Hive, swarm beacon, reverse engineering
 - **M5 — The property** ✅ Enclosed yard, quest chain, the Hive Workshop
 - **M6 — Real scale** ✅ A 10 × 8.7 m garden, six vertical layers, grass that follows you
+- **Estate blockout** 📐 A flyable greybox of the next scale up, pending a verdict
 
 ## The loop, as it plays now
 

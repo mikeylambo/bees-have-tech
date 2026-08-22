@@ -74,6 +74,19 @@
         #hitmark.pop { animation: none; opacity: 0; }
       }
 
+      /* Link out to the estate blockout. Clickable, so it can't live in the
+         pointer-events:none HUD. */
+      #greybox {
+        position: fixed; right: 16px; top: 14px; z-index: 11;
+        padding: 6px 12px; border-radius: 999px; text-decoration: none;
+        background: rgba(20, 24, 18, 0.7);
+        border: 1px solid rgba(255, 215, 94, 0.35);
+        font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+        font-size: 11px; color: #ffd75e;
+      }
+      #greybox:hover { background: rgba(255, 215, 94, 0.18); }
+      body.hide-ui #greybox { display: none; }
+
       /* H hides the dev UI so the yard can be seen (and screenshotted) clean. */
       body.hide-ui .hud,
       body.hide-ui #questTrack,
@@ -477,6 +490,7 @@
       <b>H</b> hide UI
       <span id="padStatus" style="color:#7dff9b"></span>
     </div>
+    <a id="greybox" href="./estate.html">📐 estate blockout</a>
     <div id="bank">
       <span class="salvage" id="salvageCount">0 salvage</span>
       <span class="built" id="builtCount">no blueprints yet</span>
