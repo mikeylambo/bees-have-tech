@@ -5,7 +5,10 @@ import { FollowCamera } from './core/camera';
 import { params, createTuning, loadSavedSettings } from './core/tuning';
 import { GrassField } from './world/grass';
 import { buildYard, syncProps, syncFlowers, applyFlowerSpring, containProps } from './world/yard';
-import { DECK_HEIGHT } from './world/property';
+import { M, DECK_HEIGHT, SPAWN } from './world/property';
+
+/** Everything positioned in this file is placed in metres, like the property. */
+const m = (metres: number) => metres * M;
 import { Bee } from './bee/bee';
 import { FlightController } from './bee/flight';
 import { Grapple } from './bee/grapple';
@@ -51,8 +54,7 @@ async function main() {
 
   const bee = new Bee();
   scene.add(bee.root);
-  const spawn = new THREE.Vector3(0, 4, 2);
-  const flight = new FlightController(physics, spawn);
+  const flight = new FlightController(physics, SPAWN.clone());
 
   const grapple = new Grapple(physics, flight.body);
   scene.add(grapple.line);
@@ -62,10 +64,12 @@ async function main() {
   const aim = Aiming.emptyResult();
 
   // --- M3: hackable appliances + atmosphere ---
-  const sprinkler = new Sprinkler(physics, new THREE.Vector3(18, 0, -12));
-  const zapper = new BugZapper(physics, new THREE.Vector3(34, 0, -30));
+  // Placed so the sprinkler's spread can actually reach the zapper — the M3
+  // chain is only a chain if the two objects are within each other's radius.
+  const sprinkler = new Sprinkler(physics, new THREE.Vector3(m(1.5), 0, m(-0.8)));
+  const zapper = new BugZapper(physics, new THREE.Vector3(m(2.1), 0, m(-3.0)));
   const fan = new BoxFan(
-    physics, new THREE.Vector3(-14, 0, 22), new THREE.Vector3(0.4, 0, -1),
+    physics, new THREE.Vector3(m(-1.6), 0, m(1.4)), new THREE.Vector3(0.3, 0, -1),
   );
   const appliances: Appliance[] = [sprinkler, zapper, fan];
   for (const a of [sprinkler.group, zapper.group, fan.group]) scene.add(a);
@@ -76,7 +80,7 @@ async function main() {
 
   // --- M4: hive, swarm --- / --- M5: workshop, quests ---
   // The hive sits at the fence line: visible to humans, reachable only by bees.
-  const hive = new Hive(physics, new THREE.Vector3(6, 0, -56));
+  const hive = new Hive(physics, new THREE.Vector3(m(-1.0), 0, m(-3.95)));
   scene.add(hive.group);
   const swarm = new Swarm();
   scene.add(swarm.group);
@@ -151,8 +155,8 @@ async function main() {
     hive: hive.mouthPosition(new THREE.Vector3()),
     sprinkler: sprinkler.position,
     zapper: zapper.position,
-    deck: new THREE.Vector3(6, DECK_HEIGHT + 4, 48),
-    shed: new THREE.Vector3(38, 20, -40),
+    deck: new THREE.Vector3(m(-0.6), DECK_HEIGHT + m(0.1), m(3.3)),
+    shed: new THREE.Vector3(m(2.2), m(1.0), m(-3.1)),
   }));
 
   quests.onOffer = (q) => {
@@ -184,7 +188,7 @@ async function main() {
   refreshTechHud();
 
   // --- M2: one human, one exposure meter ---
-  const human = new Human(physics, new THREE.Vector3(-26, 0, -20));
+  const human = new Human(physics, new THREE.Vector3(m(-2.0), 0, m(-0.5)));
   scene.add(human.root);
   const exposure = new Exposure();
   const humanRand = mulberry32(params.world.seed ^ 0x5bf03635);
@@ -518,7 +522,10 @@ async function main() {
     grapple.update(dt, beePos);
     syncProps(yard.dynamicProps);
     syncFlowers(yard.flowers);
-    grass.update(dt);
+    grass.update(dt, beePos);
+    // Shadows ride with the bee — see property.ts for why a yard-wide frustum
+    // can't work at this size.
+    yard.updateShadow(beePos);
     followCam.update(dt, beePos, firstFrame);
     firstFrame = false;
 

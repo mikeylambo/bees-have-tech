@@ -39,20 +39,22 @@ export const params = {
     swapTriggers: false, // tried the swap, went back to RT ascend
   },
   grapple: {
-    range: 60,
-    reelSpeed: 14, // rope shortening, units/sec
+    // The fence is 106 units tall and the tree 364; a 60-unit line couldn't
+    // reach the top of anything in the new yard.
+    range: 120,
+    reelSpeed: 20, // rope shortening, units/sec
     minLength: 1.2,
     travelTime: 0.09, // filament flight time, seconds
   },
   carry: {
-    range: 14,
+    range: 20,
     maxMass: 0.35, // heavier than this and you can only grapple it
     holdDistance: 2.4,
     holdDrop: 0.5,
     pullSpeed: 40,
     refMass: 0.05, // a light pebble: the "feels weightless" reference
     minFollow: 0.4, // floor on the weight-lag factor, so heavy ≠ unusable
-    breakDistance: 26, // safety net only — you should never lose a load by flying
+    breakDistance: 40, // safety net only — you should never lose a load by flying
     haulMass: 0.3, // mass at which flight is fully taxed
     haulPenalty: 0.55, // fraction of speed/accel a full load costs you
     throwImpulse: 26,
@@ -69,34 +71,34 @@ export const params = {
     timeScale: 0.25, // slow-mo while choosing, so the physics stays readable
   },
   hack: {
-    range: 55,
+    range: 120, // hacking from cover has to be possible across a real yard
     time: 0.7, // hold this long to flip an appliance
   },
   atmosphere: {
-    fanRange: 95,
+    fanRange: 200,
     fanSpread: 0.5, // radians, half-angle of the cone
     fanForce: 165, // units/sec^2 on the axis at point-blank
     fanDamping: 0.5, // moving air is THIN air — this is why a fan throws you
   },
   hive: {
-    depositRadius: 9,
+    depositRadius: 16,
   },
   swarm: {
-    speed: 34,
-    followRadius: 5.5,
-    orbitRadius: 9,
-    grabRadius: 3.4,
+    speed: 44,
+    followRadius: 8,
+    orbitRadius: 14,
+    grabRadius: 5,
     beaconTime: 1.4, // converge for this long, then read the situation
-    contextRadius: 26, // how far a bee looks for a job around the beacon
+    contextRadius: 70, // how far a bee looks for a job around the beacon
     distractPerception: 0.45, // human's sight range while being mobbed
   },
   appliance: {
-    sprinklerWetRadius: 46,
-    wetGrow: 16, // units/sec the puddle spreads
-    wetDry: 5, // units/sec it dries once off
-    zapperRadius: 16,
+    sprinklerWetRadius: 150, // ~2.5 m of spread, which is what a sprinkler does
+    wetGrow: 45, // units/sec the puddle spreads
+    wetDry: 14, // units/sec it dries once off
+    zapperRadius: 40,
     wetZapMultiplier: 2.4, // an electrified puddle is a much bigger problem
-    zapImpulse: 65,
+    zapImpulse: 80,
     evidenceRise: 26, // exposure/sec when a human watches tech act by itself
   },
   flower: {
@@ -104,22 +106,26 @@ export const params = {
     damping: 1,
   },
   human: {
-    height: 100, // ~1.7m at bee scale — the kaiju read
-    walkSpeed: 13,
+    height: 100, // ~1.7m at bee scale — the kaiju read, and the world's ruler
+    // 0.93 m/s. He crosses his own garden in about eleven seconds, which is
+    // what makes the far corners feel like somewhere you got away to.
+    walkSpeed: 55,
     turnSpeed: 2.2,
     // Perception
-    sightRange: 130,
+    // 3.6 m. In the old 2.4 m yard a 130-unit range meant he saw everything
+    // from anywhere; now it's a threat radius you can be outside of.
+    sightRange: 210,
     fovDegrees: 110,
     fovVerticalDegrees: 150, // ±75° — straight overhead / at their feet is blind
     grassConcealHeight: 3.6, // fly below the grass line and you're hidden
-    closeSeeRange: 18, // ...unless you're right in their face
+    closeSeeRange: 30, // ...unless you're right in their face
     // Reaction
     swatRange: 26, // how close he'll get before taking a swing
     swatHitRadius: 15, // the hand's actual hit sphere — smaller = fairer
     swatImpulse: 46, // velocity change dealt to a struck bee
     swatCooldown: 1.6,
     swatWindup: 0.32,
-    investigateTime: 6,
+    investigateTime: 8,
   },
   exposure: {
     riseSeen: 7, // per second while plainly visible
@@ -130,6 +136,10 @@ export const params = {
   },
   world: {
     seed: 1337,
+    // Blades are drawn in a window that follows the bee; this scales how many
+    // live in it. Guessed against software rendering — dial it on real
+    // hardware and paste the settings back.
+    grassDensity: 0.62,
   },
   fps: 0,
 };
@@ -260,6 +270,9 @@ export function createTuning(
 
   const w = pane.addFolder({ title: 'Yard (procgen)' });
   w.addBinding(params.world, 'seed', { step: 1 });
+  w.addBinding(params.world, 'grassDensity', {
+    min: 0.1, max: 1, label: 'grass density',
+  });
   w.addButton({ title: '🎲 reshuffle yard' }).on('click', () => {
     params.world.seed = (Math.random() * 1e9) | 0;
     pane.refresh();

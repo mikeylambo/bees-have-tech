@@ -41,6 +41,7 @@ Gamepad: L-stick fly · R-stick look · RT/LT altitude · **A** overdrive ·
 | [Prototype/src/world/property.ts](Prototype/src/world/property.ts) | The built environment: fences, house, deck, shed, beds, neighbourhood |
 | [Prototype/src/game/quests.ts](Prototype/src/game/quests.ts) | Quest chain and objective tracking |
 | [Prototype/src/game/blueprints.ts](Prototype/src/game/blueprints.ts) | Workshop catalog — what salvage buys |
+| [Prototype/src/world/grass.ts](Prototype/src/world/grass.ts) | The grass field that rides along with the bee |
 | [Reference/](Reference/) | Original design brainstorm |
 
 ## Milestones
@@ -51,6 +52,7 @@ Gamepad: L-stick fly · R-stick look · RT/LT altitude · **A** overdrive ·
 - **M3 — Hack & chain reactions** ✅ Sprinkler, zapper, fan; water meets electricity
 - **M4 — Swarm & salvage** ✅ Hive, swarm beacon, reverse engineering
 - **M5 — The property** ✅ Enclosed yard, quest chain, the Hive Workshop
+- **M6 — Real scale** ✅ A 10 × 8.7 m garden, six vertical layers, grass that follows you
 
 ## The loop, as it plays now
 
@@ -63,6 +65,15 @@ while it's open, so the human keeps walking toward you while you shop.
 Salvage is finite and the catalog costs more than a careless run collects.
 Choosing what to wear is the point.
 
+## Scale
+
+One unit is 1.7 cm, fixed by the human at 100 units. The garden is **10.0 ×
+8.7 m** — ten seconds to cross at cruise, two on overdrive. The house wall is
+six metres of backlit siding above you, the fence is 1.8 m of cliff, and there
+are six places a person can't follow you into: under the deck, under the shed,
+inside the gutter and its downspout, over the hedge, up the tree, and into the
+woodpile.
+
 ## Local development
 
 ```bash
@@ -71,4 +82,6 @@ cd Prototype && npm install && npm run dev
 
 Open http://localhost:5173. The Tweakpane panel live-edits every feel constant —
 flight, camera, grapple, tractor beam, flower springiness — plus a seeded yard
-reshuffle.
+reshuffle and **grass density**, which is the one number that was guessed
+against software rendering rather than a real GPU. Dial it in and paste the
+settings JSON back.

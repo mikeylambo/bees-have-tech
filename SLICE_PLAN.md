@@ -1,6 +1,6 @@
 # The Bees Have Tech! — Vertical Slice Plan
 
-**Status:** v3 — 2026-08-22 · supersedes the "one backyard corner" slice in CONCEPT_PILLARS.md
+**Status:** v4 — 2026-08-22 · supersedes the "one backyard corner" slice in CONCEPT_PILLARS.md
 **Target:** the seven-verb chain — Flight → Physics → Gadget → Hack → Swarm →
 Human Reaction → Chain Reaction.
 **Web version (phone-friendly):** https://claude.ai/code/artifact/1fb7ce48-5aa3-4dd8-9f45-98c0ce69c9e1
@@ -340,6 +340,70 @@ hover there on purpose.
 **Question answered?** The loop now has a shape: somewhere to be, an order to
 do it in, and a choice about what to spend. Whether that shape holds attention
 for an hour is still a content-and-art question, not a systems one.
+
+### M6 — The yard was the wrong size ✅ BUILT
+
+M5 enclosed the property. It did not check how big it was.
+
+**The measurement.** The human is 100 units for 1.7 m, so one unit is 1.7 cm.
+The yard was 144 × 128 units — **2.4 × 2.2 m**. A patio. At `maxSpeed` 60 you
+crossed the entire world in 2.4 seconds, and half a second on overdrive. That
+is the whole "it doesn't feel open" report, and it is not an art problem: no
+amount of texture makes a world two seconds wide feel like somewhere.
+
+Worth stating as a rule, because it was missed for six milestones: **the yard
+is the only thing in this build with no reference object.** The bee, the human,
+the batteries and the grass blades were all authored against something real and
+were all roughly correct. The ground plan was authored against the camera.
+
+**The fix.** `property.ts` is now written in metres against one constant
+(`M = 100 / 1.7`), and the human did not move — he is the ruler. The yard is
+**10.0 × 8.7 m**: about ten seconds to cross at cruise, two on overdrive, and
+eleven seconds for the human to walk end to end. His 210-unit sight range now
+covers 36% of the width rather than all of it, which turns "get out of his
+line of sight" from a fiction into a thing you can actually do.
+
+**Volume, not just area** — because a bigger flat lawn is only more of the same
+two-second feeling. Six layers went in with the resize:
+
+| Layer | What it is at bee scale |
+|---|---|
+| Under the deck | A 0.55 m room — thirty bee-heights of ceiling — that a human cannot reach into |
+| Under the shed | A crawl gap on concrete blocks |
+| The gutter | An open-topped channel along the house you fly *inside*, with a hollow downspout back down |
+| The hedge | Solid low, open on top — a wall you can go over but not see through |
+| The tree | 6.2 m, with branches to perch on and a canopy with room inside it |
+| The woodpile | Stacked logs with gaps you can get into |
+
+Each one is verified by shape-casting in the test suite rather than by
+screenshot, because "is it hollow" is exactly the kind of thing a screenshot
+cannot answer.
+
+**Grass had to be rebuilt.** The lawn went from 11k units² to 207k, and holding
+the density that actually looks like grass would need ~1.7 million blades. The
+field now **follows the bee**: a window of tiles rides along, addressed
+toroidally so crossing a boundary refills one row rather than the whole field,
+and seeded from world tile coordinates so the same patch of lawn grows the same
+grass every time you fly back over it. Three altitude LODs widen the window as
+you climb — by then each blade is a couple of pixels — and the ground plane
+under it is painted the average blade colour so the window's edge never reads
+as a circle of mown lawn following you around.
+
+**Shadows follow too.** A frustum enclosing a 10 m yard plus a 6 m house needs
+a ~440-unit radius, which is four texels per unit; the bee's own shadow turned
+to mush. A tight frustum tracking the bee gives fifteen, snapped to a grid so
+the map doesn't crawl a texel at a time and shimmer every edge in the yard.
+
+**Two scale bugs the suite caught.** The quest arrival radius was still 18
+units — 0.3 m, which is smaller than the hive — so "fly to the hive" could not
+be completed by arriving at it. And the test's own delivery used hard-coded
+mouth offsets rather than asking the hive where its mouth was, which is the
+same class of mistake at one level up.
+
+**Question answered?** The world is the size the flight model always assumed.
+Whether ten metres is the *right* ten metres — enough to explore, not so much
+that it's empty — is the next playtest, and the honest reason the art pass is
+still after this rather than before it.
 
 ---
 

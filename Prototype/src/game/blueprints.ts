@@ -69,11 +69,11 @@ export const BLUEPRINTS: Blueprint[] = [
     name: 'Long-Line Filament',
     icon: '🧵',
     cost: 4,
-    effect: 'Grapple +40 range · faster reel',
+    effect: 'Grapple +70 range · faster reel',
     blurb: 'More cable on the spool. The fence is now a shortcut.',
     build() {
-      params.grapple.range += 40;
-      params.grapple.reelSpeed += 6;
+      params.grapple.range += 70;
+      params.grapple.reelSpeed += 8;
     },
   },
   {
@@ -106,10 +106,10 @@ export const BLUEPRINTS: Blueprint[] = [
     name: 'Antenna Mk II',
     icon: '📡',
     cost: 6,
-    effect: 'Hack from 90 units · nearly twice as fast',
+    effect: 'Hack from clear across the yard · nearly twice as fast',
     blurb: 'Hack it from across the lawn, before anyone looks up.',
     build() {
-      params.hack.range += 35;
+      params.hack.range += 110;
       params.hack.time *= 0.55;
     },
   },

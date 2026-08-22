@@ -2,6 +2,10 @@ import * as THREE from 'three';
 import type { SalvageKind } from '../world/yard';
 import { SALVAGE_LABEL } from '../world/yard';
 import type { ApplianceKind } from '../world/appliances';
+import { M } from '../world/property';
+
+/** How close counts as "you got there", in metres of world. */
+const ARRIVE_R = M * 0.55;
 
 // QUESTS — the framing device, per the pillar: "missions are framing devices
 // and punchlines; the sandbox generates the actual comedy."
@@ -86,7 +90,7 @@ export function buildQuests(w: QuestWorld): Quest[] {
         need: 1,
         have: 0,
         at: w.hive,
-        radius: 18,
+        radius: ARRIVE_R,
         marker: w.hive,
         markerLabel: 'HIVE',
       }],
@@ -302,7 +306,7 @@ export class QuestLog {
     if (!q) return;
     const o = this.currentObjective();
     if (!o || o.kind !== 'visit' || !o.at) return;
-    if (_d.subVectors(beePos, o.at).length() > (o.radius ?? 12)) return;
+    if (_d.subVectors(beePos, o.at).length() > (o.radius ?? ARRIVE_R)) return;
     this.advance(q, o);
   }
 

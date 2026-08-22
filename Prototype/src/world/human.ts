@@ -2,13 +2,17 @@ import type RAPIER_API from '@dimforge/rapier3d-compat';
 import * as THREE from 'three';
 import type { Physics } from '../core/physics';
 import { params } from '../core/tuning';
-import { WALK_BLOCKERS, rectContains, type Rect } from './property';
+import { M, WALK_BLOCKERS, rectContains, type Rect } from './property';
 
 /**
- * Where a person can actually stand. Inset from the fence line so he never
- * clips the planks, and it stops short of the house wall.
+ * Where a person can actually stand, in metres. Inset from the fence line so
+ * he never clips the planks, and it stops short of the house wall.
  */
-const WALKABLE: Rect = { minX: -64, maxX: 64, minZ: -54, maxZ: 58 };
+const WALKABLE: Rect = {
+  minX: M * -4.7, maxX: M * 4.7, minZ: M * -3.85, maxZ: M * 4.2,
+};
+/** How far to hold him off a building he's walked into. */
+const EJECT = M * 0.12;
 
 // THE HUMAN — M2's whole point, and the riskiest thing in the design.
 //
@@ -284,7 +288,7 @@ export class Human {
           for (let i = 0; i < 8; i++) {
             const x = WALKABLE.minX + rand() * (WALKABLE.maxX - WALKABLE.minX);
             const z = WALKABLE.minZ + rand() * (WALKABLE.maxZ - WALKABLE.minZ);
-            if (WALK_BLOCKERS.some((b) => rectContains(b, x, z, 8))) continue;
+            if (WALK_BLOCKERS.some((b) => rectContains(b, x, z, M * 0.2))) continue;
             this.patrolTarget.set(x, 0, z);
             break;
           }
@@ -408,8 +412,8 @@ export class Human {
     this.stungT = params.stinger.flinchTime;
     // Stagger back a step — a hundred units of person recoiling is the only
     // read the player gets from bee altitude, so make it big.
-    this.root.position.x -= Math.sin(this.yaw) * 6;
-    this.root.position.z -= Math.cos(this.yaw) * 6;
+    this.root.position.x -= Math.sin(this.yaw) * M * 0.35;
+    this.root.position.z -= Math.cos(this.yaw) * M * 0.35;
     this.clampToYard();
     this.setState('recoil');
   }
@@ -488,14 +492,14 @@ export class Human {
     pos.z = Math.min(WALKABLE.maxZ, Math.max(WALKABLE.minZ, pos.z));
 
     for (const b of WALK_BLOCKERS) {
-      if (!rectContains(b, pos.x, pos.z, 6)) continue;
+      if (!rectContains(b, pos.x, pos.z, EJECT)) continue;
       // Eject along whichever face is nearest — cheapest correct way out of
       // a box, and it never teleports him across the building.
       const outs = [
-        { d: pos.x - (b.minX - 6), set: () => (pos.x = b.minX - 6) },
-        { d: (b.maxX + 6) - pos.x, set: () => (pos.x = b.maxX + 6) },
-        { d: pos.z - (b.minZ - 6), set: () => (pos.z = b.minZ - 6) },
-        { d: (b.maxZ + 6) - pos.z, set: () => (pos.z = b.maxZ + 6) },
+        { d: pos.x - (b.minX - EJECT), set: () => (pos.x = b.minX - EJECT) },
+        { d: (b.maxX + EJECT) - pos.x, set: () => (pos.x = b.maxX + EJECT) },
+        { d: pos.z - (b.minZ - EJECT), set: () => (pos.z = b.minZ - EJECT) },
+        { d: (b.maxZ + EJECT) - pos.z, set: () => (pos.z = b.maxZ + EJECT) },
       ];
       outs.sort((a, c) => a.d - c.d)[0].set();
     }

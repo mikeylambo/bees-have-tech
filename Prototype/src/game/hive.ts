@@ -2,6 +2,14 @@ import * as THREE from 'three';
 import type { Physics } from '../core/physics';
 import type { DynamicProp, SalvageKind } from '../world/yard';
 import { params } from '../core/tuning';
+import { M } from '../world/property';
+
+/**
+ * The hive is roughly 1.2 m across — big enough to be a landmark from the far
+ * fence, and big enough that a shop counter on the front of it reads as a
+ * place rather than a decal.
+ */
+const S = M * 0.055;
 
 // THE HIVE — where stolen tech becomes bee tech.
 //
@@ -31,11 +39,11 @@ export class Hive {
       color: 0xd8a13a, roughness: 0.75, metalness: 0.05,
     });
     // Stack of hexagonal cells — reads as "hive" instantly at any distance.
-    const cell = new THREE.CylinderGeometry(3.2, 3.2, 3.4, 6);
+    const cell = new THREE.CylinderGeometry(3.2 * S, 3.2 * S, 3.4 * S, 6);
     const rows = [
-      { y: 4, n: 1, r: 0 },
-      { y: 10, n: 6, r: 6.4 },
-      { y: 17, n: 6, r: 6.4 },
+      { y: 4 * S, n: 1, r: 0 },
+      { y: 10 * S, n: 6, r: 6.4 * S },
+      { y: 17 * S, n: 6, r: 6.4 * S },
     ];
     for (const row of rows) {
       for (let i = 0; i < row.n; i++) {
@@ -51,32 +59,34 @@ export class Hive {
     this.glowMat = new THREE.MeshStandardMaterial({
       color: 0xffd75e, emissive: 0xffaa22, emissiveIntensity: 0.9, roughness: 0.4,
     });
-    const mouth = new THREE.Mesh(new THREE.CylinderGeometry(2.6, 2.6, 1.2, 6), this.glowMat);
+    const mouth = new THREE.Mesh(
+      new THREE.CylinderGeometry(2.6 * S, 2.6 * S, 1.2 * S, 6), this.glowMat,
+    );
     mouth.rotation.x = Math.PI / 2;
-    mouth.position.set(0, 10, 2.2);
+    mouth.position.set(0, 10 * S, 2.2 * S);
     this.group.add(mouth);
 
     // The workbench: a landing ledge under the mouth with a lamp over it, so
     // the shop is somewhere you can SEE before you're told it exists.
     const ledge = new THREE.Mesh(
-      new THREE.BoxGeometry(16, 0.8, 6),
+      new THREE.BoxGeometry(16 * S, 0.8 * S, 6 * S),
       new THREE.MeshStandardMaterial({ color: 0x6b5334, roughness: 0.85 }),
     );
-    ledge.position.set(0, 5.6, 3.4);
+    ledge.position.set(0, 5.6 * S, 3.4 * S);
     this.group.add(ledge);
     for (const s of [-1, 1]) {
       const leg = new THREE.Mesh(
-        new THREE.BoxGeometry(1, 5.4, 1),
+        new THREE.BoxGeometry(1 * S, 5.4 * S, 1 * S),
         new THREE.MeshStandardMaterial({ color: 0x4d3b26, roughness: 0.9 }),
       );
-      leg.position.set(s * 6.5, 2.8, 3.4);
+      leg.position.set(s * 6.5 * S, 2.8 * S, 3.4 * S);
       this.group.add(leg);
     }
     const lampMat = new THREE.MeshStandardMaterial({
       color: 0xfff0c0, emissive: 0xffcc55, emissiveIntensity: 1.4, roughness: 0.4,
     });
-    const lamp = new THREE.Mesh(new THREE.SphereGeometry(0.9, 10, 8), lampMat);
-    lamp.position.set(0, 7.6, 4.6);
+    const lamp = new THREE.Mesh(new THREE.SphereGeometry(0.9 * S, 10, 8), lampMat);
+    lamp.position.set(0, 7.6 * S, 4.6 * S);
     this.group.add(lamp);
 
     this.group.position.copy(at);
@@ -90,19 +100,20 @@ export class Hive {
     // The box stops short of the mouth so flying salvage in still works.
     const { RAPIER, world } = physics;
     world.createCollider(
-      RAPIER.ColliderDesc.cuboid(9.8, 10.2, 2.1)
-        .setTranslation(at.x, at.y + 10.4, at.z - 1.8),
+      RAPIER.ColliderDesc.cuboid(9.8 * S, 10.2 * S, 2.1 * S)
+        .setTranslation(at.x, at.y + 10.4 * S, at.z - 1.8 * S),
     );
     // The workbench ledge is a landing pad: park salvage on it and the mouth
     // takes it, because the deposit radius reaches down here.
     world.createCollider(
-      RAPIER.ColliderDesc.cuboid(8, 0.4, 3).setTranslation(at.x, at.y + 5.6, at.z + 3.4),
+      RAPIER.ColliderDesc.cuboid(8 * S, 0.4 * S, 3 * S)
+        .setTranslation(at.x, at.y + 5.6 * S, at.z + 3.4 * S),
     );
   }
 
   /** Delivery point — slightly proud of the fence so you can fly into it. */
   mouthPosition(out: THREE.Vector3): THREE.Vector3 {
-    return out.set(this.position.x, this.position.y + 10, this.position.z + 3);
+    return out.set(this.position.x, this.position.y + 10 * S, this.position.z + 3 * S);
   }
 
   /** Quest and workshop payouts both land here. */
@@ -149,9 +160,11 @@ export class Hive {
   }
 
   /** Close enough to the mouth to use the workbench. */
-  nearMouth(p: THREE.Vector3, radius = 18): boolean {
+  nearMouth(p: THREE.Vector3, radius = M * 0.5): boolean {
     return Math.hypot(
-      p.x - this.position.x, p.y - (this.position.y + 10), p.z - (this.position.z + 3),
+      p.x - this.position.x,
+      p.y - (this.position.y + 10 * S),
+      p.z - (this.position.z + 3 * S),
     ) < radius;
   }
 
