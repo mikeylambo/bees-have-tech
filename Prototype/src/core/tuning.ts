@@ -3,21 +3,39 @@ import { Pane } from 'tweakpane';
 // Every number that affects feel lives here and is live-editable in the panel.
 export const params = {
   // Playtested defaults, 2026-08-20 — these are Mikey's "feels like a bee" values.
+  // Retuned 2026-08-22 for a world that is no longer a patio.
+  //
+  // The old values were playtested in a 2.4 m yard, where 60 u/s crossed the
+  // world in two and a half seconds and felt great. They were never revisited
+  // when the world grew 16x, and the result was a bee whose top cruise —
+  // 1.02 m/s — was 1.09x a walking man's pace. A real honeybee forages at
+  // 4-5.5 m/s. We were flying a fifth of bee speed.
+  //
+  // What did NOT change is `damping`, because damping alone decides how the
+  // bee coasts to a stop, and that is the part of the feel that was right.
+  // Thrust terminal velocity is accel/damping, so raising accel raises the
+  // ceiling while leaving the 1/damping response time — and therefore the
+  // snappiness — exactly where it was.
   flight: {
-    accel: 120, // horizontal accel, u/s^2
-    ascend: 100,
-    descend: 100,
+    accel: 520, // horizontal accel, u/s^2 -> ~200 u/s = 3.4 m/s cruise
+    ascend: 430,
+    descend: 430,
     // How thick the air is. Applied ALWAYS, proportional to speed: it decides
     // how fast you coast to a stop when you let go of the stick.
     damping: 2.6,
-    maxSpeed: 60,
-    boostMul: 5, // Wing Overdrive multiplier (accel + max speed)
+    // Deliberately ABOVE the thrust terminal (~200), so powered flight is
+    // limited by drag and this threshold only governs BORROWED speed —
+    // grapple swings, swat knockback, fan gusts — bleeding back down.
+    maxSpeed: 260,
+    // x3 -> ~600 u/s = 10.2 m/s, past a real bee's maximum. Which is the
+    // point: "Wing Overdrive" should be the tech doing something a bee can't.
+    boostMul: 3,
     // Only bites ABOVE maxSpeed. Decides how long borrowed speed — grapple
     // swings, swat knockback — stays with you before settling back down.
     overspeedDrag: 0.5,
   },
   camera: {
-    distance: 16.67,
+    distance: 21, // a little more lead now that the bee actually moves
     height: 5.8,
     sensitivity: 0.0024,
     smoothing: 30, // higher = snappier follow
@@ -41,53 +59,56 @@ export const params = {
   grapple: {
     // The fence is 106 units tall and the tree 364; a 60-unit line couldn't
     // reach the top of anything in the new yard.
-    range: 120,
-    reelSpeed: 20, // rope shortening, units/sec
+    // 400 units is 6.8 m of line — enough to reach the eaves of a house.
+    // The old 120 was a two-metre rope on a forty-metre property.
+    range: 400,
+    reelSpeed: 66, // rope shortening, units/sec
     minLength: 1.2,
-    travelTime: 0.09, // filament flight time, seconds
+    travelTime: 0.12, // filament flight time, seconds
   },
   carry: {
-    range: 20,
+    range: 55,
     maxMass: 0.35, // heavier than this and you can only grapple it
     holdDistance: 2.4,
     holdDrop: 0.5,
-    pullSpeed: 40,
+    pullSpeed: 130,
     refMass: 0.05, // a light pebble: the "feels weightless" reference
     minFollow: 0.4, // floor on the weight-lag factor, so heavy ≠ unusable
-    breakDistance: 40, // safety net only — you should never lose a load by flying
+    breakDistance: 120, // safety net only — you should never lose a load by flying
     haulMass: 0.3, // mass at which flight is fully taxed
     haulPenalty: 0.55, // fraction of speed/accel a full load costs you
-    throwImpulse: 26,
+    throwImpulse: 85,
   },
   stinger: {
     range: 4.5, // very short — you have to commit to get in there
     cooldown: 0.45,
     lungeTime: 0.22,
-    lungeImpulse: 14, // the bee throws itself at the target
-    propImpulse: 30,
+    lungeImpulse: 46, // the bee throws itself at the target
+    propImpulse: 95,
     flinchTime: 0.85, // how long the human flails after being stung
   },
   radial: {
     timeScale: 0.25, // slow-mo while choosing, so the physics stays readable
   },
   hack: {
-    range: 120, // hacking from cover has to be possible across a real yard
+    range: 300, // hacking from cover has to be possible across a real yard
     time: 0.7, // hold this long to flip an appliance
   },
   atmosphere: {
-    fanRange: 200,
+    fanRange: 260,
     fanSpread: 0.5, // radians, half-angle of the cone
-    fanForce: 165, // units/sec^2 on the axis at point-blank
+    fanForce: 540, // units/sec^2 on the axis at point-blank
     fanDamping: 0.5, // moving air is THIN air — this is why a fan throws you
   },
   hive: {
-    depositRadius: 16,
+    // Wider, because at 3.4 m/s you fly past a small one.
+    depositRadius: 30,
   },
   swarm: {
-    speed: 44,
+    speed: 150, // they have to keep up with you now
     followRadius: 8,
     orbitRadius: 14,
-    grabRadius: 5,
+    grabRadius: 9,
     beaconTime: 1.4, // converge for this long, then read the situation
     contextRadius: 70, // how far a bee looks for a job around the beacon
     distractPerception: 0.45, // human's sight range while being mobbed
@@ -98,7 +119,7 @@ export const params = {
     wetDry: 14, // units/sec it dries once off
     zapperRadius: 40,
     wetZapMultiplier: 2.4, // an electrified puddle is a much bigger problem
-    zapImpulse: 80,
+    zapImpulse: 260,
     evidenceRise: 26, // exposure/sec when a human watches tech act by itself
   },
   flower: {
@@ -109,7 +130,8 @@ export const params = {
     height: 100, // ~1.7m at bee scale — the kaiju read, and the world's ruler
     // 0.93 m/s. He crosses his own garden in about eleven seconds, which is
     // what makes the far corners feel like somewhere you got away to.
-    walkSpeed: 55,
+    // 1.4 m/s — actual human walking pace. He was ambling at 0.93.
+    walkSpeed: 82,
     turnSpeed: 2.2,
     // Perception
     // 3.6 m. In the old 2.4 m yard a 130-unit range meant he saw everything
@@ -122,7 +144,7 @@ export const params = {
     // Reaction
     swatRange: 26, // how close he'll get before taking a swing
     swatHitRadius: 15, // the hand's actual hit sphere — smaller = fairer
-    swatImpulse: 46, // velocity change dealt to a struck bee
+    swatImpulse: 150, // velocity change dealt to a struck bee
     swatCooldown: 1.6,
     swatWindup: 0.32,
     investigateTime: 8,
@@ -146,7 +168,10 @@ export const params = {
   triangles: 0,
 };
 
-const STORAGE_KEY = 'bht.settings.v1';
+// v2: the flight retune. A saved v1 file would restore the old 60 u/s bee and
+// silently undo the whole change, which is exactly the kind of bug you only
+// find by wondering why nothing feels different.
+const STORAGE_KEY = 'bht.settings.v2';
 
 /** The values shipped in the build, captured before any saved file is applied. */
 const SHIPPED = JSON.parse(JSON.stringify(params)) as typeof params;
@@ -215,16 +240,16 @@ export function createTuning(
   const pane = new Pane({ title: 'The Bees Have Tech! — tuning' });
 
   const f = pane.addFolder({ title: 'Flight feel' });
-  f.addBinding(params.flight, 'accel', { min: 5, max: 120 });
-  f.addBinding(params.flight, 'ascend', { min: 5, max: 100 });
-  f.addBinding(params.flight, 'descend', { min: 5, max: 100 });
+  f.addBinding(params.flight, 'accel', { min: 40, max: 1200 });
+  f.addBinding(params.flight, 'ascend', { min: 40, max: 900 });
+  f.addBinding(params.flight, 'descend', { min: 40, max: 900 });
   f.addBinding(params.flight, 'damping', { min: 0.2, max: 8 });
-  f.addBinding(params.flight, 'maxSpeed', { min: 4, max: 60 });
-  f.addBinding(params.flight, 'boostMul', { min: 1, max: 5 });
+  f.addBinding(params.flight, 'maxSpeed', { min: 40, max: 700 });
+  f.addBinding(params.flight, 'boostMul', { min: 1, max: 6 });
   f.addBinding(params.flight, 'overspeedDrag', { min: 0.5, max: 20, label: 'overspeed drag' });
 
   const c = pane.addFolder({ title: 'Camera' });
-  c.addBinding(params.camera, 'distance', { min: 2, max: 20 });
+  c.addBinding(params.camera, 'distance', { min: 4, max: 60 });
   c.addBinding(params.camera, 'height', { min: 0, max: 6 });
   c.addBinding(params.camera, 'sensitivity', { min: 0.0005, max: 0.01 });
   c.addBinding(params.camera, 'smoothing', { min: 2, max: 30 });
@@ -247,20 +272,20 @@ export function createTuning(
   g.addBinding(params.pad, 'swapTriggers', { label: 'LT up / RT down' });
 
   const gr = pane.addFolder({ title: 'Stinger grapple' });
-  gr.addBinding(params.grapple, 'range', { min: 10, max: 120 });
-  gr.addBinding(params.grapple, 'reelSpeed', { min: 2, max: 50 });
+  gr.addBinding(params.grapple, 'range', { min: 60, max: 900 });
+  gr.addBinding(params.grapple, 'reelSpeed', { min: 10, max: 200 });
   gr.addBinding(params.grapple, 'minLength', { min: 0.4, max: 6 });
   gr.addBinding(params.grapple, 'travelTime', { min: 0.01, max: 0.4 });
 
   const ca = pane.addFolder({ title: 'Tractor beam' });
-  ca.addBinding(params.carry, 'range', { min: 3, max: 40 });
+  ca.addBinding(params.carry, 'range', { min: 10, max: 160 });
   ca.addBinding(params.carry, 'maxMass', { min: 0.02, max: 3, label: 'max lift mass' });
   ca.addBinding(params.carry, 'holdDistance', { min: 1, max: 8 });
-  ca.addBinding(params.carry, 'pullSpeed', { min: 4, max: 90 });
+  ca.addBinding(params.carry, 'pullSpeed', { min: 20, max: 400 });
   ca.addBinding(params.carry, 'refMass', { min: 0.01, max: 0.5, label: 'weightless mass' });
   ca.addBinding(params.carry, 'minFollow', { min: 0.1, max: 1, label: 'heavy follow floor' });
   ca.addBinding(params.carry, 'haulPenalty', { min: 0, max: 0.9, label: 'haul speed cost' });
-  ca.addBinding(params.carry, 'throwImpulse', { min: 2, max: 90 });
+  ca.addBinding(params.carry, 'throwImpulse', { min: 10, max: 260 });
 
   const fl = pane.addFolder({ title: 'Flower springiness' });
   fl.addBinding(params.flower, 'stiffness', { min: 1, max: 120 }).on(

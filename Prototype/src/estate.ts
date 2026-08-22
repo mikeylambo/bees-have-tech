@@ -51,7 +51,7 @@ async function main() {
   const scene = new THREE.Scene();
   const SKY = 0xb9cddb;
   scene.background = new THREE.Color(SKY);
-  scene.fog = new THREE.Fog(SKY, m(35), m(110));
+  scene.fog = new THREE.Fog(SKY, m(120), m(420));
 
   scene.add(new THREE.HemisphereLight(0xdceaff, 0x555f4a, 1.5));
   const sun = new THREE.DirectionalLight(0xffffff, 1.7);
@@ -71,7 +71,7 @@ async function main() {
 
   // ---- ground ----
   const ground = new THREE.Mesh(
-    new THREE.CircleGeometry(m(90), 48),
+    new THREE.CircleGeometry(m(230), 56),
     new THREE.MeshLambertMaterial({ color: 0x5d6a52 }),
   );
   ground.rotation.x = -Math.PI / 2;
@@ -79,13 +79,13 @@ async function main() {
   ground.receiveShadow = true;
   scene.add(ground);
   world.createCollider(
-    RAPIER.ColliderDesc.cuboid(m(90), m(0.1), m(90))
+    RAPIER.ColliderDesc.cuboid(m(230), m(0.1), m(230))
       .setTranslation(0, -m(0.1), 0).setFriction(1),
   );
 
   // A metre grid, because a greybox you can't measure by eye is just boxes.
   const grid = new THREE.GridHelper(
-    m(ESTATE.width), ESTATE.width, 0x3f4a38, 0x4d5844,
+    m(ESTATE.depth), ESTATE.depth / 2, 0x3f4a38, 0x4d5844,
   );
   grid.position.y = 0.4;
   (grid.material as THREE.Material).transparent = true;
@@ -178,7 +178,7 @@ async function main() {
   // ---- the bee ----
   const bee = new Bee();
   scene.add(bee.root);
-  const spawn = new THREE.Vector3(m(0), m(1.4), m(-4));
+  const spawn = new THREE.Vector3(m(0), m(1.6), m(-46));
   const flight = new FlightController(physics, spawn);
   // Flight wants an air sample; the greybox has no atmosphere zones, so it
   // gets the baseline everywhere. Same feel as the open lawn.
@@ -186,7 +186,7 @@ async function main() {
 
   const input = new Input(renderer.domElement);
   const followCam = new FollowCamera(window.innerWidth / window.innerHeight);
-  followCam.camera.far = m(140);
+  followCam.camera.far = m(330);
   followCam.camera.updateProjectionMatrix();
   followCam.occlusionTest = (from, dir, maxDist) => {
     const ray = new RAPIER.Ray(
@@ -210,13 +210,17 @@ async function main() {
   const nearEl = document.getElementById('near')!;
 
   function fillScaleFacts() {
-    const t = traversal(params.flight.maxSpeed, params.flight.boostMul);
+    const t = traversal(params.flight);
     const s = (v: number) => `${v.toFixed(1)}s`;
     document.getElementById('facts')!.innerHTML = `
       <div><b>${ESTATE.width} × ${ESTATE.depth} m</b> grounds
         · diagonal <b>${diagonalMetres().toFixed(1)} m</b></div>
       <div>across: <b>${s(t.acrossCruise)}</b> cruise ·
         <b>${s(t.acrossBoost)}</b> overdrive</div>
+      <div class="cmp" style="border:0;margin:0;padding:0;font-style:normal">
+        bee: <b>${t.cruiseMs.toFixed(1)} m/s</b> cruise ·
+        <b>${t.boostMs.toFixed(1)} m/s</b> overdrive
+        (a real honeybee forages at 4&ndash;5.5)</div>
       <div>corner to corner: <b>${s(t.diagCruise)}</b> cruise ·
         <b>${s(t.diagBoost)}</b> overdrive</div>
       <div class="cmp">the backyard, for comparison: 10 × 8.7 m,

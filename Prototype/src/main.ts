@@ -528,7 +528,9 @@ async function main() {
     grapple.update(dt, beePos);
     syncProps(yard.dynamicProps);
     syncFlowers(yard.flowers);
-    grass.update(dt, beePos);
+    // Speed feeds the grass LOD: moving fast widens the tiles, which keeps
+    // buffer uploads rare at overdrive.
+    grass.update(dt, beePos, beeVel.length());
     // Shadows ride with the bee — see property.ts for why a yard-wide frustum
     // can't work at this size.
     yard.updateShadow(beePos);

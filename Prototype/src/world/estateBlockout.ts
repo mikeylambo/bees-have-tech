@@ -53,161 +53,203 @@ export interface Zone {
 
 /** Overall grounds, metres. Everything below sits inside this. */
 export const ESTATE = {
-  width: 40,
-  depth: 30,
+  width: 90,
+  depth: 120,
   /** Wall line — the playable boundary. */
-  minX: -20,
-  maxX: 20,
-  minZ: -15,
-  maxZ: 15,
-  wallHeight: 2.0,
-  wallThickness: 0.4,
+  minX: -45,
+  maxX: 45,
+  minZ: -60,
+  maxZ: 60,
+  wallHeight: 2.4,
+  wallThickness: 0.5,
 };
 
 // ---------------------------------------------------------------- the plan
 //
-//   z +15  ┌──────────────────────────────────────────┐  north
-//          │  GARAGE  │      THE HOUSE      │ SUMMER  │
-//          │  drive   │                     │  HOUSE  │
-//    z +2  │──────────┼── pool terrace ─────┼─────────│
-//          │          │   SWIMMING POOL     │ PARTERRE│
-//          │  veg +   │                     │  COURT  │
-//          │ GREENHSE │    THE GREAT LAWN   │         │
-//   z -15  └──────────┴─────── hive ────────┴─ ORCHARD┘  south
-//         x -20                                      x +20
+//  z +60 ┌───────────────────────────────────────────────┐ north
+//        │  SERVICE │   MAIN HOUSE    │  GUEST HOUSE      │
+//        │  garage  ├──────┬──────────┴───────────────────│
+//        │ PARTERRE │ MOTOR│  KITCHEN GARDEN / GREENHOUSE │
+//   z +18│──────────┤ COURT├──────────────────────────────│
+//        │          │      │  POOL TERRACE · CABANA       │
+//        │ WEST     │ THE  ├──────────────────────────────│
+//        │ LAWN     │ DRIVE│         EAST LAWN            │
+//        │ fire pit │      │         playground           │
+//   z -60└──────────┴─ GATE ┴─────────────────────────────┘ south
+//       x -45                                          x +45
 //
+// The spine is the point. Gate to motor court is 80 m of straight driveway —
+// the only place on the property you can hold overdrive in a line and feel
+// fast. The old 40 x 30 blockout was all rooms and no corridor, which is a
+// large part of why it read as a box rather than a world.
 const zones: Zone[] = [
   // ---- surfaces ----
   {
-    id: 'lawn', label: 'THE GREAT LAWN', kind: 'ground',
-    x: 0, z: -7.5, w: 22, d: 14, h: 0,
-    note: 'The open middle. Longest unbroken flight line on the property.',
+    id: 'lawn-west', label: 'WEST LAWN', kind: 'ground',
+    x: -26, z: -22, w: 34, d: 66, h: 0,
+    note: 'The long panel. 66 m of unbroken flight line down one side.',
+  },
+  {
+    id: 'lawn-east', label: 'EAST LAWN', kind: 'ground',
+    x: 26, z: -28, w: 34, d: 54, h: 0,
+    note: 'Its mirror, broken up by the playground and the fruit trees.',
   },
   {
     id: 'meadow', label: '', kind: 'ground',
-    x: 0, z: 6, w: 40, d: 18, h: 0,
-    note: 'Grass under and around the buildings.',
+    x: 0, z: 30, w: 90, d: 60, h: 0,
+    note: 'Grass around the buildings and courts.',
   },
   {
-    id: 'pool-terrace', label: 'POOL TERRACE', kind: 'paving',
-    x: 0, z: 1.75, w: 17, d: 6.5, h: 0.15,
-    note: 'Raised stone. The 15 cm lip is a cliff at bee scale.',
+    id: 'drive', label: 'THE DRIVE', kind: 'gravel',
+    x: 0, z: -19, w: 10, d: 82, h: 0.03,
+    note: '80 m of straight run from the gate. The property\'s highway.',
   },
   {
-    id: 'pool', label: 'SWIMMING POOL', kind: 'water',
-    x: 0, z: 1.75, w: 10, d: 4, h: 0.05,
-    note: 'Ten metres of open water. Landing on it should be a decision.',
+    id: 'motor-court', label: 'MOTOR COURT', kind: 'gravel',
+    x: -8, z: 30, w: 32, d: 32, h: 0.03,
+    note: 'The roundabout. Where the spine ends and the estate opens up.',
   },
   {
-    id: 'drive', label: 'DRIVEWAY', kind: 'gravel',
-    x: -14.5, z: 3, w: 11, d: 16, h: 0.02,
-    note: 'Gravel: at bee scale a boulder field you fly between.',
-  },
-  {
-    id: 'court', label: 'SPORT COURT', kind: 'paving',
-    x: 15, z: -3, w: 8, d: 8, h: 0.02,
-    note: 'Fenced on all four sides — a cage with an open top.',
-  },
-  {
-    id: 'court-fence', label: '', kind: 'wall',
-    x: 15, z: -3, w: 8, d: 8, h: 3, hollow: true,
-    note: 'Chain-link. Only a flying thing gets in over the top.',
-  },
-
-  // ---- the house ----
-  {
-    id: 'house', label: 'THE HOUSE', kind: 'building',
-    x: 0, z: 9.5, w: 18, d: 9, h: 8,
-    note: 'Two storeys. 8 m of wall against a 1.7 m human.',
-  },
-  {
-    id: 'house-roof', label: '', kind: 'building',
-    x: 0, z: 9.5, w: 19.4, d: 10.4, h: 2.6, y: 8,
-    note: 'Overhanging roof; the gutter runs under its edge.',
-  },
-  {
-    id: 'gutter', label: 'GUTTER RUN', kind: 'prop',
-    x: 0, z: 4.7, w: 18, d: 0.18, h: 0.18, y: 8, hollow: true,
-    note: 'An 18 m channel you fly along. The estate-scale version of M6.',
-  },
-  {
-    id: 'chimney', label: '', kind: 'building',
-    x: 5.5, z: 9.5, w: 1.2, d: 1.2, h: 2.4, y: 10.6,
-    note: 'Highest point on the property. Perch and landmark.',
-  },
-  {
-    id: 'veranda', label: 'VERANDA', kind: 'building',
-    x: 0, z: 4.4, w: 14, d: 2.4, h: 0.2, hollow: true,
-    note: 'Decked, raised, open underneath. Human-proof.',
-  },
-
-  // ---- outbuildings ----
-  {
-    id: 'garage', label: 'GARAGE', kind: 'building',
-    x: -15.5, z: 9, w: 7, d: 6, h: 3.2, hollow: true,
-    note: 'Door left open. An interior with a car in it, one storey up nothing.',
-  },
-  {
-    id: 'greenhouse', label: 'GREENHOUSE', kind: 'glass',
-    x: -15, z: -8.5, w: 6, d: 3, h: 2.6, hollow: true,
-    note: 'Glass, hot, still air. The atmosphere zone the design doc wanted.',
-  },
-  {
-    id: 'potting-shed', label: 'POTTING SHED', kind: 'building',
-    x: -9.5, z: -9.5, w: 3, d: 3, h: 2.4, hollow: true,
-    note: 'Tools, jars, salvage. The dense-loot room.',
-  },
-  {
-    id: 'summerhouse', label: 'SUMMER HOUSE', kind: 'building',
-    x: 15.5, z: 10, w: 4.5, d: 4.5, h: 3, hollow: true,
-    note: 'The folly the property is named for. Open-sided landmark.',
-  },
-
-  // ---- planting ----
-  {
-    id: 'parterre', label: 'FORMAL GARDEN', kind: 'planting',
-    x: 10.5, z: 4.5, w: 7, d: 5, h: 0.6,
-    note: 'Clipped hedge grid — a maze at ankle height, a canyon at bee height.',
+    id: 'fountain-island', label: '', kind: 'planting',
+    x: -8, z: 30, w: 14, d: 14, h: 0.5,
+    note: 'Clipped island in the middle of the turning circle.',
   },
   {
     id: 'fountain', label: 'FOUNTAIN', kind: 'water',
-    x: 10.5, z: 4.5, w: 1.6, d: 1.6, h: 0.9,
-    note: 'Standing water, high up, in the middle of the hedge grid.',
-  },
-  {
-    id: 'orchard', label: 'ORCHARD', kind: 'planting',
-    x: 11, z: -11, w: 15, d: 7, h: 0,
-    note: 'Twelve trees on a grid. Canopy flying with regular gaps.',
-  },
-  {
-    id: 'veg', label: 'VEGETABLE BEDS', kind: 'planting',
-    x: -13, z: -4.5, w: 11, d: 3.6, h: 0.4,
-    note: 'Raised beds. Cover at ground level, and a food source.',
-  },
-  {
-    id: 'compost', label: 'COMPOST', kind: 'prop',
-    x: -18, z: -12.5, w: 2, d: 2, h: 1.2,
-    note: 'Warm, humid, full of salvage. Another atmosphere zone.',
+    x: -8, z: 30, w: 4, d: 4, h: 1.6,
+    note: 'Standing water, raised, dead centre of the approach.',
   },
 
-  // ---- the hive ----
+  // ---- the three houses ----
+  {
+    id: 'house', label: 'MAIN HOUSE', kind: 'building',
+    x: -23, z: 48, w: 34, d: 20, h: 9,
+    note: 'Nine metres to the eaves against a 1.7 m human.',
+  },
+  {
+    id: 'house-roof', label: '', kind: 'building',
+    x: -23, z: 48, w: 36, d: 22, h: 4.5, y: 9,
+    note: 'Steep hipped roof with dormers. The high ground.',
+  },
+  {
+    id: 'gutter', label: 'GUTTER RUN', kind: 'prop',
+    x: -23, z: 37.4, w: 34, d: 0.2, h: 0.2, y: 9, hollow: true,
+    note: '34 m channel you fly inside, the length of the whole facade.',
+  },
+  {
+    id: 'chimney', label: '', kind: 'building',
+    x: -34, z: 48, w: 2, d: 2, h: 4, y: 13.5,
+    note: 'Highest point on the property.',
+  },
+  {
+    id: 'garage', label: 'GARAGE', kind: 'building',
+    x: -38, z: 34, w: 14, d: 12, h: 4.5, hollow: true,
+    note: 'Three bays, one left open. A real interior with a car in it.',
+  },
+  {
+    id: 'guest-house', label: 'GUEST HOUSE', kind: 'building',
+    x: 20, z: 47, w: 20, d: 14, h: 5.5, hollow: true,
+    note: 'Its own tenants, its own habits. The repopulate axis, built in.',
+  },
+  {
+    id: 'cabana', label: 'CABANA', kind: 'building',
+    x: 19, z: 22, w: 14, d: 8, h: 3.6, hollow: true,
+    note: 'Open-sided. The furnished one: loungers, fire table, bar.',
+  },
+
+  // ---- pool terrace ----
+  {
+    id: 'pool-terrace', label: 'POOL TERRACE', kind: 'paving',
+    x: 21, z: 8, w: 26, d: 20, h: 0.25,
+    note: 'Raised stone. A 25 cm lip is a fifteen-storey drop to a bee.',
+  },
+  {
+    id: 'pool', label: 'SWIMMING POOL', kind: 'water',
+    x: 22, z: 8, w: 16, d: 12, h: 0.08,
+    note: 'Sixteen metres of open water. Crossing it should be a decision.',
+  },
+  {
+    id: 'spa', label: 'SPA', kind: 'water',
+    x: 9, z: 1, w: 5, d: 5, h: 0.6,
+    note: 'Hot, humid, steaming — an atmosphere zone with a lid of vapour.',
+  },
+
+  // ---- gardens ----
+  {
+    id: 'parterre', label: 'FORMAL GARDEN', kind: 'planting',
+    x: -28, z: 14, w: 28, d: 20, h: 0,
+    note: 'Box hedge grid: ankle-height maze, bee-height canyon system.',
+  },
+  {
+    id: 'kitchen-garden', label: 'KITCHEN GARDEN', kind: 'planting',
+    x: 34, z: 33, w: 18, d: 18, h: 0,
+    note: 'Raised beds, cold frames, cover at ground level.',
+  },
+  {
+    id: 'greenhouse', label: 'GREENHOUSE', kind: 'glass',
+    x: 36, z: 40, w: 10, d: 5, h: 3.4, hollow: true,
+    note: 'Glass, hot, still air. Fly in through the roof vent.',
+  },
+  {
+    id: 'shed', label: 'POTTING SHED', kind: 'building',
+    x: 26, z: 32, w: 4, d: 4, h: 2.6, hollow: true,
+    note: 'Jars, tools, salvage. The dense-loot room.',
+  },
+  {
+    id: 'service', label: 'SERVICE YARD', kind: 'paving',
+    x: -37, z: 22, w: 14, d: 10, h: 0.05,
+    note: 'Bins and compost behind the garage. Where the salvage lives.',
+  },
+  {
+    id: 'compost', label: '', kind: 'prop',
+    x: -40, z: 20, w: 3, d: 3, h: 1.4,
+    note: 'Warm, humid, full of parts.',
+  },
+
+  // ---- the far end ----
+  {
+    id: 'firepit', label: 'FIRE PIT', kind: 'paving',
+    x: -22, z: -26, w: 10, d: 10, h: 0.1,
+    note: 'Ringed by chairs. Heat column above it when lit.',
+  },
+  {
+    id: 'playground', label: 'PLAYGROUND', kind: 'prop',
+    x: 24, z: -30, w: 12, d: 10, h: 3.2, hollow: true,
+    note: 'A climbing frame is a cathedral at this size.',
+  },
+
+  // ---- the gate ----
+  {
+    id: 'gate', label: 'THE GATE', kind: 'wall',
+    x: 0, z: -60, w: 10, d: 0.4, h: 3.4, hollow: true,
+    note: 'Ornamental ironwork — the best climbing frame on the property.',
+  },
+  {
+    id: 'gate-pillar-w', label: '', kind: 'wall',
+    x: -6.5, z: -60, w: 3, d: 3, h: 4.4,
+    note: 'Stone pillar with a lantern on top.',
+  },
+  {
+    id: 'gate-pillar-e', label: '', kind: 'wall',
+    x: 6.5, z: -60, w: 3, d: 3, h: 4.4,
+  },
   {
     id: 'hive', label: 'THE HIVE', kind: 'prop',
-    x: -2, z: -14.6, w: 1.4, d: 0.7, h: 1.2, y: 0.6,
-    note: 'In a hollow of the south wall. Visible to humans, reachable only by bees.',
+    x: -6.5, z: -58.2, w: 2, d: 1, h: 1.6, y: 1.4,
+    note: 'In a hollow of the west gate pillar. The bees live in the front gate.',
   },
 ];
 
 // Repeated things are generated from constants so the numbers stay honest.
-function orchardTrees(): Zone[] {
+function orchard(): Zone[] {
   const out: Zone[] = [];
   for (let row = 0; row < 3; row++) {
-    for (let col = 0; col < 4; col++) {
+    for (let col = 0; col < 5; col++) {
       out.push({
         id: `orchard-${row}-${col}`, label: '', kind: 'planting',
-        x: 5.5 + col * 3.6, z: -13.5 + row * 2.6,
-        w: 2.8, d: 2.8, h: 5,
-        note: 'Fruit tree: 5 m of trunk and canopy.',
+        x: 14 + col * 6.5, z: -52 + row * 7,
+        w: 5, d: 5, h: 7,
+        note: 'Fruit tree: 7 m of trunk and canopy.',
       });
     }
   }
@@ -216,13 +258,61 @@ function orchardTrees(): Zone[] {
 
 function hedgeGrid(): Zone[] {
   const out: Zone[] = [];
-  for (let i = 0; i < 4; i++) {
-    for (let j = 0; j < 3; j++) {
+  for (let i = 0; i < 6; i++) {
+    for (let j = 0; j < 4; j++) {
       out.push({
         id: `parterre-${i}-${j}`, label: '', kind: 'planting',
-        x: 7.8 + i * 1.8, z: 2.6 + j * 1.8, w: 1.2, d: 1.2, h: 0.6,
+        x: -40 + i * 4.6, z: 6 + j * 4.6, w: 3.2, d: 3.2, h: 0.8,
       });
     }
+  }
+  return out;
+}
+
+/** Mature planting rings the whole property. These are the real walls. */
+function woodland(): Zone[] {
+  const out: Zone[] = [];
+  const { minX, maxX, minZ, maxZ } = ESTATE;
+  let n = 0;
+  const put = (x: number, z: number, h: number) => {
+    out.push({
+      id: `wood-${n++}`, label: '', kind: 'planting',
+      x, z, w: h * 0.75, d: h * 0.75, h,
+      note: 'Mature tree. The estate is enclosed by planting, not by fence.',
+    });
+  };
+  for (let z = minZ + 6; z < maxZ; z += 9) {
+    put(minX + 3.5, z + (z % 18 ? 0 : 3), 11 + ((z * 7) % 5));
+    put(maxX - 3.5, z + (z % 18 ? 3 : 0), 11 + ((z * 5) % 5));
+  }
+  for (let x = minX + 12; x < maxX - 8; x += 10) {
+    put(x, maxZ - 4, 12 + ((x * 3) % 4));
+  }
+  return out;
+}
+
+/**
+ * Landscape lighting, straight off the references — both aerials are covered
+ * in it. At bee scale a path light is a lamp post: a landmark, a night
+ * navigation aid, and something to hack.
+ */
+function pathLights(): Zone[] {
+  const out: Zone[] = [];
+  let n = 0;
+  const put = (x: number, z: number) => {
+    out.push({
+      id: `light-${n++}`, label: '', kind: 'prop',
+      x, z, w: 0.35, d: 0.35, h: 1.1,
+      note: 'Path light. Lamp post at bee scale.',
+    });
+  };
+  for (let z = -56; z < 20; z += 8) {
+    put(-6.5, z);
+    put(6.5, z);
+  }
+  for (let i = 0; i < 8; i++) {
+    const a = (i / 8) * Math.PI * 2;
+    put(-8 + Math.cos(a) * 14, 30 + Math.sin(a) * 14);
   }
   return out;
 }
@@ -232,7 +322,9 @@ function boundaryWalls(): Zone[] {
   const w = maxX - minX;
   const d = maxZ - minZ;
   return [
-    { id: 'wall-s', label: '', kind: 'wall', x: 0, z: minZ, w: w + t, d: t, h },
+    // The south wall is split by the gate opening.
+    { id: 'wall-sw', label: '', kind: 'wall', x: -26, z: minZ, w: 38, d: t, h },
+    { id: 'wall-se', label: '', kind: 'wall', x: 26, z: minZ, w: 38, d: t, h },
     { id: 'wall-n', label: '', kind: 'wall', x: 0, z: maxZ, w: w + t, d: t, h },
     { id: 'wall-w', label: '', kind: 'wall', x: minX, z: 0, w: t, d, h },
     { id: 'wall-e', label: '', kind: 'wall', x: maxX, z: 0, w: t, d, h },
@@ -242,10 +334,11 @@ function boundaryWalls(): Zone[] {
 /** People, for scale. A greybox without them is just abstract boxes. */
 function scaleFigures(): Zone[] {
   const spots: Array<[number, number, string]> = [
-    [0, -2, 'poolside'],
-    [-13, 2, 'by the car'],
-    [8, -9, 'in the orchard'],
-    [-11, -7, 'at the greenhouse'],
+    [14, 2, 'poolside'],
+    [-8, 44, 'at the front door'],
+    [0, -30, 'walking the drive'],
+    [30, 34, 'in the kitchen garden'],
+    [-24, -24, 'at the fire pit'],
   ];
   return spots.map(([x, z, label], i) => ({
     id: `ref-${i}`, label: i === 0 ? '1.7 m' : '', kind: 'ref' as const,
@@ -255,8 +348,10 @@ function scaleFigures(): Zone[] {
 
 export const ZONES: Zone[] = [
   ...zones,
-  ...orchardTrees(),
+  ...orchard(),
   ...hedgeGrid(),
+  ...woodland(),
+  ...pathLights(),
   ...boundaryWalls(),
   ...scaleFigures(),
 ];
@@ -269,14 +364,28 @@ export function diagonalMetres(): number {
 /**
  * How long the property takes to cross, which is the only number that
  * actually answers "is this the right size".
+ *
+ * Cruise is NOT `maxSpeed`. Thrust is a force against linear damping, so the
+ * speed you actually reach is accel/damping; `maxSpeed` is a higher threshold
+ * that only governs borrowed speed bleeding off. Reading the ceiling instead
+ * of the terminal made this HUD claim the estate was a third smaller than it
+ * is, which is exactly the wrong way to be wrong about scale.
  */
-export function traversal(cruiseUnitsPerSec: number, boostMultiplier: number) {
+export function traversal(flight: {
+  accel: number; damping: number; maxSpeed: number; boostMul: number;
+}) {
+  const terminal = (boost: number) =>
+    Math.min((flight.accel * boost) / flight.damping, flight.maxSpeed * boost);
+  const cruise = terminal(1);
+  const boosted = terminal(flight.boostMul);
   const acrossUnits = ESTATE.width * M;
   const diagUnits = diagonalMetres() * M;
   return {
-    acrossCruise: acrossUnits / cruiseUnitsPerSec,
-    acrossBoost: acrossUnits / (cruiseUnitsPerSec * boostMultiplier),
-    diagCruise: diagUnits / cruiseUnitsPerSec,
-    diagBoost: diagUnits / (cruiseUnitsPerSec * boostMultiplier),
+    cruiseMs: cruise / M,
+    boostMs: boosted / M,
+    acrossCruise: acrossUnits / cruise,
+    acrossBoost: acrossUnits / boosted,
+    diagCruise: diagUnits / cruise,
+    diagBoost: diagUnits / boosted,
   };
 }

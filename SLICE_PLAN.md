@@ -1,6 +1,6 @@
 # The Bees Have Tech! — Vertical Slice Plan
 
-**Status:** v5 — 2026-08-22 · supersedes the "one backyard corner" slice in CONCEPT_PILLARS.md
+**Status:** v6 — 2026-08-22 · supersedes the "one backyard corner" slice in CONCEPT_PILLARS.md
 **Target:** the seven-verb chain — Flight → Physics → Gadget → Hack → Swarm →
 Human Reaction → Chain Reaction.
 **Web version (phone-friendly):** https://claude.ai/code/artifact/1fb7ce48-5aa3-4dd8-9f45-98c0ce69c9e1
@@ -474,9 +474,73 @@ overdrive**; corner to corner, **49 s and 9.8 s**. The backyard is 9.8 s and
 is a question about seconds, not square metres, and it can only be answered by
 flying it.
 
-**Open:** whether 40 × 30 m reads as an epic open world or as a long empty
-walk. If it's too much, the blockout shrinks by editing four numbers, which is
-the entire reason it exists before the house does.
+**Resolved 2026-08-22:** 40 × 30 read as too small, and the blockout is now
+**90 × 120 m** — the gated estate from the reference aerials. But the size
+question turned out to be downstream of a worse one.
+
+### The bee flew at walking pace
+
+| | Before | After | Real honeybee |
+|---|---|---|---|
+| Cruise | 1.02 m/s | **3.35 m/s** | 4–5.5 m/s foraging |
+| Overdrive | 5.10 m/s | **8.75 m/s** | ~8 m/s max |
+| vs. the human's walk | **1.09×** | 2.40× | — |
+
+The flight values were playtested in the 2.4 m yard, where 60 u/s crossed the
+world in two and a half seconds and felt right. They were never revisited when
+the world grew 16×. The result: **a flying insect whose top cruise was nine
+percent faster than a man walking**, and a grapple with two metres of line on a
+forty-metre property. Any judgement about world size made through that was
+measuring the wrong variable.
+
+**`damping` did not change**, deliberately. Thrust terminal velocity is
+`accel / damping`, so raising accel raises the ceiling while leaving the
+`1 / damping` response time — and therefore the snappiness and the coast-to-a-
+stop that were already right — exactly where they were. `maxSpeed` was raised
+to sit *above* the new thrust terminal, preserving its real job: governing
+borrowed speed from grapple swings, swats and fan gusts, not powered flight.
+
+Everything measured in distance or impulse moved with it — grapple range
+(2.0 m → 6.8 m), carry range and throw, stinger lunge, hack range, fan force,
+deposit radius, swarm speed, swat impulse, and the human's walk (0.93 → 1.4 m/s,
+actual human pace). The tuning-panel slider ranges moved too, or the sliders
+would have clamped the new values back down. **The localStorage key was bumped
+to v2**: a saved v1 file would have restored the old 60 u/s bee on load and
+silently undone the entire change.
+
+The grass LOD now takes a **speed** term as well as altitude. Crossing a tile
+re-uploads the instance buffer, and at overdrive over 40-unit tiles that fires
+fifteen times a second; bigger tiles when moving fast makes those uploads rare,
+and at 10 m/s you cannot resolve a blade anyway.
+
+### The estate, and why it has a spine
+
+90 × 120 m, 150 m corner to corner: **26.5 s across at cruise, 8.8 s on
+overdrive; 44 s and 14.7 s corner to corner.** Big enough that the far end is a
+trip, fast enough that it is never a slog.
+
+The structural lesson from the 40 × 30 attempt: it was all rooms and no
+corridor. The references have a **spine** — gate, 80 m of straight driveway,
+motor court, house — and at bee scale that drive is the one place on the
+property you can hold overdrive in a line and feel fast. Lined with landscape
+lighting, straight off the aerials, it reads as a lit avenue.
+
+Three buildings, per the references: **main house** (34 × 20 m, 9 m to the
+eaves, 34 m gutter run, attached three-bay garage), **guest house**, and an
+open-sided **cabana**. Three interiors, three sets of habits — and the guest
+house makes "repopulate: same house, new tenants" structural rather than
+aspirational.
+
+Everything else is **garden rooms**, which is the answer to emptiness: motor
+court, parterre, pool terrace, kitchen garden, service yard, fire pit,
+playground, orchard, woodland edge. Each enclosed by hedge, wall or level
+change; each its own place with its own ceiling and sightlines. Ten metres of
+hedge is a canyon at this scale. 139 zones.
+
+**Open:** content density. 10,800 m² wants on the order of 150 points of
+interest before it stops being a lawn, and one human on 2.7 acres is scenery
+rather than a threat — estate scale forces the family the design already
+called for, and real pathfinding with it.
 
 ---
 

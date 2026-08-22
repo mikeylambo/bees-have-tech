@@ -43,6 +43,12 @@ const PER_TILE = Math.floor(BLADE_MAX / TILE_COUNT);
 // re-scattering the field every frame.
 const LOD_UP = [M * 1.0, M * 4.4]; // climb past this and the window widens
 const LOD_DOWN = [M * 0.8, M * 3.6];
+// ...and so does SPEED. Crossing a tile boundary re-uploads the instance
+// buffer, so at overdrive (600 u/s over 40-unit tiles) that would fire
+// fifteen times a second. Bigger tiles when you're moving fast: fewer, larger
+// uploads, and at 10 m/s you cannot resolve an individual blade anyway.
+const SPEED_UP = [M * 2.2, M * 6.0]; // m/s thresholds
+const SPEED_DOWN = [M * 1.7, M * 5.0];
 
 /** Circular keep-outs — things that sit ON the lawn. */
 const BARE_SPOTS: Array<[number, number, number]> = [
@@ -100,6 +106,8 @@ export class GrassField {
   private uCenter = { value: new THREE.Vector3() };
   private uRadius = { value: (TILES_ACROSS * TILE0) / 2 };
   private lod = 0;
+  private altLod = 0;
+  private speedLod = 0;
   private tile = TILE0;
   private seed: number;
   /** World tile coords currently held by each slot; NaN = never filled. */
@@ -206,7 +214,7 @@ export class GrassField {
     this.dirty = true;
   }
 
-  update(dt: number, focus: THREE.Vector3) {
+  update(dt: number, focus: THREE.Vector3, speed = 0) {
     this.uTime.value += dt;
     this.uCenter.value.copy(focus);
 
@@ -215,11 +223,20 @@ export class GrassField {
     const density = Math.min(1, Math.max(0.1, params.world.grassDensity));
     this.mesh.count = Math.floor((BLADE_MAX * density) / TILE_COUNT) * TILE_COUNT;
 
-    // Pick the altitude LOD before choosing tiles; changing it invalidates
-    // every tile, so it has to happen first.
-    let lod = this.lod;
-    while (lod < 2 && focus.y > LOD_UP[lod]) lod++;
-    while (lod > 0 && focus.y < LOD_DOWN[lod - 1]) lod--;
+    // Pick the LOD before choosing tiles; changing it invalidates every tile,
+    // so it has to happen first. Altitude and speed each propose a level and
+    // the coarser one wins.
+    let alt = this.altLod;
+    while (alt < 2 && focus.y > LOD_UP[alt]) alt++;
+    while (alt > 0 && focus.y < LOD_DOWN[alt - 1]) alt--;
+    this.altLod = alt;
+
+    let spd = this.speedLod;
+    while (spd < 2 && speed > SPEED_UP[spd]) spd++;
+    while (spd > 0 && speed < SPEED_DOWN[spd - 1]) spd--;
+    this.speedLod = spd;
+
+    const lod = Math.max(alt, spd);
     if (lod !== this.lod) {
       this.lod = lod;
       this.tile = TILE0 * (1 << lod);
