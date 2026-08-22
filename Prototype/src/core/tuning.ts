@@ -120,8 +120,6 @@ export const params = {
     swatCooldown: 1.6,
     swatWindup: 0.32,
     investigateTime: 6,
-    yardRadius: 50, // he's kinematic, so the fence won't stop him — this does
-    fenceLimitZ: -54,
   },
   exposure: {
     riseSeen: 7, // per second while plainly visible

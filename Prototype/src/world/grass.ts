@@ -1,13 +1,43 @@
 import * as THREE from 'three';
 import { mulberry32, rangeFrom } from '../core/rng';
+import { LAWN, DECK, SHED, BED_BACK, BED_WEST, rectContains, type Rect } from './property';
 
 // Instanced grass — the visual core of the scale-inversion fantasy.
 // One InstancedMesh, seeded scatter, wind sway injected into the standard
 // material so lighting/fog stay correct. No physics: flying through grass
 // IS the game.
-const BLADE_COUNT = 70000;
-const FIELD_RADIUS = 55;
-const CLEARING_RADIUS = 4; // keep spawn point visible
+//
+// The scatter follows the PROPERTY now rather than a disc: grass grows on the
+// lawn and stops at the beds, the deck, the shed and the path. That boundary
+// is most of what makes the yard read as landscaped instead of as a field.
+const BLADE_COUNT = 92000;
+const CLEARING_RADIUS = 5; // keep spawn point visible
+
+/** Circular keep-outs — things that sit ON the lawn. */
+const BARE_SPOTS: Array<[number, number, number]> = [
+  [0, 2, CLEARING_RADIUS], // spawn
+  [-34, 4, 24], // kiddie pool
+  [-40, -14, 17], // bird bath
+  [-46, 38, 13], // coiled hose
+  [-60, 46, 15], // bin
+  [-58, -30, 13], // tree trunk
+  [28, -46, 18], // wheelbarrow
+  [9, 30, 14], // foot of the deck steps
+];
+
+const KEEP_OUT: Rect[] = [DECK, SHED, BED_BACK, BED_WEST];
+
+function blocked(x: number, z: number): boolean {
+  for (const r of KEEP_OUT) if (rectContains(r, x, z, 2)) return true;
+  for (const [cx, cz, cr] of BARE_SPOTS) {
+    if ((x - cx) * (x - cx) + (z - cz) * (z - cz) < cr * cr) return true;
+  }
+  // The stone path wanders; keep the blades off it.
+  if (z > -26 && z < 32 && Math.abs(x - (9 + Math.sin((30 - z) / 6.6 * 1.7) * 3.5)) < 5.4) {
+    return true;
+  }
+  return false;
+}
 
 function bladeGeometry(): THREE.BufferGeometry {
   const geo = new THREE.PlaneGeometry(0.16, 1, 1, 3);
@@ -58,18 +88,32 @@ export class GrassField {
     const up = new THREE.Vector3(0, 1, 0);
     const colorA = new THREE.Color(0x39702a);
     const colorB = new THREE.Color(0x86b45a);
+    // Mower stripes: alternating bands of lay direction read as a mown lawn
+    // from the air, which is the cheapest "someone maintains this" signal
+    // there is.
+    const stripe = new THREE.Color(0x2f6323);
     const c = new THREE.Color();
+    const hidden = new THREE.Vector3(0, -900, 0);
+    const w = LAWN.maxX - LAWN.minX;
+    const d = LAWN.maxZ - LAWN.minZ;
 
     for (let i = 0; i < BLADE_COUNT; i++) {
-      // uniform disc distribution, skipping the spawn clearing
       let x = 0;
       let z = 0;
-      do {
-        const r = Math.sqrt(rand()) * FIELD_RADIUS;
-        const a = rand() * Math.PI * 2;
-        x = Math.cos(a) * r;
-        z = Math.sin(a) * r;
-      } while (Math.hypot(x, z) < CLEARING_RADIUS);
+      let ok = false;
+      for (let tries = 0; tries < 12 && !ok; tries++) {
+        x = LAWN.minX + rand() * w;
+        z = LAWN.minZ + rand() * d;
+        ok = !blocked(x, z);
+      }
+      if (!ok) {
+        // Park the stragglers under the world rather than piling them on a
+        // pot: a handful of unused instances costs nothing.
+        m.compose(hidden, q, new THREE.Vector3(0, 0, 0));
+        this.mesh.setMatrixAt(i, m);
+        this.mesh.setColorAt(i, c.set(0x000000));
+        continue;
+      }
 
       q.setFromAxisAngle(up, rand() * Math.PI * 2);
       const h = range(1.8, 4.2);
@@ -79,7 +123,10 @@ export class GrassField {
         new THREE.Vector3(range(0.7, 1.3), h, 1),
       );
       this.mesh.setMatrixAt(i, m);
-      this.mesh.setColorAt(i, c.lerpColors(colorA, colorB, rand()));
+      const banded = (Math.floor((z - LAWN.minZ) / 15) & 1) === 1;
+      c.lerpColors(colorA, colorB, rand());
+      if (banded) c.lerp(stripe, 0.35);
+      this.mesh.setColorAt(i, c);
     }
     this.mesh.instanceMatrix.needsUpdate = true;
     if (this.mesh.instanceColor) this.mesh.instanceColor.needsUpdate = true;

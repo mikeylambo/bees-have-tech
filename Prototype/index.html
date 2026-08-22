@@ -4,6 +4,10 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>The Bees Have Tech! — Flight Proto</title>
+    <link
+      rel="icon"
+      href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><text y='26' font-size='26'>%F0%9F%90%9D</text></svg>"
+    />
     <style>
       html, body { margin: 0; height: 100%; overflow: hidden; background: #87c5eb; }
       #app { position: fixed; inset: 0; }
@@ -72,6 +76,9 @@
 
       /* H hides the dev UI so the yard can be seen (and screenshotted) clean. */
       body.hide-ui .hud,
+      body.hide-ui #questTrack,
+      body.hide-ui #bank,
+      body.hide-ui #waypoint,
       body.hide-ui .tp-dfwv { display: none; }
 
       /* The panel outgrew the viewport — let it scroll on its own. */
@@ -158,25 +165,17 @@
       }
       #swatFlash.hit { opacity: 1; transition: opacity 60ms linear; }
 
-      /* ---- Salvage & research ---- */
-      #research {
+      /* ---- The bank: what you have to spend ---- */
+      #bank {
         position: fixed; left: 16px; top: 14px; z-index: 9;
-        min-width: 210px; padding: 9px 13px; border-radius: 10px;
+        display: flex; align-items: baseline; gap: 10px;
+        padding: 8px 13px; border-radius: 10px;
         background: rgba(20, 24, 18, 0.65);
         font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
         font-size: 11px; color: #fff; pointer-events: none; user-select: none;
-        line-height: 1.6;
       }
-      #research .salvage { color: #ffd75e; font-size: 13px; font-weight: 700; }
-      #research .goal { color: #b9c7b5; }
-      #research .track {
-        height: 4px; border-radius: 2px; margin-top: 5px; overflow: hidden;
-        background: rgba(255, 255, 255, 0.14);
-      }
-      #research .fill {
-        height: 100%; width: 0%; background: #63ffa8;
-        transition: width 200ms ease-out;
-      }
+      #bank .salvage { color: #ffd75e; font-size: 14px; font-weight: 700; }
+      #bank .built { color: #9aa89a; }
 
       /* Unlock banner — the loop closing should feel like an event. */
       #unlock {
@@ -200,7 +199,6 @@
       }
       @media (prefers-reduced-motion: reduce) {
         #unlock.show { animation: none; opacity: 0; }
-        #research .fill { transition: none; }
       }
 
       /* ---- Equipped tech ---- */
@@ -255,6 +253,201 @@
       @media (prefers-reduced-motion: reduce) {
         #exposure .fill, #swatFlash, .radial-wedge { transition: none; }
       }
+
+      /* ================= QUESTS ================= */
+      /* Four surfaces: the card pitches it, the tracker remembers it, the
+         toast confirms each step, the banner pays it off. */
+
+      #questTrack {
+        position: fixed; left: 16px; top: 52px; z-index: 9;
+        width: 268px; padding: 10px 13px; border-radius: 10px;
+        background: rgba(20, 24, 18, 0.66);
+        border-left: 3px solid #ffd75e;
+        font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+        font-size: 11px; color: #fff; line-height: 1.55;
+        pointer-events: none; user-select: none;
+        opacity: 0; transform: translateX(-8px);
+        transition: opacity 240ms ease-out, transform 240ms ease-out;
+      }
+      #questTrack.show { opacity: 1; transform: none; }
+      .qt-head { color: #ffd75e; font-size: 9px; letter-spacing: 0.18em; }
+      .qt-title { font-size: 13px; font-weight: 700; margin: 2px 0 6px; }
+      .qt-objs { list-style: none; margin: 0; padding: 0; }
+      .qt-objs li { display: flex; gap: 6px; align-items: baseline; color: #dfe8db; }
+      .qt-objs li.done { color: #7bd39a; text-decoration: line-through; }
+      .qt-objs .tick { color: #ffd75e; }
+      .qt-objs li.done .tick { color: #7bd39a; }
+      .qt-objs b { margin-left: auto; color: #ffd75e; }
+      .qt-hint {
+        margin-top: 6px; padding-top: 6px; color: #9aa89a; font-style: italic;
+        border-top: 1px solid rgba(255, 255, 255, 0.1);
+      }
+
+      /* The offer card — big, once, then gone. */
+      #questCard {
+        position: fixed; left: 50%; top: 26%; z-index: 22;
+        width: min(430px, 76vw); transform: translate(-50%, -50%) scale(0.96);
+        padding: 16px 20px; border-radius: 12px;
+        background: rgba(14, 19, 12, 0.92);
+        border: 1px solid rgba(255, 215, 94, 0.4);
+        box-shadow: 0 18px 50px rgba(0, 0, 0, 0.5);
+        font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+        color: #fff; pointer-events: none; opacity: 0;
+      }
+      #questCard.show { animation: questCard 7200ms ease-out forwards; }
+      @keyframes questCard {
+        0% { opacity: 0; transform: translate(-50%, -46%) scale(0.96); }
+        4% { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+        86% { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+        100% { opacity: 0; transform: translate(-50%, -52%) scale(0.99); }
+      }
+      .qc-giver { font-size: 9px; letter-spacing: 0.22em; color: #ffd75e; }
+      .qc-title { font-size: 21px; font-weight: 700; margin: 5px 0 7px; }
+      .qc-pitch { font-size: 12px; color: #cfe0ca; line-height: 1.65; }
+      .qc-objs {
+        list-style: none; margin: 11px 0 0; padding: 11px 0 0; font-size: 11.5px;
+        border-top: 1px solid rgba(255, 255, 255, 0.14);
+      }
+      .qc-objs li { display: flex; gap: 7px; align-items: baseline; color: #dfe8db; }
+      .qc-objs .tick { color: #ffd75e; }
+      .qc-objs b { margin-left: auto; color: #ffd75e; }
+      .qc-reward {
+        margin-top: 10px; font-size: 11px; color: #63ffa8;
+      }
+
+      /* The toast — small, frequent, unmissable for a second. */
+      #questToast {
+        position: fixed; left: 50%; top: 62px; z-index: 21;
+        transform: translateX(-50%); padding: 6px 14px; border-radius: 999px;
+        background: rgba(14, 19, 12, 0.86);
+        border: 1px solid rgba(255, 215, 94, 0.45);
+        font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+        font-size: 11.5px; color: #ffd75e; white-space: nowrap;
+        pointer-events: none; opacity: 0;
+        transition: opacity 180ms ease-out, transform 180ms ease-out;
+      }
+      #questToast.show {
+        opacity: 1; transform: translateX(-50%) translateY(4px);
+      }
+
+      /* The payoff. */
+      #questBanner {
+        position: fixed; left: 50%; top: 36%; z-index: 25;
+        transform: translate(-50%, -50%); text-align: center;
+        pointer-events: none; opacity: 0;
+        font-family: ui-monospace, SFMono-Regular, Menlo, monospace; color: #fff;
+        text-shadow: 0 2px 10px rgba(0, 0, 0, 0.85);
+      }
+      #questBanner .kicker {
+        font-size: 11px; letter-spacing: 0.24em; color: #63ffa8;
+      }
+      #questBanner .name { font-size: 28px; font-weight: 700; margin: 6px 0 4px; }
+      #questBanner .blurb { font-size: 12px; color: #ffd75e; }
+      #questBanner.show { animation: unlockPop 3000ms ease-out; }
+
+      /* The waypoint — the yard is too big to guess now. */
+      #waypoint {
+        position: fixed; z-index: 8; transform: translate(-50%, -50%);
+        display: none; align-items: center; gap: 5px;
+        padding: 3px 8px 3px 5px; border-radius: 999px;
+        background: rgba(14, 19, 12, 0.62);
+        border: 1px solid rgba(255, 215, 94, 0.5);
+        font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+        font-size: 10px; letter-spacing: 0.1em; color: #ffd75e;
+        pointer-events: none; user-select: none; white-space: nowrap;
+      }
+      #waypoint.show { display: flex; }
+      #waypoint .wp-pip {
+        width: 7px; height: 7px; background: #ffd75e; border-radius: 2px;
+        transform: rotate(45deg);
+      }
+      #waypoint .wp-dist { color: #9aa89a; }
+      /* Pinned to the screen edge = it's off-screen; make that obvious. */
+      #waypoint.pinned { background: rgba(255, 215, 94, 0.16); }
+
+      /* ================= HIVE WORKSHOP ================= */
+      #shopPrompt {
+        position: fixed; left: 50%; bottom: 21%; z-index: 9;
+        transform: translateX(-50%); padding: 7px 15px; border-radius: 999px;
+        background: rgba(14, 19, 12, 0.82);
+        border: 1px solid rgba(255, 215, 94, 0.5);
+        font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+        font-size: 12px; color: #fff; pointer-events: none;
+        opacity: 0; transition: opacity 160ms linear;
+      }
+      #shopPrompt.show { opacity: 1; }
+      #shopPrompt b { color: #ffd75e; }
+
+      #shop {
+        position: fixed; inset: 0; z-index: 24; display: none;
+        align-items: center; justify-content: center; pointer-events: none;
+        background: radial-gradient(circle at center,
+          rgba(8, 12, 6, 0.4) 0%, rgba(8, 12, 6, 0.78) 75%);
+        font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+      }
+      #shop.show { display: flex; }
+      .shop-panel {
+        width: min(560px, 88vw); padding: 16px 18px; border-radius: 12px;
+        background: rgba(14, 19, 12, 0.95);
+        border: 1px solid rgba(255, 215, 94, 0.42);
+        box-shadow: 0 22px 60px rgba(0, 0, 0, 0.6);
+        color: #fff;
+      }
+      #shop.deny .shop-panel { animation: shopDeny 260ms ease-out; }
+      @keyframes shopDeny {
+        0%, 100% { transform: translateX(0); }
+        25% { transform: translateX(-7px); }
+        75% { transform: translateX(7px); }
+      }
+      .shop-head {
+        display: flex; justify-content: space-between; align-items: baseline;
+        font-size: 12px; letter-spacing: 0.14em; color: #ffd75e;
+        padding-bottom: 10px; margin-bottom: 8px;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.14);
+      }
+      .shop-bank { color: #63ffa8; letter-spacing: 0; }
+      .shop-list { list-style: none; margin: 0; padding: 0; }
+      .shop-list li {
+        display: flex; align-items: center; gap: 10px;
+        padding: 7px 9px; border-radius: 7px; font-size: 12px;
+        border: 1px solid transparent;
+      }
+      .shop-list li.sel {
+        background: rgba(255, 215, 94, 0.12);
+        border-color: rgba(255, 215, 94, 0.55);
+      }
+      .shop-list .ic { font-size: 17px; width: 22px; text-align: center; }
+      .shop-list .nm { font-weight: 700; width: 150px; }
+      .shop-list .ef { color: #b9c7b5; font-size: 11px; flex: 1; }
+      .shop-list .ct {
+        color: #ffd75e; font-weight: 700; min-width: 44px; text-align: right;
+      }
+      .shop-list li.poor .ct { color: #ff7a6a; }
+      .shop-list li.poor .nm, .shop-list li.poor .ic { opacity: 0.55; }
+      .shop-list li.owned { opacity: 0.5; }
+      .shop-list li.owned .ct { color: #63ffa8; font-size: 10px; }
+      .shop-empty { color: #9aa89a; font-style: italic; padding: 10px 4px; }
+      .shop-blurb {
+        min-height: 30px; margin-top: 10px; padding-top: 9px;
+        border-top: 1px solid rgba(255, 255, 255, 0.14);
+        font-size: 11.5px; color: #cfe0ca; line-height: 1.5;
+      }
+      .shop-keys { margin-top: 6px; font-size: 10px; color: #7d8a7d; }
+      .shop-keys b { color: #ffd75e; }
+
+      @media (prefers-reduced-motion: reduce) {
+        #questCard.show, #questBanner.show, #shop.deny .shop-panel { animation: none; }
+        #questCard.show { opacity: 1; }
+        #questTrack, #questToast, #shopPrompt { transition: none; }
+      }
+
+      /* Small viewports: the quest furniture would collide with the panel. */
+      @media (max-width: 900px), (max-height: 560px) {
+        #questTrack { width: 214px; font-size: 10px; }
+        .shop-list .nm { width: 118px; }
+        .shop-list .ef { display: none; }
+      }
+
     </style>
   </head>
   <body>
@@ -280,16 +473,16 @@
       <b>Tab</b> hold for tech wheel &nbsp; <b>scroll</b> cycle tech<br />
       <b>Pad:</b> sticks fly/look &nbsp; <b>RT/LT</b> altitude &nbsp; <b>A</b> overdrive &nbsp;
       <b>RB</b> use &nbsp; <b>B</b> sting &nbsp; <b>X</b> alt &nbsp;
-      <b>LB</b> hold for wheel &nbsp; <b>H</b> hide UI
+      <b>LB</b> hold for wheel &nbsp; <b>R/Y</b> workshop (at the hive) &nbsp;
+      <b>H</b> hide UI
       <span id="padStatus" style="color:#7dff9b"></span>
     </div>
-    <div id="research">
-      <span class="salvage" id="salvageCount">0 salvage</span><br />
-      <span class="goal" id="researchGoal">Next: Swarm Beacon (3)</span>
-      <div class="track"><div class="fill" id="researchFill"></div></div>
+    <div id="bank">
+      <span class="salvage" id="salvageCount">0 salvage</span>
+      <span class="built" id="builtCount">no blueprints yet</span>
     </div>
     <div id="unlock">
-      <div class="kicker">REVERSE ENGINEERED</div>
+      <div class="kicker" id="unlockKicker">REVERSE ENGINEERED</div>
       <div class="name" id="unlockName"></div>
       <div class="blurb" id="unlockBlurb"></div>
     </div>

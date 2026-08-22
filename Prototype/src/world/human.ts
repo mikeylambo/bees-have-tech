@@ -2,6 +2,13 @@ import type RAPIER_API from '@dimforge/rapier3d-compat';
 import * as THREE from 'three';
 import type { Physics } from '../core/physics';
 import { params } from '../core/tuning';
+import { WALK_BLOCKERS, rectContains, type Rect } from './property';
+
+/**
+ * Where a person can actually stand. Inset from the fence line so he never
+ * clips the planks, and it stops short of the house wall.
+ */
+const WALKABLE: Rect = { minX: -64, maxX: 64, minZ: -54, maxZ: 58 };
 
 // THE HUMAN — M2's whole point, and the riskiest thing in the design.
 //
@@ -271,13 +278,16 @@ export class Human {
         this.stopDistance = 3;
         this.leadShoulder = false;
         if (this.root.position.distanceTo(this.patrolTarget) < 6 || this.stateT > 9) {
-          const a = rand() * Math.PI * 2;
-          const r = 12 + rand() * (p.yardRadius - 14);
-          this.patrolTarget.set(
-            Math.cos(a) * r,
-            0,
-            Math.max(p.fenceLimitZ, Math.sin(a) * r),
-          );
+          // Wander the whole property, not a circle around the middle: a
+          // person who only ever paces the centre of the lawn stops being a
+          // hazard the moment you learn the pattern.
+          for (let i = 0; i < 8; i++) {
+            const x = WALKABLE.minX + rand() * (WALKABLE.maxX - WALKABLE.minX);
+            const z = WALKABLE.minZ + rand() * (WALKABLE.maxZ - WALKABLE.minZ);
+            if (WALK_BLOCKERS.some((b) => rectContains(b, x, z, 8))) continue;
+            this.patrolTarget.set(x, 0, z);
+            break;
+          }
           this.stateT = 0;
         }
         if (seen) this.setState('suspicious');
@@ -469,17 +479,26 @@ export class Human {
 
   /**
    * A kinematic body isn't stopped by static geometry, so he'd stroll straight
-   * through the fence. Keep him inside the yard by hand.
+   * through the fence — and through the shed. Keep him on the property by
+   * hand, and push him out of anything solid he's standing in.
    */
   private clampToYard() {
-    const p = params.human;
     const pos = this.root.position;
-    const r = Math.hypot(pos.x, pos.z);
-    if (r > p.yardRadius) {
-      pos.x *= p.yardRadius / r;
-      pos.z *= p.yardRadius / r;
+    pos.x = Math.min(WALKABLE.maxX, Math.max(WALKABLE.minX, pos.x));
+    pos.z = Math.min(WALKABLE.maxZ, Math.max(WALKABLE.minZ, pos.z));
+
+    for (const b of WALK_BLOCKERS) {
+      if (!rectContains(b, pos.x, pos.z, 6)) continue;
+      // Eject along whichever face is nearest — cheapest correct way out of
+      // a box, and it never teleports him across the building.
+      const outs = [
+        { d: pos.x - (b.minX - 6), set: () => (pos.x = b.minX - 6) },
+        { d: (b.maxX + 6) - pos.x, set: () => (pos.x = b.maxX + 6) },
+        { d: pos.z - (b.minZ - 6), set: () => (pos.z = b.minZ - 6) },
+        { d: (b.maxZ + 6) - pos.z, set: () => (pos.z = b.maxZ + 6) },
+      ];
+      outs.sort((a, c) => a.d - c.d)[0].set();
     }
-    if (pos.z < p.fenceLimitZ) pos.z = p.fenceLimitZ;
   }
 
   private animate(dt: number) {

@@ -3,15 +3,37 @@ import type RAPIER_API from '@dimforge/rapier3d-compat';
 import type { Physics } from '../core/physics';
 import { mulberry32, rangeFrom } from '../core/rng';
 import { params } from '../core/tuning';
+import {
+  buildProperty, rectContains,
+  YARD, LAWN, DECK, SHED, BED_BACK, BED_WEST, DECK_HEIGHT,
+  type Rect,
+} from './property';
 
-// The yard corner: ground, fence (scale cue), springy flowers, and dynamic
-// props. Props use toy-physics densities — a bee CAN tip a soda can here,
-// because comedy beats realism.
+// The toys. The built environment lives in property.ts; everything here is
+// something the bee can move, bend, steal or knock over.
+//
+// Props use toy-physics densities — a bee CAN tip a soda can here, because
+// comedy beats realism.
+
+/** What a piece of salvage IS, so quests can ask for one kind of thing. */
+export type SalvageKind = 'battery' | 'board' | 'cap' | 'screw';
+
+export const SALVAGE_LABEL: Record<SalvageKind, string> = {
+  battery: 'AA battery',
+  board: 'circuit board',
+  cap: 'bottle cap',
+  screw: 'wood screw',
+};
+
 export interface DynamicProp {
   mesh: THREE.Object3D;
   body: RAPIER_API.RigidBody;
   /** Salvage is what the hive reverse-engineers into new tech. */
   salvage?: boolean;
+  /** Which kind, for quests that ask for something specific. */
+  kind?: SalvageKind;
+  /** Where it started. Anything booted out of the yard comes back here. */
+  home: THREE.Vector3;
   /** Set once deposited, so it can't be farmed twice. */
   consumed?: boolean;
 }
@@ -39,65 +61,37 @@ export interface Yard {
 
 export function buildYard(physics: Physics, scene: THREE.Scene, seed: number): Yard {
   const { RAPIER, world } = physics;
+  const property = buildProperty(physics, scene, seed);
   const group = new THREE.Group();
   const dynamicProps: DynamicProp[] = [];
   const flowers: Flower[] = [];
   const rand = mulberry32(seed ^ 0x9e3779b9);
   const range = rangeFrom(rand);
 
-  // ---- sky / fog / light ----
-  const skyColor = new THREE.Color(0x87c5eb);
-  scene.background = skyColor;
-  scene.fog = new THREE.Fog(skyColor, 70, 240);
-
-  scene.add(new THREE.HemisphereLight(0xbfd9ff, 0x3d5a2a, 0.9));
-  const sun = new THREE.DirectionalLight(0xfff2cc, 2.2);
-  sun.position.set(45, 70, 25);
-  sun.castShadow = true;
-  sun.shadow.mapSize.set(2048, 2048);
-  sun.shadow.camera.left = -70;
-  sun.shadow.camera.right = 70;
-  sun.shadow.camera.top = 70;
-  sun.shadow.camera.bottom = -70;
-  sun.shadow.camera.far = 200;
-  scene.add(sun);
-
-  // ---- ground ----
-  const ground = new THREE.Mesh(
-    new THREE.CircleGeometry(140, 48),
-    new THREE.MeshLambertMaterial({ color: 0x3d5226 }),
-  );
-  ground.rotation.x = -Math.PI / 2;
-  ground.receiveShadow = true;
-  group.add(ground);
-  const groundCollider = world.createCollider(
-    RAPIER.ColliderDesc.cuboid(140, 0.5, 140).setTranslation(0, -0.5, 0).setFriction(1),
-  );
-
-  // ---- fence: the giant-world scale cue, and a grapple wall ----
-  const plankMat = new THREE.MeshLambertMaterial({ color: 0x6e5138 });
-  const plankGeo = new THREE.BoxGeometry(7, 60, 1.4);
-  for (let i = -5; i <= 5; i++) {
-    const plank = new THREE.Mesh(plankGeo, plankMat);
-    plank.position.set(i * 7.6, 30, -62);
-    plank.castShadow = true;
-    group.add(plank);
-  }
-  world.createCollider(
-    RAPIER.ColliderDesc.cuboid(42, 30, 0.7).setTranslation(0, 30, -62),
-  );
+  /** A point inside `r`, retried until it clears the hive and the buildings. */
+  const pointIn = (r: Rect, inset = 4): THREE.Vector2 => {
+    const p = new THREE.Vector2();
+    for (let i = 0; i < 24; i++) {
+      p.set(
+        r.minX + inset + rand() * (r.maxX - r.minX - inset * 2),
+        r.minZ + inset + rand() * (r.maxZ - r.minZ - inset * 2),
+      );
+      if (rectContains(SHED, p.x, p.y, 3)) continue;
+      if (rectContains(DECK, p.x, p.y, 3)) continue;
+      if (Math.hypot(p.x - 6, p.y + 56) < 16) continue; // hive doorstep
+      return p;
+    }
+    return p;
+  };
 
   // ---- springy flowers ----
+  // Planted in the beds, the way a person would plant them, with a few
+  // volunteers out on the lawn.
   const stemMat = new THREE.MeshLambertMaterial({ color: 0x2e6b1f });
   const centerMat = new THREE.MeshLambertMaterial({ color: 0xe8a020 });
-  const petalColors = [0xe86a8a, 0xffffff, 0xb98ae8, 0xff9d5c];
+  const petalColors = [0xe86a8a, 0xffffff, 0xb98ae8, 0xff9d5c, 0xffe066];
 
-  for (let i = 0; i < 8; i++) {
-    const a = rand() * Math.PI * 2;
-    const r = range(11, 42);
-    const x = Math.cos(a) * r;
-    const z = Math.sin(a) * r;
-    const h = range(5.5, 10);
+  const plantFlower = (x: number, z: number, h: number) => {
     const base = new THREE.Vector3(x, 0, z);
 
     // stem: unit cylinder with its base at origin, re-aimed each frame
@@ -164,6 +158,18 @@ export function buildYard(physics: Physics, scene: THREE.Scene, seed: number): Y
     );
 
     flowers.push({ head, anchor, joint, headGroup, stem, base, restHeight: h });
+  };
+
+  for (const bed of [BED_BACK, BED_WEST]) {
+    const n = bed === BED_BACK ? 9 : 6;
+    for (let i = 0; i < n; i++) {
+      const p = pointIn(bed, 3);
+      plantFlower(p.x, p.y, range(6, 11));
+    }
+  }
+  for (let i = 0; i < 4; i++) {
+    const p = pointIn(LAWN, 12);
+    plantFlower(p.x, p.y, range(5.5, 9));
   }
 
   // ---- dynamic props ----
@@ -173,7 +179,7 @@ export function buildYard(physics: Physics, scene: THREE.Scene, seed: number): Y
     x: number,
     y: number,
     z: number,
-    salvage = false,
+    kind?: SalvageKind,
   ) => {
     mesh.castShadow = true;
     group.add(mesh);
@@ -181,7 +187,10 @@ export function buildYard(physics: Physics, scene: THREE.Scene, seed: number): Y
       RAPIER.RigidBodyDesc.dynamic().setTranslation(x, y, z).setAngularDamping(0.6),
     );
     world.createCollider(colliderDesc, body);
-    dynamicProps.push({ mesh, body, salvage });
+    dynamicProps.push({
+      mesh, body, salvage: kind !== undefined, kind,
+      home: new THREE.Vector3(x, y, z),
+    });
   };
 
   // soda can — too heavy to carry, grapple-only. The "you move, not it" test.
@@ -191,7 +200,7 @@ export function buildYard(physics: Physics, scene: THREE.Scene, seed: number): Y
       new THREE.MeshStandardMaterial({ color: 0xd42a2a, roughness: 0.35, metalness: 0.8 }),
     ),
     RAPIER.ColliderDesc.cylinder(2.5, 1.4).setDensity(0.02).setFriction(0.7),
-    10, 2.5, 6,
+    14, 2.5, 12,
   );
 
   // toy block — heavy-ish, draggable
@@ -201,57 +210,101 @@ export function buildYard(physics: Physics, scene: THREE.Scene, seed: number): Y
       new THREE.MeshStandardMaterial({ color: 0x3a6fd8, roughness: 0.6 }),
     ),
     RAPIER.ColliderDesc.cuboid(1.2, 1.2, 1.2).setDensity(0.015).setFriction(0.8),
-    -8, 1.2, 10,
+    -12, 1.2, 16,
   );
 
   // pebbles — light, the bread-and-butter carry targets
   const pebbleMat = new THREE.MeshStandardMaterial({ color: 0x8a8578, roughness: 0.9 });
-  for (let i = 0; i < 6; i++) {
+  for (let i = 0; i < 9; i++) {
     const pr = range(0.4, 0.9);
+    const p = pointIn(LAWN, 8);
     addDynamic(
       new THREE.Mesh(new THREE.IcosahedronGeometry(pr, 1), pebbleMat),
       RAPIER.ColliderDesc.ball(pr).setDensity(0.05).setFriction(0.9),
-      range(-20, 20), pr + 0.5, range(-5, 25),
+      p.x, pr + 0.5, p.y,
     );
   }
 
-  // AA batteries — salvage, and a nod to the reverse-engineering loop
+  // ---- salvage ----
+  // Four kinds, so a quest can ask for a SPECIFIC thing and sending you to a
+  // specific corner of the property is a design tool rather than a coin hunt.
   const batteryBody = new THREE.MeshStandardMaterial({
     color: 0x1d1d1f, roughness: 0.5, metalness: 0.4,
   });
   const batteryCap = new THREE.MeshStandardMaterial({
     color: 0xc9a227, roughness: 0.3, metalness: 0.9,
   });
-  for (let i = 0; i < 3; i++) {
+  const mkBattery = () => {
     const batt = new THREE.Mesh(new THREE.CylinderGeometry(0.55, 0.55, 1.7, 14), batteryBody);
     const cap = new THREE.Mesh(new THREE.CylinderGeometry(0.28, 0.28, 0.16, 12), batteryCap);
     cap.position.y = 0.93;
     batt.add(cap);
+    return batt;
+  };
+  // Batteries live where batteries die: around the shed and the wheelbarrow.
+  const batterySpots: Array<[number, number]> = [
+    [30, -38], [22, -50], [34, -18], [12, -46], [-6, -30],
+  ];
+  for (const [x, z] of batterySpots) {
     addDynamic(
-      batt,
+      mkBattery(),
       RAPIER.ColliderDesc.cylinder(0.85, 0.55).setDensity(0.06).setFriction(0.8),
-      range(-16, 16), 1.2, range(2, 22),
-      true,
+      x, 1.2, z, 'battery',
     );
   }
 
-  // Loose electronics — the rest of the reverse-engineering diet.
+  // Circuit boards — the rest of the reverse-engineering diet, scattered wide.
   const boardMat = new THREE.MeshStandardMaterial({
     color: 0x1f6b3a, roughness: 0.6, metalness: 0.2,
   });
   const traceMat = new THREE.MeshStandardMaterial({
     color: 0xc9a227, roughness: 0.3, metalness: 0.9,
   });
-  for (let i = 0; i < 5; i++) {
+  for (let i = 0; i < 6; i++) {
     const board = new THREE.Mesh(new THREE.BoxGeometry(2.2, 0.22, 1.5), boardMat);
     const chip = new THREE.Mesh(new THREE.BoxGeometry(0.7, 0.24, 0.55), traceMat);
     chip.position.y = 0.2;
     board.add(chip);
+    const p = pointIn(LAWN, 10);
     addDynamic(
       board,
       RAPIER.ColliderDesc.cuboid(1.1, 0.15, 0.75).setDensity(0.03).setFriction(0.9),
-      range(-34, 34), 1.0, range(-30, 30),
-      true,
+      p.x, 1.0, p.y,
+      'board',
+    );
+  }
+
+  // Bottle caps — up on the deck, where the drinks were.
+  const capMat = new THREE.MeshStandardMaterial({
+    color: 0xc0392b, roughness: 0.35, metalness: 0.7,
+  });
+  const capSpots: Array<[number, number]> = [
+    [-18, 44], [4, 52], [24, 40], [34, 56], [-26, 58],
+  ];
+  for (const [x, z] of capSpots) {
+    const cap = new THREE.Mesh(new THREE.CylinderGeometry(1.05, 1.05, 0.36, 16), capMat);
+    addDynamic(
+      cap,
+      RAPIER.ColliderDesc.cylinder(0.18, 1.05).setDensity(0.04).setFriction(0.9),
+      x, DECK_HEIGHT + 2, z, 'cap',
+    );
+  }
+
+  // Wood screws — spilled where someone was fixing the fence.
+  const screwMat = new THREE.MeshStandardMaterial({
+    color: 0x9aa0a6, roughness: 0.3, metalness: 0.95,
+  });
+  for (let i = 0; i < 5; i++) {
+    const screw = new THREE.Mesh(new THREE.CylinderGeometry(0.22, 0.1, 2.2, 8), screwMat);
+    const head = new THREE.Mesh(new THREE.CylinderGeometry(0.42, 0.42, 0.22, 10), screwMat);
+    head.position.y = 1.1;
+    screw.add(head);
+    screw.rotation.z = Math.PI / 2;
+    addDynamic(
+      screw,
+      RAPIER.ColliderDesc.capsule(0.9, 0.3).setDensity(0.05).setFriction(0.9),
+      -54 + range(-8, 8), 1.0, -18 + i * 7,
+      'screw',
     );
   }
 
@@ -260,7 +313,7 @@ export function buildYard(physics: Physics, scene: THREE.Scene, seed: number): Y
     group,
     dynamicProps,
     flowers,
-    groundColliderHandle: groundCollider.handle,
+    groundColliderHandle: property.groundColliderHandle,
   };
 }
 
@@ -273,8 +326,30 @@ export function syncProps(props: DynamicProp[]) {
   }
 }
 
+/**
+ * Anything that leaves the property comes home.
+ *
+ * The human kicks props as he walks — that's good comedy right up until he
+ * punts the last battery over the fence and the quest becomes uncompletable.
+ * The fence catches almost everything now; this catches the rest, including
+ * anything thrown over it on purpose.
+ */
+export function containProps(props: DynamicProp[]): number {
+  let recovered = 0;
+  for (const p of props) {
+    if (p.consumed) continue;
+    const t = p.body.translation();
+    if (t.y > -30 && t.y < 400 && rectContains(YARD, t.x, t.z, 8)) continue;
+    p.body.setTranslation({ x: p.home.x, y: p.home.y + 2, z: p.home.z }, true);
+    p.body.setLinvel({ x: 0, y: 0, z: 0 }, true);
+    p.body.setAngvel({ x: 0, y: 0, z: 0 }, true);
+    recovered++;
+  }
+  return recovered;
+}
+
 // Spring joints bake their stiffness at creation, so live-tuning the sliders
-// means rebuilding them. Cheap at eight flowers.
+// means rebuilding them. Cheap at this many flowers.
 export function applyFlowerSpring(physics: Physics, flowers: Flower[]) {
   const { RAPIER, world } = physics;
   for (const f of flowers) {

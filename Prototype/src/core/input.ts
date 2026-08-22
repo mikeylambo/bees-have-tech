@@ -33,6 +33,10 @@ export interface Actions {
   radialHeld: boolean;
   /** Quick-cycle without opening the radial. */
   cycleDelta: number;
+  /** Open/close the hive workshop. */
+  interactPressed: boolean;
+  /** Menu navigation, edge-detected: -1 up, +1 down. */
+  menuDelta: number;
 }
 
 export class Input {
@@ -44,6 +48,9 @@ export class Input {
   private prevUse = false;
   private prevSting = false;
   private prevAlt = false;
+  private prevInteract = false;
+  private prevNavUp = false;
+  private prevNavDown = false;
   private wheelDelta = 0;
   locked = false;
   padConnected = false;
@@ -129,6 +136,13 @@ export class Input {
     const sting = this.mouseButtons.has(2) || this.keys.has('KeyQ') || p.sting;
     const alt = this.keys.has('KeyF') || p.alt;
     const radial = this.keys.has('Tab') || p.radial;
+    const interact = this.keys.has('KeyR') || p.interact;
+    // Menu nav shares WASD with flight on purpose — you are never doing both,
+    // and a menu that needs its own keys is a menu people mis-press.
+    const navUp = this.keys.has('KeyW') || this.keys.has('ArrowUp') || p.dpadUp;
+    const navDown = this.keys.has('KeyS') || this.keys.has('ArrowDown') || p.dpadDown;
+    const menuDelta =
+      (navDown && !this.prevNavDown ? 1 : 0) - (navUp && !this.prevNavUp ? 1 : 0);
 
     const a: Actions = {
       useHeld: use,
@@ -138,10 +152,15 @@ export class Input {
       stingPressed: sting && !this.prevSting,
       radialHeld: radial,
       cycleDelta: this.wheelDelta,
+      interactPressed: interact && !this.prevInteract,
+      menuDelta,
     };
     this.prevUse = use;
     this.prevSting = sting;
     this.prevAlt = alt;
+    this.prevInteract = interact;
+    this.prevNavUp = navUp;
+    this.prevNavDown = navDown;
     this.wheelDelta = 0;
     return a;
   }

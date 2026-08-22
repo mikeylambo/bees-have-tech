@@ -1,6 +1,6 @@
 # The Bees Have Tech! — Vertical Slice Plan
 
-**Status:** v2 — 2026-08-20 · supersedes the "one backyard corner" slice in CONCEPT_PILLARS.md
+**Status:** v3 — 2026-08-22 · supersedes the "one backyard corner" slice in CONCEPT_PILLARS.md
 **Target:** the seven-verb chain — Flight → Physics → Gadget → Hack → Swarm →
 Human Reaction → Chain Reaction.
 **Web version (phone-friendly):** https://claude.ai/code/artifact/1fb7ce48-5aa3-4dd8-9f45-98c0ce69c9e1
@@ -253,6 +253,94 @@ that unlocks the next gadget.
 **M1–M4 completed = the full seven-verb chain is playable.** That is the real
 vertical slice, and the point where this becomes pitchable.
 
+### M5 — The property, quests, and the hive workshop ✅ BUILT
+
+M4 proved the loop. M5 gave it somewhere to happen and a reason to happen in
+an order.
+
+**The property is enclosed.** The yard was a lit disc fading into fog with one
+fence, which read as "a small patch of land in a void" — and let the human punt
+salvage into nowhere it could never be recovered from. It is now a real
+property with four different edges, each doing a different job:
+
+| Edge | Job |
+|---|---|
+| Back fence | The hive lives in it. The original scale cue. |
+| Side fences | Containment, and grapple walls |
+| The house | A 210-unit wall dwarfing the 100-unit human, with a deck you can fly *under* — the first interior-ish space |
+| The shed | A solid landmark that blocks line of sight; the doc's late-game dungeon, from the outside |
+
+Plus the things that make it somebody's yard rather than a field: flowerbeds
+(where the flowers are now *planted*, not scattered), a mown lawn with mower
+stripes, a stone path, a kiddie pool, a bird bath, a coiled hose, a
+wheelbarrow, terracotta pots, a bin, one climbable tree — and a neighbourhood
+beyond the fence, so flying over the top is rewarded with a view instead of
+grey.
+
+**Nothing can be lost.** Fence colliders catch almost everything; every prop
+also remembers where it started and comes home if it leaves the property.
+A collect quest can never become uncompletable because the human kicked a
+battery over the fence.
+
+**Quests are the framing device, not the content.** Per the pillar, missions
+frame and punchline; the sandbox generates the comedy. So the quest log is
+deliberately thin — it names a thing and points at where, and never scripts
+how. Every objective type is satisfied by systems that already existed and
+didn't know about each other: deliver a specific piece of salvage, reach a
+place, flip an appliance, cause a chain, build something. The log just
+notices. One quest active at a time; a list of six open objectives is a
+checklist screen, and that's what this game is least trying to be.
+
+Four surfaces, each answering one question: the **card** pitches it, the
+**tracker** remembers it, the **toast** confirms each step, the **banner** pays
+it off — plus a **waypoint** that pins to the screen edge when the target is
+behind you. The waypoint isn't decoration: the yard got roughly four times
+bigger this milestone, and a collect quest in a world you can get lost in is a
+chore without one.
+
+**Anything you did before being asked still counts.** Found by testing, not by
+looking: haul three batteries home during the gap between quests and they're
+consumed before the objective exists — with five batteries in the yard and a
+quest asking for three, that's a softlock you'd hit *by playing well*.
+Unmatched events now go to a backlog the next quest drains as it opens, so a
+quest you accidentally half-finished opens reading 2/3.
+
+**The shop is a place, not a menu.** M4 said no spend-menu, deliberately: an
+economy is not the fantasy, reverse-engineering is. That reasoning holds for a
+*menu*. It does not hold for a *place*. The **Hive Workshop** only opens at the
+hive mouth, with the bee hovering in front of it, in the middle of the world
+where the human can still walk up — and time slows to 25% rather than stopping,
+exactly like the tech radial. You are never lifted out of the body, which is
+the actual pillar.
+
+That splits progression cleanly in two:
+
+- **Quests decide what is available.** A blueprint is knowledge, and knowledge
+  comes from doing something in the yard.
+- **The shop decides what gets built.** Salvage is finite, so wearing one thing
+  means not wearing another.
+
+Seven blueprints — Swarm Beacon, Cargo Harness, Long-Line Filament, Drone
+Wingman, Pollen Cloak, Antenna Mk II, Overdrive Mk II. Total catalog cost is
+tuned just under what a *thorough* run collects: a careless run cannot afford
+everything. Running out is the design, not a shortfall.
+
+**Bugs the screenshots hid, again.** The FPS readout was computed from the
+*clamped* frame time, so it reported a comfortable 20 while the page ran at one
+frame a second. The shadow camera was sized to the yard's footprint rather than
+its bounding sphere, so the 210-unit house fell outside the frustum and the
+shadow map's clamped edge smeared its shadow across half the lawn — the whole
+property rendered in permanent dusk, and it read as art direction rather than
+as the bug it was. The kiddie pool's collider was a solid six-unit disc, so
+props rested on invisible air above the water and the bee couldn't get in at
+all. The hive had no collider whatsoever, so the camera slid inside it and the
+human could see straight through it — invisible until the workshop made you
+hover there on purpose.
+
+**Question answered?** The loop now has a shape: somewhere to be, an order to
+do it in, and a choice about what to spend. Whether that shape holds attention
+for an hour is still a content-and-art question, not a systems one.
+
 ---
 
 ## Deliberately deferred
@@ -268,6 +356,30 @@ vertical slice, and the point where this becomes pitchable.
   reward, not become a second game with build queues (see pillar: no RTS).
 
 ---
+
+## Worth its own thing: the flight sandbox
+
+Noted 2026-08-22, playing M5. Flight over an open physics world is carrying
+more weight than the game needs it to. Stripped of the bee, the hive and the
+exposure meter, what's left — momentum flight with a grapple, a tractor beam
+and a yard full of loose objects — is *already* a toy people would mess with.
+
+That is a real asset and it should not be spent by accident. Two ways to use
+it, and they are not the same product:
+
+1. **Keep it as this game's traversal.** The escalation ladder is what makes
+   the flight mean something; without it the sandbox is a tech demo you get
+   bored of in twenty minutes. This is the default and nothing changes.
+2. **Fork it later as a smaller, separate thing.** The flight controller, the
+   camera, the atmosphere field and the grapple/tractor split are already
+   independent of the bee fiction — they'd carry a different scale, a
+   different body, a different world with almost no rework. That's an option
+   worth *keeping open*, not one worth taking now: this build's job is still
+   to prove the escalation loop, and splitting focus before it's proven is how
+   you get two half-games.
+
+Concretely, the only thing to do about it right now is to keep the flight
+stack clean of bee-specific assumptions, which it currently is.
 
 ## Open risks
 
