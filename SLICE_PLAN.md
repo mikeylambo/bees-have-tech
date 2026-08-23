@@ -1,6 +1,6 @@
 # The Bees Have Tech! — Vertical Slice Plan
 
-**Status:** v8 — 2026-08-23 · supersedes the "one backyard corner" slice in CONCEPT_PILLARS.md
+**Status:** v9 — 2026-08-23 · supersedes the "one backyard corner" slice in CONCEPT_PILLARS.md
 **Target:** the seven-verb chain — Flight → Physics → Gadget → Hack → Swarm →
 Human Reaction → Chain Reaction.
 **Web version (phone-friendly):** https://claude.ai/code/artifact/1fb7ce48-5aa3-4dd8-9f45-98c0ce69c9e1
@@ -618,6 +618,106 @@ regression and was a plumbing one. The composite shader converts by hand.
 
 ---
 
+### M8 — The household ✅ BUILT
+
+**Goal:** stop exposure being a stealth cone. One human made "don't be seen" a
+meter; four make it a social problem, which is the joke the whole game is
+built on. The bee isn't hiding from a camera. It's hiding from a family that
+cannot agree on what it just saw.
+
+Four people share the yard. The state machine is identical for all of them —
+`HumanProfile` (`src/world/human.ts`) is a set of multipliers over
+`params.human`, so the tuning panel still moves the whole household at once
+and a profile only ever says "more than the others" or "less".
+
+| | sees | pace | fuse | swats | suspicion | dampen | curiosity |
+|---|---|---|---|---|---|---|---|
+| **Dale** the handy one | 1.15× | 1.0× | 1.0× | yes | **+1.0** | — | **1.9×** |
+| **Marla** the short fuse | 1.0× | 1.25× | **1.8×** | yes | **+1.7** | — | 1.0× |
+| **Robin** the kid (0.62 height) | **1.3×** | 1.15× | 0.6× | **no** | **−1.2** | — | 0.7× |
+| **Ned** the skeptic | 0.7× | 0.55× | 0.5× | yes | +0.3 | **0.4×** | 0.35× |
+
+**The arithmetic.** Every frame the household reports who can see the bee.
+Exposure's rise is now the *signed sum* of their suspicion, and a positive sum
+is then multiplied by the smallest `dampen` among the watchers:
+
+```
+rate = base * Σ suspicion            // base = riseSeen, or riseTech if using tech
+value += (rate > 0 ? rate * min(dampen) : rate) * dt
+```
+
+Three consequences fall straight out of that and none of them needed special
+cases:
+
+- **Being seen by Robin alone LOWERS exposure.** The kid has found the coolest
+  thing alive and is covering for it. Measured at −8.4/s against a lone
+  human's +7.0/s.
+- **Robin runs cover for you.** Marla alone raises at +11.9/s; Marla *and*
+  Robin watching is +3.5/s — the kid takes 70% off the accusation.
+- **Ned talks a rise down but can't turn one into an alibi.** `dampen` applies
+  to positive rates only, so the skeptic can slow Marla to +4.76/s and can
+  never make being watched *good* for you.
+
+**Behaviour that isn't a number.** Robin's profile sets `swats: false` — a
+child who has found a bee with a laser on its back *chases* it. That's a
+different kind of pressure: harmless, relentless, and impossible to lose in
+the grass. Evidence works the same way: an appliance running by itself costs
+you `evidenceRise × the curiosity of whoever is looking that way`, and only
+the most curious witness walks over to investigate — a household that all
+converges on one toaster leaves the rest of the yard unwatched, which would
+make hacking strictly better than not hacking.
+
+**Reading it.** The exposure HUD names its watchers, ▲ red for the ones
+raising it, ▼ green for Robin, grey for Ned. The rules themselves are called
+out once each, the first time the player is actually standing in one
+("Robin has seen you — and is saying nothing"), and then never again.
+
+**Things that had to change to support four bodies:**
+- Distraction is positional. `swarm.distracting` used to be a global boolean;
+  mobbing Marla should not blind Dale on the far side of the lawn, or one
+  beacon switches off the whole household.
+- The stinger takes a *list* of body handles and reports which one it hit, so
+  a sting flinches the person who was actually stung.
+- People have personal space (scaled by height) and are pushed apart after
+  every update. They all chase the same bee, so without it they converge to a
+  point and read as one flickering person with eight arms.
+- Idle patrol is per-person: each profile owns a fraction of the walkable
+  rect, so the shed end, the deck and the open lawn each have someone in them
+  instead of four people orbiting the middle.
+
+### The draw-call number was wrong, and why
+
+M7's outline pass renders three times per frame. `renderer.info` resets on
+every `render()` call, so the budget probe — which read it *after* the frame —
+had been reporting the composite fullscreen quad ever since: **1 draw call, 2
+triangles.** It looked like a world that cost nothing.
+
+Accumulating across the whole frame instead (`info.autoReset = false`), the
+honest number in the yard is **768 draw calls and ~1.9M triangles**, not the
+65–147 recorded at M6. Split by pass, at the low back corner:
+
+| pass | calls |
+|---|---|
+| scene | 282 |
+| shadow map | ~208 |
+| outline depth-only | 277 |
+| composite | 1 |
+
+**One real bug this exposed.** three.js rebuilds the shadow map on *every*
+`render()`, including the depth-only outline pass, which cannot show a shadow
+at all — the frame was rendering the shadow map twice, for 194 wasted draw
+calls. Setting `shadowMap.autoUpdate = false` around that pass took the frame
+from 962 to 768 calls. The lesson is the same one as the FPS readout in M5:
+**a probe that reads the wrong thing is worse than no probe**, because it
+reports comfort.
+
+Where this leaves the budget: 768 calls and 1.9M triangles is a comfortable
+desktop frame and a moderate laptop-iGPU one. It is not the free ride the old
+number implied, and the grass is most of the triangles — so the estate's
+detail budget should be spent on *geometry that isn't grass*.
+
+---
+
 ## Deliberately deferred
 
 - **Neighborhood & town** — real new geography. Far cheaper once one house
@@ -658,10 +758,11 @@ stack clean of bee-specific assumptions, which it currently is.
 
 ## Open risks
 
-1. **The humans are the hard part, not the physics.** A person who reacts
-   believably at bee scale — noticing something an inch long, at distance,
-   with escalating suspicion — is genuinely difficult, and we now need five who
-   disagree with each other. M2 exists to find out how hard early rather than late.
+1. **The humans are the hard part, not the physics.** Four who disagree now
+   exist (M8) and the *social* arithmetic works. What does not yet exist is
+   navigation: they route around the yard with rect-and-circle ejection, which
+   is fine for 87 m² of lawn and will not survive a furnished house. Real
+   pathfinding is the price of opening the interior.
 2. **Interiors are a real cost, not a free layer.** Opening the house means new
    navigation, occlusion, lighting and art. In scope because the humans are
    worth it, but budget it honestly rather than treating it as "more rooms."

@@ -190,11 +190,18 @@ export class OutlinePass {
     this.setHidden(this.hidden, true);
     const prevOverride = scene.overrideMaterial;
     const prevBackground = scene.background;
+    const prevShadowAuto = r.shadowMap.autoUpdate;
     scene.overrideMaterial = this.depthOnly;
     scene.background = null; // nothing to shade; skip the clear colour work
+    // A depth-only pass through a MeshBasicMaterial cannot show a shadow, but
+    // three.js rebuilds the shadow map on EVERY render() regardless — which
+    // quietly doubled the shadow cost of the whole frame the moment this pass
+    // was added. Measured at 194 wasted draw calls per frame in the yard.
+    r.shadowMap.autoUpdate = false;
     r.setRenderTarget(this.solidPass);
     r.clear();
     r.render(scene, camera);
+    r.shadowMap.autoUpdate = prevShadowAuto;
     scene.overrideMaterial = prevOverride;
     scene.background = prevBackground;
     this.setHidden(this.hidden, false);

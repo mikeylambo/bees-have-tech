@@ -16,8 +16,8 @@ export class Stinger {
   lunge = 0;
   private cooldown = 0;
 
-  /** Fired when the jab connects with the human. */
-  onStingHuman?: (dir: THREE.Vector3) => void;
+  /** Fired when the jab connects with a person — `handle` says which one. */
+  onStingHuman?: (dir: THREE.Vector3, handle: number) => void;
   /** Fired when the jab connects with anything else. */
   onHitProp?: () => void;
 
@@ -41,7 +41,7 @@ export class Stinger {
    * Jab along `dir`. Returns true if it connected with anything.
    * The bee lunges forward slightly — commitment, and it reads at a glance.
    */
-  jab(dir: THREE.Vector3, beePos: THREE.Vector3, humanBodyHandle: number): boolean {
+  jab(dir: THREE.Vector3, beePos: THREE.Vector3, humanBodyHandles: number[]): boolean {
     if (this.cooldown > 0) return false;
     const p = params.stinger;
     this.cooldown = p.cooldown;
@@ -69,8 +69,8 @@ export class Stinger {
       return true;
     }
 
-    if (body.handle === humanBodyHandle) {
-      this.onStingHuman?.(dir);
+    if (humanBodyHandles.includes(body.handle)) {
+      this.onStingHuman?.(dir, body.handle);
       return true;
     }
 

@@ -62,7 +62,26 @@ Gamepad: L-stick fly · R-stick look · RT/LT altitude · **A** overdrive ·
 - **M6 — Real scale** ✅ A 10 × 8.7 m garden, six vertical layers, grass that follows you
 - **Bee presets** ✅ Playtested vs retuned flight, switchable — so scale and feel can be judged one at a time
 - **M7 — Feel & look** ✅ Pollen optical flow, speed FX, synthesised wingbeat, cel shading
+- **M8 — The household** ✅ Four people who disagree about you; exposure is now a social problem
 - **Estate blockout** 📐 90 × 120 m greybox of the flagship property, pending a verdict
+
+## Who lives here
+
+Four people share the yard, and exposure depends on **which** of them is
+looking at you, not just whether anyone is.
+
+- **Dale** — the handy one. Sees furthest and believes the evidence. An
+  appliance running by itself is, to Dale, a story worth telling.
+- **Marla** — the short fuse. Escalates fastest, walks fastest, hits hardest.
+- **Robin** — the kid. Notices everything, chases, never swings, and is
+  actively covering for you. While Robin is the only one watching, exposure
+  **falls**.
+- **Ned** — the skeptic. Barely moves, barely looks, and multiplies everyone
+  else's certainty down while he's in the room.
+
+So "don't be seen" becomes "be seen by the right person", which is a better
+game than a stealth cone. The exposure bar names its watchers: ▲ for the ones
+raising it, ▼ for the one who isn't.
 
 ## The loop, as it plays now
 

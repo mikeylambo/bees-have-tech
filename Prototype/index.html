@@ -169,6 +169,16 @@
       #exposure.lvl4 .fill { background: #ff3ba0; }
       /* Seen right now — pulse so it reads at a glance. */
       #exposure.seen .track { box-shadow: inset 0 0 0 1px rgba(255, 120, 90, 0.95); }
+      /* WHO is watching. With four people in the yard, "seen" isn't one bit of
+         information any more — being seen by the kid is good news. */
+      #exposure .watchers {
+        display: flex; gap: 8px; justify-content: center; min-height: 13px;
+        margin-top: 5px; font-size: 10px; letter-spacing: 0.07em;
+      }
+      #exposure .watchers span { opacity: 0.95; }
+      #exposure .w-up { color: #ff8a72; }
+      #exposure .w-down { color: #7fe0a0; }
+      #exposure .w-calm { color: #bcd0e0; }
 
       /* Closes in as you accelerate. Peripheral darkening is a real part of
          how speed is perceived, and it costs one div. */
@@ -486,6 +496,7 @@
         <span class="quote" id="expQuote">"just a bee"</span>
       </div>
       <div class="track"><div class="fill" id="expFill"></div></div>
+      <div class="watchers" id="expSeen"></div>
     </div>
     <div id="jsonDump">
       <textarea id="jsonText" readonly spellcheck="false"></textarea>

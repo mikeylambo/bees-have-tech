@@ -16,6 +16,73 @@ const WALKABLE: Rect = {
 /** How far to hold him off a building he's walked into. */
 const EJECT = M * 0.12;
 
+/**
+ * WHO this person is. The state machine below is the same for everyone —
+ * what differs is how far they see, how fast they lose their temper, and
+ * what seeing a bee with a laser on its back MEANS to them.
+ *
+ * Every number is a multiplier over `params.human`, so the tuning panel still
+ * moves the whole household at once and a profile only says "more than the
+ * others" or "less".
+ */
+export interface HumanProfile {
+  id: string;
+  /** Shown on the exposure HUD when this person can see you. */
+  name: string;
+  /** Their read on the situation, quoted when they clock you. */
+  quote: string;
+  /** Body height as a fraction of params.human.height. */
+  heightScale: number;
+  colors: { shirt: number; pants: number; skin: number; shoe: number; hair: number };
+  /** Sight range multiplier. */
+  sight: number;
+  /** Horizontal field-of-view multiplier. */
+  fov: number;
+  /** Walking speed multiplier. */
+  pace: number;
+  /** Shorter fuse: scales swat cooldown down and patience with it. */
+  nerve: number;
+  /** Swat impulse multiplier — how hard being hit hurts. */
+  clout: number;
+  /**
+   * Signed contribution to the household's exposure rise while they can see
+   * you. Negative means this person's attention makes you SAFER.
+   */
+  suspicion: number;
+  /** Multiplies the household's total rise while they can see you. <1 = talks everyone down. */
+  dampen: number;
+  /** How strongly they react to the world behaving impossibly. */
+  curiosity: number;
+  /** Some people chase; not everyone swings. */
+  swats: boolean;
+  /** Where they idle, as fractions (0..1) of the walkable rect: x0, x1, z0, z1. */
+  home: [number, number, number, number];
+}
+
+/** The lone human from M2, unchanged — the baseline every profile scales. */
+export const SOLO_PROFILE: HumanProfile = {
+  id: 'solo',
+  name: 'The Homeowner',
+  quote: '"...huh."',
+  heightScale: 1,
+  colors: { shirt: 0xc4552f, pants: 0x3c4a63, skin: 0xd9a06b, shoe: 0x2a2723, hair: 0x3a2a1e },
+  sight: 1, fov: 1, pace: 1, nerve: 1, clout: 1,
+  suspicion: 1, dampen: 1, curiosity: 1, swats: true,
+  home: [0, 1, 0, 1],
+};
+
+/** Turn a profile's 0..1 home fractions into a patrol rect in world units. */
+export function homeRect(home: [number, number, number, number]): Rect {
+  const w = WALKABLE.maxX - WALKABLE.minX;
+  const d = WALKABLE.maxZ - WALKABLE.minZ;
+  return {
+    minX: WALKABLE.minX + home[0] * w,
+    maxX: WALKABLE.minX + home[1] * w,
+    minZ: WALKABLE.minZ + home[2] * d,
+    maxZ: WALKABLE.minZ + home[3] * d,
+  };
+}
+
 // THE HUMAN — M2's whole point, and the riskiest thing in the design.
 //
 // At bee scale a person is a hundred units of walking weather. What matters
@@ -47,6 +114,8 @@ export class Human {
   distracted = false;
 
   private body: RAPIER_API.RigidBody;
+  /** Where this person idles when nothing is going on. */
+  private patrolArea: Rect;
   private yaw = 0;
   private stateT = 0;
   private swatCooldownT = 0;
@@ -69,11 +138,16 @@ export class Human {
   private head!: THREE.Mesh;
 
   /** Fired once per swat that connects. */
-  onSwatHit?: (dir: THREE.Vector3) => void;
+  onSwatHit?: (dir: THREE.Vector3, who: Human) => void;
   /** Fired once per swat that misses — still a near-miss shove. */
-  onSwatMiss?: (dir: THREE.Vector3, distance: number) => void;
+  onSwatMiss?: (dir: THREE.Vector3, distance: number, who: Human) => void;
 
-  constructor(physics: Physics, start: THREE.Vector3) {
+  constructor(
+    physics: Physics,
+    start: THREE.Vector3,
+    readonly profile: HumanProfile = SOLO_PROFILE,
+  ) {
+    this.patrolArea = homeRect(profile.home);
     this.build();
     this.root.position.copy(start);
     this.patrolTarget.copy(start);
@@ -86,7 +160,7 @@ export class Human {
         start.x, start.y, start.z,
       ),
     );
-    const h = params.human.height;
+    const h = this.h;
     world.createCollider(
       RAPIER.ColliderDesc.cuboid(0.16 * h, 0.38 * h, 0.09 * h)
         .setTranslation(0, 0.38 * h, 0),
@@ -100,11 +174,12 @@ export class Human {
   }
 
   private build() {
-    const h = params.human.height;
-    const denim = new THREE.MeshLambertMaterial({ color: 0x3c4a63 });
-    const shirt = new THREE.MeshLambertMaterial({ color: 0xc4552f });
-    const skin = new THREE.MeshLambertMaterial({ color: 0xd9a06b });
-    const shoe = new THREE.MeshLambertMaterial({ color: 0x2a2723 });
+    const h = this.h;
+    const c = this.profile.colors;
+    const denim = new THREE.MeshLambertMaterial({ color: c.pants });
+    const shirt = new THREE.MeshLambertMaterial({ color: c.shirt });
+    const skin = new THREE.MeshLambertMaterial({ color: c.skin });
+    const shoe = new THREE.MeshLambertMaterial({ color: c.shoe });
 
     const mkLeg = (side: number) => {
       const g = new THREE.Group();
@@ -139,6 +214,15 @@ export class Human {
     );
     this.head.position.y = 0.855 * h;
     this.root.add(this.head);
+    // A hair cap. From bee altitude you mostly look DOWN at these people, so
+    // the top of the head is the one surface that always faces you — it has
+    // to be the thing that says which of them is standing under you.
+    const hair = new THREE.Mesh(
+      new THREE.BoxGeometry(0.18 * h, 0.045 * h, 0.18 * h),
+      new THREE.MeshLambertMaterial({ color: c.hair }),
+    );
+    hair.position.y = 0.945 * h;
+    this.root.add(hair);
     // A face, so "which way am I looking" is readable from bee altitude.
     const eyeMat = new THREE.MeshLambertMaterial({ color: 0x1b1b1b });
     for (const s of [-1, 1]) {
@@ -173,6 +257,15 @@ export class Human {
     });
   }
 
+  /** This person's height in world units — profile-scaled off the tuned base. */
+  private get h(): number {
+    return params.human.height * this.profile.heightScale;
+  }
+
+  get name(): string {
+    return this.profile.name;
+  }
+
   /** So other systems can tell "did I just hit the human?" */
   get bodyHandle(): number {
     return this.body.handle;
@@ -182,14 +275,14 @@ export class Human {
   eyePosition(out: THREE.Vector3): THREE.Vector3 {
     return out.set(
       this.root.position.x,
-      this.root.position.y + params.human.height * 0.855,
+      this.root.position.y + this.h * 0.855,
       this.root.position.z,
     );
   }
 
   /** Shoulder joint the swatting arm pivots around. */
   shoulderPosition(out: THREE.Vector3): THREE.Vector3 {
-    const h = params.human.height;
+    const h = this.h;
     const rx = Math.cos(this.yaw) * 0.19 * h;
     const rz = -Math.sin(this.yaw) * 0.19 * h;
     return out.set(
@@ -201,7 +294,7 @@ export class Human {
 
   /** Where the swatting hand currently is, in world space. */
   handPosition(out: THREE.Vector3): THREE.Vector3 {
-    const h = params.human.height;
+    const h = this.h;
     this.shoulderPosition(out);
     // Arm hangs down -Y and rotates about local X, in a body-yawed frame.
     const a = this.armR.rotation.x;
@@ -225,9 +318,10 @@ export class Human {
     const dist = _toBee.length();
     // Being mobbed by decoys shortens how far he can pick YOU out of the
     // noise. This is what makes the beacon a tool rather than decoration.
+    const sight = p.sightRange * this.profile.sight;
     const range = this.distracted
-      ? p.sightRange * params.swarm.distractPerception
-      : p.sightRange;
+      ? sight * params.swarm.distractPerception
+      : sight;
     if (dist > range || dist < 0.01) return false;
     _toBee.divideScalar(dist);
 
@@ -241,7 +335,7 @@ export class Human {
     _fwd.set(Math.sin(this.yaw), 0, Math.cos(this.yaw));
     const flat = Math.hypot(_toBee.x, _toBee.z);
     if (flat > 1e-4) {
-      const cosLimit = Math.cos((p.fovDegrees * Math.PI) / 360);
+      const cosLimit = Math.cos((p.fovDegrees * this.profile.fov * Math.PI) / 360);
       const cosH = (_fwd.x * _toBee.x + _fwd.z * _toBee.z) / flat;
       if (cosH < cosLimit) return false;
     }
@@ -287,9 +381,10 @@ export class Human {
           // Wander the whole property, not a circle around the middle: a
           // person who only ever paces the centre of the lawn stops being a
           // hazard the moment you learn the pattern.
+          const area = this.patrolArea;
           for (let i = 0; i < 8; i++) {
-            const x = WALKABLE.minX + rand() * (WALKABLE.maxX - WALKABLE.minX);
-            const z = WALKABLE.minZ + rand() * (WALKABLE.maxZ - WALKABLE.minZ);
+            const x = area.minX + rand() * (area.maxX - area.minX);
+            const z = area.minZ + rand() * (area.maxZ - area.minZ);
             if (WALK_BLOCKERS.some((b) => rectContains(b, x, z, M * 0.2))) continue;
             if (WALK_BLOCK_CIRCLES.some(([cx, cz, r]) => Math.hypot(x - cx, z - cz) < r + M * 0.2)) {
               continue;
@@ -306,8 +401,9 @@ export class Human {
         this.moveTarget = null; // stop and stare
         this.leadShoulder = false;
         this.faceToward(this.lastKnown, dt, p.turnSpeed * 1.6);
-        if (!seen && this.stateT > 1.4) this.setState('idle');
-        else if (seen && this.stateT > 0.55) this.setState('investigate');
+        const n = this.profile.nerve;
+        if (!seen && this.stateT > 1.4 / n) this.setState('idle');
+        else if (seen && this.stateT > 0.55 / n) this.setState('investigate');
         break;
       }
       case 'investigate': {
@@ -316,8 +412,8 @@ export class Human {
         // Close to the distance that puts the bee ON the hand's sweep sphere,
         // which depends on how high it's flying. A fixed standoff leaves low
         // bees permanently out of reach and high ones overshot.
-        const armLen = ARM_LENGTH * p.height;
-        const shoulderY = this.root.position.y + 0.75 * p.height;
+        const armLen = ARM_LENGTH * this.h;
+        const shoulderY = this.root.position.y + 0.75 * this.h;
         const dv = Math.abs(this.lastKnown.y - shoulderY);
         const ideal = dv >= armLen ? 4 : Math.sqrt(armLen * armLen - dv * dv) * 0.95;
         // ...but never so close that the bee falls into his own vertical blind
@@ -337,9 +433,13 @@ export class Human {
         // Kept tight — swinging at a bee an arm's length beyond reach reads as
         // frustration, swinging at one across the yard reads as broken.
         const desperate = this.arrived && reachDist < armLen + p.swatHitRadius;
-        if (seen && (canConnect || desperate) && this.swatCooldownT <= 0) {
+        // Not everyone swings. A child who has found a bee with a laser on
+        // its back CHASES it, which is a different kind of pressure: harmless,
+        // relentless, and impossible to lose in the grass.
+        if (seen && this.profile.swats && (canConnect || desperate)
+            && this.swatCooldownT <= 0) {
           this.setState('swat');
-        } else if (!seen && this.stateT > p.investigateTime) {
+        } else if (!seen && this.stateT > p.investigateTime * this.profile.nerve) {
           this.setState('idle');
         }
         break;
@@ -363,7 +463,7 @@ export class Human {
             this.didStrike = true;
             this.resolveStrike(beePos, false);
           }
-          this.swatCooldownT = p.swatCooldown;
+          this.swatCooldownT = p.swatCooldown / this.profile.nerve;
           this.setState('recoil');
         }
         break;
@@ -421,10 +521,28 @@ export class Human {
     this.stungT = params.stinger.flinchTime;
     // Stagger back a step — a hundred units of person recoiling is the only
     // read the player gets from bee altitude, so make it big.
-    this.root.position.x -= Math.sin(this.yaw) * M * 0.35;
-    this.root.position.z -= Math.cos(this.yaw) * M * 0.35;
+    const back = M * 0.35 * this.profile.heightScale;
+    this.root.position.x -= Math.sin(this.yaw) * back;
+    this.root.position.z -= Math.cos(this.yaw) * back;
     this.clampToYard();
     this.setState('recoil');
+  }
+
+  /**
+   * Shove out of someone else's personal space. Four people sharing one small
+   * yard will otherwise converge on the same bee and stand inside each other,
+   * which reads as one flickering four-armed person.
+   */
+  nudge(dx: number, dz: number) {
+    this.root.position.x += dx;
+    this.root.position.z += dz;
+    this.clampToYard();
+    this.syncBody();
+  }
+
+  /** Radius of that personal space — bigger people need more of it. */
+  get personalSpace(): number {
+    return M * 0.34 * this.profile.heightScale;
   }
 
   private setState(s: HumanState) {
@@ -442,8 +560,8 @@ export class Human {
     dir.y = Math.max(dir.y, 0.35); // always some launch, never straight down
     dir.normalize();
 
-    if (connected) this.onSwatHit?.(dir);
-    else this.onSwatMiss?.(dir, dist);
+    if (connected) this.onSwatHit?.(dir, this);
+    else this.onSwatMiss?.(dir, dist, this);
   }
 
   private faceToward(target: THREE.Vector3, dt: number, speed: number) {
@@ -455,7 +573,7 @@ export class Human {
     // shoulder, which sits well off the body's centre line — squared up, that
     // plane misses the target by the whole shoulder offset.
     if (this.leadShoulder) {
-      const s = SHOULDER_OFFSET * params.human.height;
+      const s = SHOULDER_OFFSET * this.h;
       const horiz = Math.hypot(dx, dz);
       want -= horiz > s ? Math.asin(s / horiz) : Math.PI / 2;
     }
@@ -483,7 +601,7 @@ export class Human {
     }
 
     this.faceToward(this.moveTarget, dt, p.turnSpeed);
-    const step = Math.min(p.walkSpeed * dt, dist);
+    const step = Math.min(p.walkSpeed * this.profile.pace * dt, dist);
     this.root.position.x += (dx / dist) * step;
     this.root.position.z += (dz / dist) * step;
     this.walkPhase += (step / 14) * Math.PI;

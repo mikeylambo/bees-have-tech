@@ -5,6 +5,12 @@ import { params } from '../core/tuning';
 // It is deliberately REVERSIBLE. If the meter only climbed, players would stop
 // using the fun toys to keep it down, which quietly kills the game. Break line
 // of sight, drop into the grass, and the household talks itself back down.
+//
+// M8 makes "the household talks itself back down" literal. The rise is no
+// longer a constant: it's the signed sum of who is watching, multiplied by
+// the calmest voice among them. A watcher with negative suspicion (the kid,
+// who is covering for you) drives the meter DOWN while looking straight at
+// you — being seen by the right person is now a hiding place.
 
 export const EXPOSURE_LEVELS = [
   { name: 'NATURE', quote: '"just a bee"', at: 0 },
@@ -34,11 +40,24 @@ export class Exposure {
     return EXPOSURE_LEVELS[this.level];
   }
 
-  update(dt: number, seen: boolean, techVisible: boolean) {
+  /**
+   * @param suspicion signed multiplier on the rise — the household's summed
+   *   opinion. 1 is the old lone-human behaviour. Negative pulls the meter down.
+   * @param dampen multiplies a POSITIVE rise only. Talking the yard down can
+   *   slow an accusation; it can't turn one into an alibi.
+   */
+  update(
+    dt: number,
+    seen: boolean,
+    techVisible: boolean,
+    suspicion = 1,
+    dampen = 1,
+  ) {
     const e = params.exposure;
     if (seen) {
       this.unseenFor = 0;
-      this.value += (techVisible ? e.riseTech : e.riseSeen) * dt;
+      const rate = (techVisible ? e.riseTech : e.riseSeen) * suspicion;
+      this.value += (rate > 0 ? rate * dampen : rate) * dt;
     } else {
       this.unseenFor += dt;
       if (this.unseenFor >= e.decayDelay) {

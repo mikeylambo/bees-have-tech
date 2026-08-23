@@ -93,6 +93,19 @@ export class QuestHud {
     this.toastTimer = 2.2;
   }
 
+  /**
+   * A line of world-state, not quest progress. The household's arithmetic is
+   * invisible by design — the meter just moves — so the first time each rule
+   * fires, say it out loud once and then never again.
+   */
+  say(text: string, secs = 3.2) {
+    this.toast.textContent = text;
+    this.toast.classList.remove('show');
+    void this.toast.offsetWidth;
+    this.toast.classList.add('show');
+    this.toastTimer = secs;
+  }
+
   complete(q: Quest) {
     this.banner.innerHTML = `
       <div class="kicker">QUEST COMPLETE</div>
