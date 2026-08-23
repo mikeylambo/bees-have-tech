@@ -2,6 +2,19 @@ import type RAPIER_API from '@dimforge/rapier3d-compat';
 import * as THREE from 'three';
 import type { Physics } from '../core/physics';
 import { params } from '../core/tuning';
+import {
+  M, WALK_BLOCKERS, WALK_BLOCK_CIRCLES, rectContains, type Rect,
+} from './property';
+
+/**
+ * Where a person can actually stand, in metres. Inset from the fence line so
+ * he never clips the planks, and it stops short of the house wall.
+ */
+const WALKABLE: Rect = {
+  minX: M * -4.7, maxX: M * 4.7, minZ: M * -3.85, maxZ: M * 4.2,
+};
+/** How far to hold him off a building he's walked into. */
+const EJECT = M * 0.12;
 
 // THE HUMAN — M2's whole point, and the riskiest thing in the design.
 //
@@ -271,13 +284,19 @@ export class Human {
         this.stopDistance = 3;
         this.leadShoulder = false;
         if (this.root.position.distanceTo(this.patrolTarget) < 6 || this.stateT > 9) {
-          const a = rand() * Math.PI * 2;
-          const r = 12 + rand() * (p.yardRadius - 14);
-          this.patrolTarget.set(
-            Math.cos(a) * r,
-            0,
-            Math.max(p.fenceLimitZ, Math.sin(a) * r),
-          );
+          // Wander the whole property, not a circle around the middle: a
+          // person who only ever paces the centre of the lawn stops being a
+          // hazard the moment you learn the pattern.
+          for (let i = 0; i < 8; i++) {
+            const x = WALKABLE.minX + rand() * (WALKABLE.maxX - WALKABLE.minX);
+            const z = WALKABLE.minZ + rand() * (WALKABLE.maxZ - WALKABLE.minZ);
+            if (WALK_BLOCKERS.some((b) => rectContains(b, x, z, M * 0.2))) continue;
+            if (WALK_BLOCK_CIRCLES.some(([cx, cz, r]) => Math.hypot(x - cx, z - cz) < r + M * 0.2)) {
+              continue;
+            }
+            this.patrolTarget.set(x, 0, z);
+            break;
+          }
           this.stateT = 0;
         }
         if (seen) this.setState('suspicious');
@@ -359,6 +378,10 @@ export class Human {
     }
 
     this.move(dt);
+    // Every frame, not just while walking. Clamping inside move() meant a
+    // human who stopped — or got shoved by a sting — could stand inside the
+    // deck indefinitely, because the code that pushes him out never ran.
+    this.clampToYard();
     this.animate(dt);
     this.syncBody();
     return { seen };
@@ -398,8 +421,8 @@ export class Human {
     this.stungT = params.stinger.flinchTime;
     // Stagger back a step — a hundred units of person recoiling is the only
     // read the player gets from bee altitude, so make it big.
-    this.root.position.x -= Math.sin(this.yaw) * 6;
-    this.root.position.z -= Math.cos(this.yaw) * 6;
+    this.root.position.x -= Math.sin(this.yaw) * M * 0.35;
+    this.root.position.z -= Math.cos(this.yaw) * M * 0.35;
     this.clampToYard();
     this.setState('recoil');
   }
@@ -464,22 +487,45 @@ export class Human {
     this.root.position.x += (dx / dist) * step;
     this.root.position.z += (dz / dist) * step;
     this.walkPhase += (step / 14) * Math.PI;
-    this.clampToYard();
   }
 
   /**
    * A kinematic body isn't stopped by static geometry, so he'd stroll straight
-   * through the fence. Keep him inside the yard by hand.
+   * through the fence — and through the shed. Keep him on the property by
+   * hand, and push him out of anything solid he's standing in.
    */
   private clampToYard() {
-    const p = params.human;
     const pos = this.root.position;
-    const r = Math.hypot(pos.x, pos.z);
-    if (r > p.yardRadius) {
-      pos.x *= p.yardRadius / r;
-      pos.z *= p.yardRadius / r;
+    pos.x = Math.min(WALKABLE.maxX, Math.max(WALKABLE.minX, pos.x));
+    pos.z = Math.min(WALKABLE.maxZ, Math.max(WALKABLE.minZ, pos.z));
+
+    for (const b of WALK_BLOCKERS) {
+      if (!rectContains(b, pos.x, pos.z, EJECT)) continue;
+      // Eject along whichever face is nearest — cheapest correct way out of
+      // a box, and it never teleports him across the building.
+      const outs = [
+        { d: pos.x - (b.minX - EJECT), set: () => (pos.x = b.minX - EJECT) },
+        { d: (b.maxX + EJECT) - pos.x, set: () => (pos.x = b.maxX + EJECT) },
+        { d: pos.z - (b.minZ - EJECT), set: () => (pos.z = b.minZ - EJECT) },
+        { d: (b.maxZ + EJECT) - pos.z, set: () => (pos.z = b.maxZ + EJECT) },
+      ];
+      outs.sort((a, c) => a.d - c.d)[0].set();
     }
-    if (pos.z < p.fenceLimitZ) pos.z = p.fenceLimitZ;
+
+    // Round obstacles: push straight out along the radius.
+    for (const [cx, cz, r] of WALK_BLOCK_CIRCLES) {
+      const dx = pos.x - cx;
+      const dz = pos.z - cz;
+      const d = Math.hypot(dx, dz);
+      const want = r + EJECT;
+      if (d >= want) continue;
+      if (d < 1e-3) {
+        pos.x = cx + want;
+        continue;
+      }
+      pos.x = cx + (dx / d) * want;
+      pos.z = cz + (dz / d) * want;
+    }
   }
 
   private animate(dt: number) {

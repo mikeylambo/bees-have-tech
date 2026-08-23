@@ -1,0 +1,140 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>The Bees Have Tech! — Estate Greybox</title>
+    <link
+      rel="icon"
+      href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><text y='26' font-size='26'>%F0%9F%93%90</text></svg>"
+    />
+    <style>
+      html, body { margin: 0; height: 100%; overflow: hidden; background: #b9cddb; }
+      #app { position: fixed; inset: 0; }
+      canvas { display: block; }
+      body {
+        font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+        color: #fff;
+      }
+      .panel {
+        position: fixed; z-index: 10; padding: 10px 14px; border-radius: 10px;
+        background: rgba(16, 22, 20, 0.72);
+        font-size: 11.5px; line-height: 1.65;
+        pointer-events: none; user-select: none;
+      }
+      .panel b { color: #ffd75e; }
+
+      #facts { left: 16px; top: 14px; max-width: 340px; }
+      #facts .cmp {
+        margin-top: 6px; padding-top: 6px; color: #9aa89a; font-style: italic;
+        border-top: 1px solid rgba(255, 255, 255, 0.12);
+      }
+
+      #kicker {
+        left: 16px; top: 14px; transform: translateY(-100%);
+      }
+
+      #near {
+        left: 16px; bottom: 92px; max-width: 340px; min-height: 18px;
+      }
+      #near .note { color: #b9c7b5; font-style: italic; margin-top: 3px; }
+
+      #readout {
+        left: 16px; bottom: 52px; display: flex; gap: 18px; flex-wrap: wrap;
+      }
+
+      #keys { left: 16px; bottom: 14px; color: #9aa89a; }
+      #keys b { color: #ffd75e; }
+
+      #legend {
+        right: 16px; top: 14px; display: grid;
+        grid-template-columns: 12px auto; gap: 4px 8px; align-items: center;
+      }
+      #legend i {
+        width: 12px; height: 12px; border-radius: 3px; display: block;
+      }
+
+      /* Floating zone names — the whole point of a greybox is knowing
+         which box is which. */
+      #labels { position: fixed; inset: 0; z-index: 9; pointer-events: none; }
+      .zlabel {
+        position: absolute; transform: translate(-50%, -50%);
+        padding: 2px 7px; border-radius: 999px; white-space: nowrap;
+        background: rgba(16, 22, 20, 0.66);
+        border: 1px solid rgba(255, 215, 94, 0.4);
+        font-size: 9.5px; letter-spacing: 0.12em; color: #ffd75e;
+      }
+      body.hide-labels #labels { display: none; }
+      body.hide-ui .panel, body.hide-ui #labels,
+      body.hide-ui .tp-dfwv { display: none; }
+
+      /* The panel outgrew the viewport in the game; same fix here. */
+      .tp-dfwv {
+        max-height: calc(100vh - 16px);
+        overflow-y: auto;
+        overscroll-behavior: contain;
+      }
+      .tp-dfwv::-webkit-scrollbar { width: 9px; }
+      .tp-dfwv::-webkit-scrollbar-thumb {
+        background: rgba(255, 255, 255, 0.22); border-radius: 5px;
+      }
+      /* Legend would sit under the panel. */
+      #legend { right: 290px; }
+
+      #lockHint {
+        position: fixed; inset: 0; display: flex;
+        align-items: center; justify-content: center;
+        z-index: 5; pointer-events: none; font-size: 18px;
+        text-shadow: 0 2px 8px rgba(0, 0, 0, 0.6);
+      }
+      #lockHint.hidden { display: none; }
+
+      #touchNote {
+        position: fixed; inset: 0; z-index: 30; display: none;
+        align-items: center; justify-content: center; text-align: center;
+        padding: 24px; background: rgba(12, 18, 10, 0.94);
+        font-size: 14px; line-height: 1.7;
+      }
+      @media (pointer: coarse) { #touchNote { display: flex; } }
+      @media (max-width: 760px), (max-height: 520px) {
+        .panel { font-size: 10px; padding: 7px 10px; }
+        #legend { display: none; }
+      }
+    </style>
+  </head>
+  <body>
+    <div id="app"></div>
+    <div id="labels"></div>
+    <div id="lockHint">📐 click to fly the blockout</div>
+
+    <div class="panel" id="facts"></div>
+
+    <div class="panel" id="legend">
+      <i style="background:#9a9a99"></i><span>building</span>
+      <i style="background:#8fb8c9"></i><span>glass</span>
+      <i style="background:#a8a49b"></i><span>paving</span>
+      <i style="background:#5f7a4c"></i><span>planting</span>
+      <i style="background:#4a8fc0"></i><span>water</span>
+      <i style="background:#c98b4b"></i><span>prop</span>
+      <i style="background:#d2544a"></i><span>human, 1.7 m</span>
+    </div>
+
+    <div class="panel" id="near"></div>
+    <div class="panel" id="readout"></div>
+    <div class="panel" id="keys">
+      <b>WASD</b> fly &nbsp; <b>Space/C</b> altitude &nbsp; <b>Shift</b> overdrive
+      &nbsp; <b>G</b> grid &nbsp; <b>L</b> labels &nbsp; <b>H</b> all UI
+      &nbsp; <b>1</b>/<b>2</b> playtested / retuned bee
+      &nbsp;·&nbsp; greybox only — no quests, no human, no grass
+    </div>
+
+    <div id="touchNote">
+      <div>
+        📐 <b>Estate greybox</b><br /><br />
+        Needs a mouse and keyboard, or a game controller.<br />
+        Open it on a desktop to fly.
+      </div>
+    </div>
+    <script type="module" src="/src/estate.ts"></script>
+  </body>
+</html>

@@ -21,6 +21,11 @@ export interface PadState {
   alt: boolean;
   /** Hold to open the tech radial. */
   radial: boolean;
+  /** Y / Triangle — open the hive workshop when you're at the hive. */
+  interact: boolean;
+  /** D-pad, edge-detected upstream, for driving menus. */
+  dpadUp: boolean;
+  dpadDown: boolean;
 }
 
 const EMPTY: PadState = {
@@ -28,6 +33,7 @@ const EMPTY: PadState = {
   moveX: 0, moveY: 0, lookX: 0, lookY: 0,
   ascend: 0, descend: 0, boost: false,
   use: false, sting: false, alt: false, radial: false,
+  interact: false, dpadUp: false, dpadDown: false,
 };
 
 function applyDeadzone(v: number, dz: number): number {
@@ -111,6 +117,9 @@ export class Gamepads {
       sting: pressed(1), // B / Circle — innate, never remapped by tech
       alt: pressed(2), // X / Square
       radial: pressed(4), // LB held — opens the tech radial
+      interact: pressed(3), // Y / Triangle — the workshop, at the hive
+      dpadUp: pressed(12),
+      dpadDown: pressed(13),
     };
   }
 }

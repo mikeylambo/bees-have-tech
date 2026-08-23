@@ -26,7 +26,7 @@ export class FollowCamera {
   ) => number | null;
 
   constructor(aspect: number) {
-    this.camera = new THREE.PerspectiveCamera(60, aspect, 0.1, 600);
+    this.camera = new THREE.PerspectiveCamera(60, aspect, 0.35, 2600);
   }
 
   // Mouse deltas are pixels; stick values are -1..1 and need frame time.
