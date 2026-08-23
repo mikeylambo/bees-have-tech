@@ -586,7 +586,9 @@ async function main() {
       reticle.className = cls;
     }
 
-    outline.render(scene, followCam.camera);
+    // Grass is excluded from edge DETECTION but still occludes edges — see
+    // OutlinePass for why that distinction is the whole fix.
+    outline.render(scene, followCam.camera, [grass.mesh]);
 
     fpsAccum += rawDt;
     fpsFrames++;

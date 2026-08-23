@@ -594,6 +594,28 @@ Everything is exposed in a **Feel & look** panel folder: mote count, radius,
 streak length and opacity; FOV kick, dolly, vignette and where it starts; toon
 and outline toggles with strength and width.
 
+**Outlines, done properly (2026-08-23).** Raising the Sobel threshold had only
+traded one wrong answer for another: no grass noise, but no fine silhouettes
+either. The real fix is to detect edges in a scene that *has no grass in it*,
+then re-introduce grass purely as an occluder:
+
+1. render the frame normally — colour, and depth of everything;
+2. render a **depth-only** pass with the noisy objects hidden;
+3. Sobel the second buffer to find real silhouettes;
+4. per pixel, if the full depth is meaningfully nearer than the grass-free
+   depth, something excluded is standing in front — suppress the line.
+
+So a fence outline is correctly hidden *behind* the blades in front of it
+rather than drawing over them. Cost is one extra depth-only pass over the
+non-grass scene, a few hundred draw calls of a flat material — and the grass,
+the expensive part, is exactly what it skips. Outlines are on everywhere now.
+
+**One bug the fix exposed:** rendering through a render target skips the
+renderer's output colour-space conversion, which only happens on the way to the
+default framebuffer. Blitting the target back naively left the whole frame in
+linear space — everything dark and oversaturated, which looked like a lighting
+regression and was a plumbing one. The composite shader converts by hand.
+
 ---
 
 ## Deliberately deferred
