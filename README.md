@@ -29,6 +29,7 @@ Auto-deploys from `main`; build root is `Prototype/`.
 | Right click / Q | Sting (innate — never swapped away) |
 | F | Alt action (throw what you're carrying) |
 | Tab (hold) | Tech wheel · scroll to quick-cycle |
+| Click | Also starts audio — browsers require a gesture |
 | R | Hive Workshop — only at the hive mouth |
 | Mouse | Look · Esc to release · H hides the UI |
 
@@ -60,6 +61,7 @@ Gamepad: L-stick fly · R-stick look · RT/LT altitude · **A** overdrive ·
 - **M5 — The property** ✅ Enclosed yard, quest chain, the Hive Workshop
 - **M6 — Real scale** ✅ A 10 × 8.7 m garden, six vertical layers, grass that follows you
 - **Bee presets** ✅ Playtested vs retuned flight, switchable — so scale and feel can be judged one at a time
+- **M7 — Feel & look** ✅ Pollen optical flow, speed FX, synthesised wingbeat, cel shading
 - **Estate blockout** 📐 90 × 120 m greybox of the flagship property, pending a verdict
 
 ## The loop, as it plays now

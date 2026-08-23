@@ -8,6 +8,8 @@ export class FollowCamera {
   yaw = Math.PI; // start behind the bee (bee faces +Z)
   pitch = 0.35;
   readonly camera: THREE.PerspectiveCamera;
+  /** Driven by SpeedFx — the camera eases back as you go faster. */
+  distanceScale = 1;
   private desired = new THREE.Vector3();
   private lookTarget = new THREE.Vector3();
   private aimAt = new THREE.Vector3();
@@ -44,7 +46,7 @@ export class FollowCamera {
 
   update(dt: number, target: THREE.Vector3, snap = false) {
     const c = params.camera;
-    const d = c.distance;
+    const d = c.distance * this.distanceScale;
 
     // Over-the-shoulder offset. Without it the bee sits under the crosshair
     // and blocks the very thing you are aiming at.
