@@ -6,6 +6,10 @@ import { params, createTuning, loadSavedSettings, applyBeePreset } from './core/
 import { Bee } from './bee/bee';
 import { FlightController } from './bee/flight';
 import { Atmosphere } from './world/atmosphere';
+import { OutlinePass } from './look/outline';
+import { Motes } from './fx/motes';
+import { SpeedFx } from './fx/speedFx';
+import { applyLook } from './look/toon';
 import {
   ESTATE, M, ZONES, diagonalMetres, traversal, type Zone, type ZoneKind,
 } from './world/estateBlockout';
@@ -42,6 +46,9 @@ async function main() {
   // fly there. Previously the blockout ignored it, which meant the two builds
   // could disagree about the flight model without either of them saying so.
   loadSavedSettings();
+  // No grass here, so the edge pass has only real silhouettes to find — which
+  // is where the clean blockout look comes from.
+  params.look.outlines = true;
 
   const physics = await initPhysics();
   const { RAPIER, world } = physics;
@@ -189,6 +196,8 @@ async function main() {
   // ---- the bee ----
   const bee = new Bee();
   scene.add(bee.root);
+  const motes = new Motes();
+  scene.add(motes.object);
   const spawn = new THREE.Vector3(m(0), m(1.6), m(-46));
   const flight = new FlightController(physics, spawn);
   // Flight wants an air sample; the greybox has no atmosphere zones, so it
@@ -197,6 +206,8 @@ async function main() {
 
   const input = new Input(renderer.domElement);
   const followCam = new FollowCamera(window.innerWidth / window.innerHeight);
+  const speedFx = new SpeedFx(followCam);
+  const outline = new OutlinePass(renderer);
   followCam.camera.far = m(260);
   followCam.camera.updateProjectionMatrix();
   followCam.occlusionTest = (from, dir, maxDist) => {
@@ -227,8 +238,10 @@ async function main() {
       world: false,
       title: 'Estate blockout — tuning',
       onPreset: () => fillScaleFacts(),
+      onLookChange: () => applyLook(scene),
     },
   );
+  applyLook(scene);
 
   function fillScaleFacts() {
     const t = traversal(params.flight);
@@ -256,6 +269,7 @@ async function main() {
     followCam.camera.aspect = w / h;
     followCam.camera.updateProjectionMatrix();
     renderer.setSize(w, h, true);
+    outline.setSize(w, h);
   }
   window.addEventListener('resize', fitToViewport);
   new ResizeObserver(fitToViewport).observe(document.documentElement);
@@ -286,6 +300,7 @@ async function main() {
 
   (window as unknown as Record<string, unknown>).__estate = {
     flight, followCam, scene, renderer, physics, ZONES, ESTATE, beePos,
+    motes, speedFx, params,
   };
 
   function frame(now: number) {
@@ -320,6 +335,8 @@ async function main() {
     sun.target.updateMatrixWorld();
 
     bee.update(dt, beePos, beeVel, state.boost);
+    motes.update(dt, beePos, beeVel);
+    speedFx.update(dt, beeVel.length());
     followCam.update(dt, beePos, firstFrame);
     firstFrame = false;
 
@@ -378,7 +395,7 @@ async function main() {
         ${renderer.info.render.calls} calls ·
         ${(renderer.info.render.triangles / 1000).toFixed(0)}k tris</span>`;
 
-    renderer.render(scene, followCam.camera);
+    outline.render(scene, followCam.camera);
 
     fpsAccum += rawDt;
     fpsFrames++;

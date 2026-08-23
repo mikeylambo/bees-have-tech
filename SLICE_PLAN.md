@@ -1,6 +1,6 @@
 # The Bees Have Tech! — Vertical Slice Plan
 
-**Status:** v7 — 2026-08-22 · supersedes the "one backyard corner" slice in CONCEPT_PILLARS.md
+**Status:** v8 — 2026-08-23 · supersedes the "one backyard corner" slice in CONCEPT_PILLARS.md
 **Target:** the seven-verb chain — Flight → Physics → Gadget → Hack → Swarm →
 Human Reaction → Chain Reaction.
 **Web version (phone-friendly):** https://claude.ai/code/artifact/1fb7ce48-5aa3-4dd8-9f45-98c0ce69c9e1
@@ -537,6 +537,62 @@ hedge is a canyon at this scale. 139 zones.
 interest before it stops being a lawn, and one human on 2.7 acres is scenery
 rather than a threat — estate scale forces the family the design already
 called for, and real pathfinding with it.
+
+---
+
+### M7 — Feel & look ✅ BUILT
+
+From the playtest, and it is the most useful sentence anyone has said about
+this build: *"flying lower to the ground gave a better sense of speed."*
+
+That is not a quirk, it is the mechanism. **You cannot perceive your own
+velocity directly — you perceive things streaming past you.** Low over the
+lawn, grass blades supply that reference frame. At altitude nothing is close
+enough, so the same 8 m/s reads as hanging still. Which also explains why the
+retuned bee felt wrong in the blockout: a greybox has almost nothing near you
+to stream past.
+
+**Pollen motes.** A field of ~900 motes in a box that rides with the bee,
+wrapping toroidally so it is effectively infinite. They sit still in WORLD
+space — the important part, because they stream past because you move, not
+because they do. Each draws as a line from where it is to where it was, so it
+is a dot when you hover and a streak when you fly. That one trick does most of
+the work, and it works at any altitude.
+
+**Speed FX.** Field of view widens by up to 14°, the camera eases 22% further
+back, and a vignette closes in — all eased rather than driven straight off
+velocity, because the ugly version snaps every time you tap the stick. All
+three normalise against the *current preset's* top speed, so they mean the
+same thing whichever bee you fly.
+
+**Sound, synthesised, no asset files.** The wingbeat is two detuned sawtooths
+through a lowpass; the buzz you recognise is the beating between them, not
+either tone. Pitch and brightness both climb with speed, and slide rather than
+step — the difference between a bee and a modem. Impacts are filtered noise
+bursts: grapple fire and thunk, sting, prop hit, swat whoosh, zap, deposit,
+unlock. The context starts on the same click that takes pointer lock, so the
+autoplay policy costs the player nothing.
+
+**Cel shading.** `MeshToonMaterial` with a three-band gradient map across every
+opaque material, cached by colour so 726 meshes collapse onto a couple of dozen
+materials — fewer state changes, not more. Plus a screen-space depth-Sobel
+outline pass: one extra pass, independent of scene complexity, catching
+silhouettes and creases.
+
+**Two look bugs worth recording**, both found by looking at the first render:
+- The gradient's darkest band landed near 0.44 and crushed every surface facing
+  away from the sun into mud. A yard in permanent dusk, for the second time
+  this project. Bands are explicit now: 0.62 / 0.82 / 1.0.
+- The outline pass fired on **every individual grass blade**. Ninety thousand
+  blades are ninety thousand depth discontinuities, which is precisely what a
+  Sobel is built to find, and the lawn turned into a dark smear. Thresholds
+  raised to catch object silhouettes, and outlines now default **off in the
+  yard and on in the blockout** — where there is no grass to confuse them, and
+  where the clean look came from in the first place.
+
+Everything is exposed in a **Feel & look** panel folder: mote count, radius,
+streak length and opacity; FOV kick, dolly, vignette and where it starts; toon
+and outline toggles with strength and width.
 
 ---
 

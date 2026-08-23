@@ -81,6 +81,14 @@
       /* Legend would sit under the panel. */
       #legend { right: 290px; }
 
+      #speedVignette {
+        position: fixed; inset: 0; z-index: 6; pointer-events: none; opacity: 0;
+        background: radial-gradient(ellipse at center,
+          rgba(0,0,0,0) 42%, rgba(0,0,0,0.85) 100%);
+        transition: opacity 90ms linear;
+      }
+      @media (prefers-reduced-motion: reduce) { #speedVignette { display: none; } }
+
       #lockHint {
         position: fixed; inset: 0; display: flex;
         align-items: center; justify-content: center;
@@ -105,6 +113,7 @@
   <body>
     <div id="app"></div>
     <div id="labels"></div>
+    <div id="speedVignette"></div>
     <div id="lockHint">📐 click to fly the blockout</div>
 
     <div class="panel" id="facts"></div>

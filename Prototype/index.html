@@ -170,6 +170,16 @@
       /* Seen right now — pulse so it reads at a glance. */
       #exposure.seen .track { box-shadow: inset 0 0 0 1px rgba(255, 120, 90, 0.95); }
 
+      /* Closes in as you accelerate. Peripheral darkening is a real part of
+         how speed is perceived, and it costs one div. */
+      #speedVignette {
+        position: fixed; inset: 0; z-index: 6; pointer-events: none; opacity: 0;
+        background: radial-gradient(ellipse at center,
+          rgba(0,0,0,0) 42%, rgba(0,0,0,0.85) 100%);
+        transition: opacity 90ms linear;
+      }
+      @media (prefers-reduced-motion: reduce) { #speedVignette { display: none; } }
+
       #swatFlash {
         position: fixed; inset: 0; z-index: 7; pointer-events: none;
         background: radial-gradient(ellipse at center,
@@ -469,6 +479,7 @@
     <div id="reticle"></div>
     <div id="hitmark"></div>
     <div id="swatFlash"></div>
+    <div id="speedVignette"></div>
     <div id="exposure">
       <div class="label">
         <span id="expLevel">EXPOSURE 0 · NATURE</span>

@@ -30,6 +30,11 @@ import { Sprinkler, BugZapper, BoxFan, type Appliance } from './world/appliances
 import { Atmosphere } from './world/atmosphere';
 import { Hacker, hackerTech } from './bee/hacker';
 import { mulberry32 } from './core/rng';
+import { Motes } from './fx/motes';
+import { SpeedFx } from './fx/speedFx';
+import { Sound } from './audio/sound';
+import { applyLook } from './look/toon';
+import { OutlinePass } from './look/outline';
 
 const NEUTRAL_INPUT: InputState = { forward: 0, strafe: 0, vertical: 0, boost: false };
 
@@ -47,6 +52,11 @@ async function main() {
   renderer.shadowMap.type = THREE.PCFSoftShadowMap;
   document.getElementById('app')!.appendChild(renderer.domElement);
 
+  const sound = new Sound();
+  // Audio can only start from a gesture; this is the same click that takes
+  // pointer lock, so it costs the player nothing.
+  renderer.domElement.addEventListener('click', () => sound.start());
+
   const scene = new THREE.Scene();
   const yard = buildYard(physics, scene, params.world.seed);
   const grass = new GrassField(params.world.seed);
@@ -54,6 +64,8 @@ async function main() {
 
   const bee = new Bee();
   scene.add(bee.root);
+  const motes = new Motes();
+  scene.add(motes.object);
   const flight = new FlightController(physics, SPAWN.clone());
 
   const grapple = new Grapple(physics, flight.body);
@@ -131,6 +143,7 @@ async function main() {
   belt.add(hackerTech(hacker, (a) => {
     // Flipping a switch in view is far more incriminating than being seen.
     input.rumble(0.4, 0.65, 130);
+    sound.hack();
     quests.hacked(a.kind);
     if (human.canSee(physics, a.position, flight.collider)) exposure.spike(14);
   }));
@@ -149,6 +162,7 @@ async function main() {
   };
 
   workshop.onBuild = (bp) => {
+    sound.unlock();
     announce('REVERSE ENGINEERED', bp.name, bp.blurb);
     input.rumble(0.6, 0.8, 400);
   };
@@ -174,6 +188,7 @@ async function main() {
   quests.onComplete = (q) => {
     if (q.reward.salvage) hive.credit(q.reward.salvage);
     for (const id of q.reward.blueprints ?? []) workshop.learn(id);
+    sound.unlock();
     questHud.complete(q);
     questHud.tracker(null);
     updateBankHud();
@@ -222,12 +237,14 @@ async function main() {
     if (carry.isCarrying) carry.drop();
     if (grapple.state !== 'idle') grapple.release();
     flight.knockback(dir, params.human.swatImpulse);
+    sound.swatWhoosh();
     exposure.spike(6);
     flashSwat();
     input.rumble(1, 0.8, 320); // you got hit by a hand the size of a house
   };
   stinger.onStingHuman = () => {
     // Being stung is not something you explain away as "just a bee."
+    sound.sting();
     exposure.spike(22);
     human.reactToSting();
     popHitmark('sting');
@@ -235,6 +252,7 @@ async function main() {
     input.rumble(0.85, 0.5, 220); // sharp and unmistakable
   };
   stinger.onHitProp = () => {
+    sound.hitProp();
     popHitmark('hit');
     input.rumble(0.25, 0.4, 70);
   };
@@ -243,12 +261,15 @@ async function main() {
     const falloff = Math.max(0, 1 - distance / (params.human.swatRange * 2.2));
     if (falloff > 0) {
       flight.knockback(dir, params.human.swatImpulse * 0.45 * falloff);
+      sound.swatWhoosh();
       input.rumble(0.3 * falloff, 0.5 * falloff, 160); // the air moves past you
     }
   };
 
   const input = new Input(renderer.domElement);
   const followCam = new FollowCamera(window.innerWidth / window.innerHeight);
+  const speedFx = new SpeedFx(followCam);
+  const outline = new OutlinePass(renderer);
 
   // Keep the camera out of solid geometry — otherwise it slips inside the
   // human and he reads as a hologram you can fly through.
@@ -266,7 +287,10 @@ async function main() {
   createTuning(
     (seed) => grass.scatter(seed),
     () => applyFlowerSpring(physics, yard.flowers),
+    { onLookChange: () => applyLook(scene) },
   );
+  // Banded shading over everything already built.
+  applyLook(scene);
 
   const reticle = document.getElementById('reticle');
 
@@ -286,6 +310,7 @@ async function main() {
     followCam.camera.aspect = w / h;
     followCam.camera.updateProjectionMatrix();
     renderer.setSize(w, h, true);
+    outline.setSize(w, h);
   }
   window.addEventListener('resize', fitToViewport);
   window.addEventListener('orientationchange', fitToViewport);
@@ -333,6 +358,7 @@ async function main() {
     aiming, aim, human, exposure, belt, radial, stinger,
     appliances, sprinkler, zapper, fan, atmosphere, hacker, air,
     hive, swarm, workshop, quests, workshopUI, questHud,
+    motes, speedFx, sound, outline,
   };
   updateBankHud();
   quests.begin();
@@ -468,6 +494,7 @@ async function main() {
         flight.knockback(away.normalize(), params.appliance.zapImpulse);
         if (carry.isCarrying) carry.drop();
         if (grapple.state !== 'idle') grapple.release();
+        sound.zap();
         flashSwat();
         input.rumble(0.9, 1, 260);
       }
@@ -480,6 +507,7 @@ async function main() {
     const banked = hive.tryDeposit(yard.dynamicProps, hive.mouthPosition(hiveMouth));
     if (banked.length > 0) {
       for (const kind of banked) quests.deliver(kind);
+      sound.deposit();
       updateBankHud();
       input.rumble(0.3, 0.5, 120);
     }
@@ -525,6 +553,11 @@ async function main() {
     );
 
     bee.update(dt, beePos, beeVel, state.boost);
+    // Sense of speed: pollen streaming past, then the camera's reaction to it.
+    const speed = beeVel.length();
+    motes.update(dt, beePos, beeVel);
+    speedFx.update(dt, speed);
+    sound.wing(speed / (params.flight.maxSpeed * params.flight.boostMul), state.boost);
     grapple.update(dt, beePos);
     syncProps(yard.dynamicProps);
     syncFlowers(yard.flowers);
@@ -553,7 +586,7 @@ async function main() {
       reticle.className = cls;
     }
 
-    renderer.render(scene, followCam.camera);
+    outline.render(scene, followCam.camera);
 
     fpsAccum += rawDt;
     fpsFrames++;

@@ -138,6 +138,32 @@ export const params = {
     decay: 4.5, // per second while unseen
     decayDelay: 2.5, // seconds unseen before decay starts
   },
+  // ---- M7: feel & look ----
+  motes: {
+    // Pollen in the air. The ONLY thing that makes speed legible at altitude,
+    // where nothing is close enough to stream past you.
+    count: 900,
+    radius: 90, // half-size of the box that rides with the bee, in units
+    streakPerSpeed: 0.055, // streak length per unit/sec of bee speed
+    maxStreak: 26,
+    opacity: 0.5,
+  },
+  speedFx: {
+    startAt: 0.18, // fraction of top speed before any of this begins
+    fovKick: 14, // degrees added at full tilt
+    dolly: 0.22, // camera eases this fraction further back
+    vignette: 0.42, // peak opacity of the edge darkening
+    responsiveness: 5, // easing rate; low is mushy, high snaps
+  },
+  look: {
+    toon: true, // banded shading instead of smooth Lambert
+    // Off by default in the yard: a grass field is a wall of depth
+    // discontinuities and the edge pass finds all of them. The blockout turns
+    // it on, because there it is exactly the look we want.
+    outlines: false,
+    outlineStrength: 0.85,
+    outlineThickness: 1.3,
+  },
   world: {
     seed: 1337,
     // Blades are drawn in a window that follows the bee; this scales how many
@@ -296,6 +322,8 @@ export interface TuningOptions {
   title?: string;
   /** Called after a preset flip, so a HUD showing derived numbers can refresh. */
   onPreset?: (id: string) => void;
+  /** Called when a look toggle changes and materials need rebuilding. */
+  onLookChange?: () => void;
 }
 
 export function createTuning(
@@ -304,6 +332,7 @@ export function createTuning(
   opts: TuningOptions = {},
 ): Pane {
   const { world = true, onPreset } = opts;
+  const onLookChange = opts.onLookChange ?? (() => {});
   const pane = new Pane({ title: opts.title ?? 'The Bees Have Tech! — tuning' });
 
   // First, because it's the coarse control: pick a whole bee, then fine-tune.
@@ -381,6 +410,25 @@ export function createTuning(
     'change', onFlowerSpringChange,
   );
 
+  } // end first world-only block
+
+  const fx = pane.addFolder({ title: 'Feel & look' });
+  fx.addBinding(params.motes, 'count', { min: 0, max: 1400, step: 10, label: 'pollen motes' });
+  fx.addBinding(params.motes, 'radius', { min: 20, max: 260, label: 'mote radius' });
+  fx.addBinding(params.motes, 'streakPerSpeed', {
+    min: 0, max: 0.2, label: 'streak / speed',
+  });
+  fx.addBinding(params.motes, 'opacity', { min: 0, max: 1, label: 'mote opacity' });
+  fx.addBinding(params.speedFx, 'fovKick', { min: 0, max: 30, label: 'FOV kick' });
+  fx.addBinding(params.speedFx, 'dolly', { min: 0, max: 0.8, label: 'camera dolly' });
+  fx.addBinding(params.speedFx, 'vignette', { min: 0, max: 1 });
+  fx.addBinding(params.speedFx, 'startAt', { min: 0, max: 0.6, label: 'kicks in at' });
+  fx.addBinding(params.look, 'toon', { label: 'toon shading' }).on('change', onLookChange);
+  fx.addBinding(params.look, 'outlines', { label: 'outlines' });
+  fx.addBinding(params.look, 'outlineStrength', { min: 0, max: 1, label: 'outline strength' });
+  fx.addBinding(params.look, 'outlineThickness', { min: 0.5, max: 3, label: 'outline width' });
+
+  if (world) {
   const w = pane.addFolder({ title: 'Yard (procgen)' });
   w.addBinding(params.world, 'seed', { step: 1 });
   w.addBinding(params.world, 'grassDensity', {
