@@ -59,7 +59,7 @@ Gamepad: L-stick fly · R-stick look · RT/LT altitude · **A** overdrive ·
 - **M4 — Swarm & salvage** ✅ Hive, swarm beacon, reverse engineering
 - **M5 — The property** ✅ Enclosed yard, quest chain, the Hive Workshop
 - **M6 — Real scale** ✅ A 10 × 8.7 m garden, six vertical layers, grass that follows you
-- **Flight retune** ✅ Cruise 1.02 → 3.35 m/s; the world had outgrown the model
+- **Bee presets** ✅ Playtested vs retuned flight, switchable — so scale and feel can be judged one at a time
 - **Estate blockout** 📐 90 × 120 m greybox of the flagship property, pending a verdict
 
 ## The loop, as it plays now
@@ -75,14 +75,22 @@ Choosing what to wear is the point.
 
 ## Scale and speed
 
-One unit is 1.7 cm, fixed by the human at 100 units. The bee cruises at
-**3.35 m/s** and hits **8.75 m/s** on Wing Overdrive — a real honeybee forages
-at 4–5.5 and tops out near 8, so overdrive is the tech doing something a bee
-can't. (It used to cruise at 1.02 m/s, which was 1.09× a walking man.)
+One unit is 1.7 cm, fixed by the human at 100 units. The backyard vertical
+slice is **10.0 × 8.7 m**; the estate blockout is **90 × 120 m**.
 
-The backyard vertical slice is **10.0 × 8.7 m** — four seconds to cross at
-cruise. The estate blockout is **90 × 120 m** — 26 s across, 44 s corner to
-corner, 15 s corner to corner on overdrive. The house wall is
+Two **bee presets**, switchable from the tuning panel (or `1` / `2` in the
+blockout). Each is a complete coupled set — flight, camera lead, and every
+reach measured in world units — so you compare configurations rather than
+hybrids:
+
+| | Playtested (default) | Retuned |
+|---|---|---|
+| Cruise | 0.78 m/s | 3.35 m/s |
+| Overdrive | 3.83 m/s | 8.75 m/s |
+| Grapple line | 2.0 m | 6.8 m |
+| Estate, corner to corner | ~3 min / 39 s | 44 s / 15 s |
+
+*A real honeybee forages at 4–5.5 m/s and tops out near 8.* The house wall is
 six metres of backlit siding above you, the fence is 1.8 m of cliff, and there
 are six places a person can't follow you into: under the deck, under the shed,
 inside the gutter and its downspout, over the hedge, up the tree, and into the

@@ -2,7 +2,7 @@ import * as THREE from 'three';
 import { initPhysics } from './core/physics';
 import { Input } from './core/input';
 import { FollowCamera } from './core/camera';
-import { params } from './core/tuning';
+import { params, createTuning, loadSavedSettings, applyBeePreset } from './core/tuning';
 import { Bee } from './bee/bee';
 import { FlightController } from './bee/flight';
 import { Atmosphere } from './world/atmosphere';
@@ -38,10 +38,21 @@ const PALETTE: Record<ZoneKind, number> = {
 };
 
 async function main() {
+  // Same saved tuning as the game, so a bee you dial in here is the bee you
+  // fly there. Previously the blockout ignored it, which meant the two builds
+  // could disagree about the flight model without either of them saying so.
+  loadSavedSettings();
+
   const physics = await initPhysics();
   const { RAPIER, world } = physics;
 
-  const renderer = new THREE.WebGLRenderer({ antialias: true });
+  // The blockout spans 0.35 to ~15,000 units of depth. At that ratio a normal
+  // depth buffer z-fights on every coplanar surface — terrace slabs on paving,
+  // paving on ground — which reads as shimmering that's easy to mistake for a
+  // camera problem. A log depth buffer handles the range properly.
+  const renderer = new THREE.WebGLRenderer({
+    antialias: true, logarithmicDepthBuffer: true,
+  });
   renderer.setSize(window.innerWidth, window.innerHeight);
   renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
   renderer.shadowMap.enabled = true;
@@ -186,7 +197,7 @@ async function main() {
 
   const input = new Input(renderer.domElement);
   const followCam = new FollowCamera(window.innerWidth / window.innerHeight);
-  followCam.camera.far = m(330);
+  followCam.camera.far = m(260);
   followCam.camera.updateProjectionMatrix();
   followCam.occlusionTest = (from, dir, maxDist) => {
     const ray = new RAPIER.Ray(
@@ -208,6 +219,16 @@ async function main() {
 
   const readout = document.getElementById('readout')!;
   const nearEl = document.getElementById('near')!;
+
+  createTuning(
+    () => {}, // no yard to reshuffle
+    () => {}, // no flower springs
+    {
+      world: false,
+      title: 'Estate blockout — tuning',
+      onPreset: () => fillScaleFacts(),
+    },
+  );
 
   function fillScaleFacts() {
     const t = traversal(params.flight);
@@ -242,6 +263,9 @@ async function main() {
 
   window.addEventListener('keydown', (e) => {
     if (e.code === 'KeyH') document.body.classList.toggle('hide-ui');
+    // Flip the bee without reaching for the panel — this is an A/B rig.
+    if (e.code === 'Digit1') { applyBeePreset('playtested'); fillScaleFacts(); }
+    if (e.code === 'Digit2') { applyBeePreset('retuned'); fillScaleFacts(); }
     if (e.code === 'KeyL') document.body.classList.toggle('hide-labels');
     if (e.code === 'KeyG') grid.visible = !grid.visible;
   });

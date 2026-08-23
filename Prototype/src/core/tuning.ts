@@ -3,39 +3,25 @@ import { Pane } from 'tweakpane';
 // Every number that affects feel lives here and is live-editable in the panel.
 export const params = {
   // Playtested defaults, 2026-08-20 — these are Mikey's "feels like a bee" values.
-  // Retuned 2026-08-22 for a world that is no longer a patio.
-  //
-  // The old values were playtested in a 2.4 m yard, where 60 u/s crossed the
-  // world in two and a half seconds and felt great. They were never revisited
-  // when the world grew 16x, and the result was a bee whose top cruise —
-  // 1.02 m/s — was 1.09x a walking man's pace. A real honeybee forages at
-  // 4-5.5 m/s. We were flying a fifth of bee speed.
-  //
-  // What did NOT change is `damping`, because damping alone decides how the
-  // bee coasts to a stop, and that is the part of the feel that was right.
-  // Thrust terminal velocity is accel/damping, so raising accel raises the
-  // ceiling while leaving the 1/damping response time — and therefore the
-  // snappiness — exactly where it was.
+  // These are the PLAYTESTED values — Mikey's "feels like a bee" set. They
+  // are the default and the baseline. A faster alternative lives in
+  // FLIGHT_PRESETS below and is one button away, because changing the bee
+  // and the world in the same breath makes both unjudgeable.
   flight: {
-    accel: 520, // horizontal accel, u/s^2 -> ~200 u/s = 3.4 m/s cruise
-    ascend: 430,
-    descend: 430,
+    accel: 120, // horizontal accel, u/s^2
+    ascend: 100,
+    descend: 100,
     // How thick the air is. Applied ALWAYS, proportional to speed: it decides
     // how fast you coast to a stop when you let go of the stick.
     damping: 2.6,
-    // Deliberately ABOVE the thrust terminal (~200), so powered flight is
-    // limited by drag and this threshold only governs BORROWED speed —
-    // grapple swings, swat knockback, fan gusts — bleeding back down.
-    maxSpeed: 260,
-    // x3 -> ~600 u/s = 10.2 m/s, past a real bee's maximum. Which is the
-    // point: "Wing Overdrive" should be the tech doing something a bee can't.
-    boostMul: 3,
+    maxSpeed: 60,
+    boostMul: 5, // Wing Overdrive multiplier (accel + max speed)
     // Only bites ABOVE maxSpeed. Decides how long borrowed speed — grapple
     // swings, swat knockback — stays with you before settling back down.
     overspeedDrag: 0.5,
   },
   camera: {
-    distance: 21, // a little more lead now that the bee actually moves
+    distance: 16.67,
     height: 5.8,
     sensitivity: 0.0024,
     smoothing: 30, // higher = snappier follow
@@ -59,56 +45,53 @@ export const params = {
   grapple: {
     // The fence is 106 units tall and the tree 364; a 60-unit line couldn't
     // reach the top of anything in the new yard.
-    // 400 units is 6.8 m of line — enough to reach the eaves of a house.
-    // The old 120 was a two-metre rope on a forty-metre property.
-    range: 400,
-    reelSpeed: 66, // rope shortening, units/sec
+    range: 120,
+    reelSpeed: 20, // rope shortening, units/sec
     minLength: 1.2,
-    travelTime: 0.12, // filament flight time, seconds
+    travelTime: 0.09, // filament flight time, seconds
   },
   carry: {
-    range: 55,
+    range: 20,
     maxMass: 0.35, // heavier than this and you can only grapple it
     holdDistance: 2.4,
     holdDrop: 0.5,
-    pullSpeed: 130,
+    pullSpeed: 40,
     refMass: 0.05, // a light pebble: the "feels weightless" reference
     minFollow: 0.4, // floor on the weight-lag factor, so heavy ≠ unusable
-    breakDistance: 120, // safety net only — you should never lose a load by flying
+    breakDistance: 40, // safety net only — you should never lose a load by flying
     haulMass: 0.3, // mass at which flight is fully taxed
     haulPenalty: 0.55, // fraction of speed/accel a full load costs you
-    throwImpulse: 85,
+    throwImpulse: 26,
   },
   stinger: {
     range: 4.5, // very short — you have to commit to get in there
     cooldown: 0.45,
     lungeTime: 0.22,
-    lungeImpulse: 46, // the bee throws itself at the target
-    propImpulse: 95,
+    lungeImpulse: 14, // the bee throws itself at the target
+    propImpulse: 30,
     flinchTime: 0.85, // how long the human flails after being stung
   },
   radial: {
     timeScale: 0.25, // slow-mo while choosing, so the physics stays readable
   },
   hack: {
-    range: 300, // hacking from cover has to be possible across a real yard
+    range: 120, // hacking from cover has to be possible across a real yard
     time: 0.7, // hold this long to flip an appliance
   },
   atmosphere: {
-    fanRange: 260,
+    fanRange: 200,
     fanSpread: 0.5, // radians, half-angle of the cone
-    fanForce: 540, // units/sec^2 on the axis at point-blank
+    fanForce: 165, // units/sec^2 on the axis at point-blank
     fanDamping: 0.5, // moving air is THIN air — this is why a fan throws you
   },
   hive: {
-    // Wider, because at 3.4 m/s you fly past a small one.
-    depositRadius: 30,
+    depositRadius: 16,
   },
   swarm: {
-    speed: 150, // they have to keep up with you now
+    speed: 44,
     followRadius: 8,
     orbitRadius: 14,
-    grabRadius: 9,
+    grabRadius: 5,
     beaconTime: 1.4, // converge for this long, then read the situation
     contextRadius: 70, // how far a bee looks for a job around the beacon
     distractPerception: 0.45, // human's sight range while being mobbed
@@ -119,7 +102,7 @@ export const params = {
     wetDry: 14, // units/sec it dries once off
     zapperRadius: 40,
     wetZapMultiplier: 2.4, // an electrified puddle is a much bigger problem
-    zapImpulse: 260,
+    zapImpulse: 80,
     evidenceRise: 26, // exposure/sec when a human watches tech act by itself
   },
   flower: {
@@ -130,8 +113,7 @@ export const params = {
     height: 100, // ~1.7m at bee scale — the kaiju read, and the world's ruler
     // 0.93 m/s. He crosses his own garden in about eleven seconds, which is
     // what makes the far corners feel like somewhere you got away to.
-    // 1.4 m/s — actual human walking pace. He was ambling at 0.93.
-    walkSpeed: 82,
+    walkSpeed: 55,
     turnSpeed: 2.2,
     // Perception
     // 3.6 m. In the old 2.4 m yard a 130-unit range meant he saw everything
@@ -144,7 +126,7 @@ export const params = {
     // Reaction
     swatRange: 26, // how close he'll get before taking a swing
     swatHitRadius: 15, // the hand's actual hit sphere — smaller = fairer
-    swatImpulse: 150, // velocity change dealt to a struck bee
+    swatImpulse: 46, // velocity change dealt to a struck bee
     swatCooldown: 1.6,
     swatWindup: 0.32,
     investigateTime: 8,
@@ -168,10 +150,85 @@ export const params = {
   triangles: 0,
 };
 
-// v2: the flight retune. A saved v1 file would restore the old 60 u/s bee and
-// silently undo the whole change, which is exactly the kind of bug you only
-// find by wondering why nothing feels different.
-const STORAGE_KEY = 'bht.settings.v2';
+// v3: back to the playtested bee as the default. A saved v2 file holds the
+// retuned set and would silently reapply it on load — the same trap in the
+// other direction.
+// ---------------------------------------------------------------------------
+// BEE PRESETS — two complete, coherent configurations you can flip between.
+//
+// The mistake this exists to prevent: changing the bee and the world in the
+// same build. Do that and neither is judgeable, because you cannot tell which
+// one you are reacting to. Each preset is the FULL coupled set — flight,
+// camera lead, and every reach measured in world units — so flipping gives
+// you one honest configuration or the other, never a hybrid nobody designed.
+
+export type TuningPatch = Record<string, Record<string, number>>;
+
+export interface BeePreset {
+  id: string;
+  label: string;
+  note: string;
+  patch: TuningPatch;
+}
+
+export const BEE_PRESETS: BeePreset[] = [
+  {
+    id: 'playtested',
+    label: '🐝 Playtested bee',
+    note: 'Cruise 1.0 m/s. The set Mikey tuned in the small yard, unchanged.',
+    patch: {
+      flight: { accel: 120, ascend: 100, descend: 100, damping: 2.6, maxSpeed: 60, boostMul: 5 },
+      camera: { distance: 16.67 },
+      grapple: { range: 120, reelSpeed: 20, travelTime: 0.09 },
+      carry: { range: 20, pullSpeed: 40, breakDistance: 40, throwImpulse: 26 },
+      stinger: { lungeImpulse: 14, propImpulse: 30 },
+      hack: { range: 120 },
+      atmosphere: { fanRange: 200, fanForce: 165 },
+      hive: { depositRadius: 16 },
+      swarm: { speed: 44, grabRadius: 5 },
+      appliance: { zapImpulse: 80 },
+      human: { walkSpeed: 55, swatImpulse: 46 },
+    },
+  },
+  {
+    id: 'retuned',
+    label: '⚡ Retuned bee',
+    note: 'Cruise 3.4 m/s, overdrive 10.2. Real-honeybee speeds, for a big property.',
+    patch: {
+      flight: { accel: 520, ascend: 430, descend: 430, damping: 2.6, maxSpeed: 260, boostMul: 3 },
+      camera: { distance: 21 },
+      grapple: { range: 400, reelSpeed: 66, travelTime: 0.12 },
+      carry: { range: 55, pullSpeed: 130, breakDistance: 120, throwImpulse: 85 },
+      stinger: { lungeImpulse: 46, propImpulse: 95 },
+      hack: { range: 300 },
+      atmosphere: { fanRange: 260, fanForce: 540 },
+      hive: { depositRadius: 30 },
+      swarm: { speed: 150, grabRadius: 9 },
+      appliance: { zapImpulse: 260, },
+      human: { walkSpeed: 82, swatImpulse: 150 },
+    },
+  },
+];
+
+/** Which preset was last applied. Shown in the panel so it's never a guess. */
+export let activePreset = 'playtested';
+
+export function applyBeePreset(id: string): boolean {
+  const preset = BEE_PRESETS.find((p) => p.id === id);
+  if (!preset) return false;
+  const target = params as unknown as Record<string, Record<string, number>>;
+  for (const [group, values] of Object.entries(preset.patch)) {
+    const dest = target[group];
+    if (!dest) continue;
+    for (const [key, value] of Object.entries(values)) {
+      if (key in dest) dest[key] = value;
+    }
+  }
+  activePreset = id;
+  return true;
+}
+
+const STORAGE_KEY = 'bht.settings.v3';
 
 /** The values shipped in the build, captured before any saved file is applied. */
 const SHIPPED = JSON.parse(JSON.stringify(params)) as typeof params;
@@ -233,11 +290,39 @@ function applySettings(text: string): number {
   return applied;
 }
 
+export interface TuningOptions {
+  /** False for the estate blockout, which has no yard, gadgets or flowers. */
+  world?: boolean;
+  title?: string;
+  /** Called after a preset flip, so a HUD showing derived numbers can refresh. */
+  onPreset?: (id: string) => void;
+}
+
 export function createTuning(
   onReshuffle: (seed: number) => void,
   onFlowerSpringChange: () => void = () => {},
+  opts: TuningOptions = {},
 ): Pane {
-  const pane = new Pane({ title: 'The Bees Have Tech! — tuning' });
+  const { world = true, onPreset } = opts;
+  const pane = new Pane({ title: opts.title ?? 'The Bees Have Tech! — tuning' });
+
+  // First, because it's the coarse control: pick a whole bee, then fine-tune.
+  const bp = pane.addFolder({ title: 'Bee preset' });
+  const presetState = { active: activePreset };
+  const presetLabel = bp.addBinding(presetState, 'active', {
+    readonly: true, label: 'active',
+  });
+  for (const preset of BEE_PRESETS) {
+    const btn = bp.addButton({ title: preset.label });
+    btn.on('click', () => {
+      applyBeePreset(preset.id);
+      presetState.active = preset.id;
+      pane.refresh();
+      presetLabel.refresh();
+      onFlowerSpringChange();
+      onPreset?.(preset.id);
+    });
+  }
 
   const f = pane.addFolder({ title: 'Flight feel' });
   f.addBinding(params.flight, 'accel', { min: 40, max: 1200 });
@@ -271,6 +356,7 @@ export function createTuning(
   g.addBinding(params.pad, 'lookSpeed', { min: 0.5, max: 8, label: 'stick look speed' });
   g.addBinding(params.pad, 'swapTriggers', { label: 'LT up / RT down' });
 
+  if (world) {
   const gr = pane.addFolder({ title: 'Stinger grapple' });
   gr.addBinding(params.grapple, 'range', { min: 60, max: 900 });
   gr.addBinding(params.grapple, 'reelSpeed', { min: 10, max: 200 });
@@ -305,6 +391,7 @@ export function createTuning(
     pane.refresh();
     onReshuffle(params.world.seed);
   });
+  } // end world-only folders
 
   const perf = pane.addFolder({ title: 'Budget' });
   perf.addBinding(params, 'fps', { readonly: true, format: (v) => v.toFixed(0) });

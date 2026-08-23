@@ -1,6 +1,6 @@
 # The Bees Have Tech! — Vertical Slice Plan
 
-**Status:** v6 — 2026-08-22 · supersedes the "one backyard corner" slice in CONCEPT_PILLARS.md
+**Status:** v7 — 2026-08-22 · supersedes the "one backyard corner" slice in CONCEPT_PILLARS.md
 **Target:** the seven-verb chain — Flight → Physics → Gadget → Hack → Swarm →
 Human Reaction → Chain Reaction.
 **Web version (phone-friendly):** https://claude.ai/code/artifact/1fb7ce48-5aa3-4dd8-9f45-98c0ce69c9e1
@@ -478,46 +478,42 @@ flying it.
 **90 × 120 m** — the gated estate from the reference aerials. But the size
 question turned out to be downstream of a worse one.
 
-### The bee flew at walking pace
+### The bee flew slower than the human walked
 
-| | Before | After | Real honeybee |
+| | Playtested (default) | Retuned (preset) | Real honeybee |
 |---|---|---|---|
-| Cruise | 1.02 m/s | **3.35 m/s** | 4–5.5 m/s foraging |
-| Overdrive | 5.10 m/s | **8.75 m/s** | ~8 m/s max |
-| vs. the human's walk | **1.09×** | 2.40× | — |
+| Cruise | **0.78 m/s** | 3.35 m/s | 4–5.5 m/s foraging |
+| Overdrive | 3.83 m/s | 8.75 m/s | ~8 m/s max |
+| vs. the human's walk | **0.84×** | 2.40× | — |
+| Grapple line | 2.0 m | 6.8 m | — |
 
-The flight values were playtested in the 2.4 m yard, where 60 u/s crossed the
-world in two and a half seconds and felt right. They were never revisited when
-the world grew 16×. The result: **a flying insect whose top cruise was nine
-percent faster than a man walking**, and a grapple with two metres of line on a
-forty-metre property. Any judgement about world size made through that was
-measuring the wrong variable.
+Measured in-engine, not computed. An earlier pass quoted cruise as 1.02 m/s by
+reading `maxSpeed` — but thrust is a force against damping, so the speed
+actually reached is `accel / damping`, and `maxSpeed` is a higher ceiling that
+only governs borrowed speed bleeding off. Same mistake the greybox HUD made.
+The real figure is worse than reported: the bee was **slower than the human
+walked**.
 
-**`damping` did not change**, deliberately. Thrust terminal velocity is
-`accel / damping`, so raising accel raises the ceiling while leaving the
-`1 / damping` response time — and therefore the snappiness and the coast-to-a-
-stop that were already right — exactly where they were. `maxSpeed` was raised
-to sit *above* the new thrust terminal, preserving its real job: governing
-borrowed speed from grapple swings, swats and fan gusts, not powered flight.
+**But speed is not feel, and the retune shipped as the default was a method
+error.** Changing the bee and the world in the same build makes neither
+judgeable — you cannot tell which one you are reacting to. The playtested set
+is the default again, and the faster configuration is a **preset**: two
+complete, coherent sets in `BEE_PRESETS`, each covering flight, camera lead and
+every reach measured in world units, flipped from the tuning panel or with
+1 / 2 in the blockout. You get one honest configuration or the other, never a
+hybrid nobody designed.
 
-Everything measured in distance or impulse moved with it — grapple range
-(2.0 m → 6.8 m), carry range and throw, stinger lunge, hack range, fan force,
-deposit radius, swarm speed, swat impulse, and the human's walk (0.93 → 1.4 m/s,
-actual human pace). The tuning-panel slider ranges moved too, or the sliders
-would have clamped the new values back down. **The localStorage key was bumped
-to v2**: a saved v1 file would have restored the old 60 u/s bee on load and
-silently undone the entire change.
-
-The grass LOD now takes a **speed** term as well as altitude. Crossing a tile
-re-uploads the instance buffer, and at overdrive over 40-unit tiles that fires
-fifteen times a second; bigger tiles when moving fast makes those uploads rare,
-and at 10 m/s you cannot resolve a blade anyway.
+The blockout carries a tuning panel of its own now (world-only folders hidden)
+and loads the same saved settings as the game, so a bee dialled in one place
+is the bee you fly in the other.
 
 ### The estate, and why it has a spine
 
-90 × 120 m, 150 m corner to corner: **26.5 s across at cruise, 8.8 s on
-overdrive; 44 s and 14.7 s corner to corner.** Big enough that the far end is a
-trip, fast enough that it is never a slog.
+90 × 120 m, 150 m corner to corner. On the **retuned** preset that is 26.5 s
+across at cruise and 8.8 s on overdrive — 44 s and 14.7 s corner to corner. On
+the **playtested** preset the same property is 3 minutes at cruise. Which of
+those is right is a feel question, and the presets exist so it can be answered
+by flying rather than by arithmetic.
 
 The structural lesson from the 40 × 30 attempt: it was all rooms and no
 corridor. The references have a **spine** — gate, 80 m of straight driveway,

@@ -65,7 +65,21 @@
         font-size: 9.5px; letter-spacing: 0.12em; color: #ffd75e;
       }
       body.hide-labels #labels { display: none; }
-      body.hide-ui .panel, body.hide-ui #labels { display: none; }
+      body.hide-ui .panel, body.hide-ui #labels,
+      body.hide-ui .tp-dfwv { display: none; }
+
+      /* The panel outgrew the viewport in the game; same fix here. */
+      .tp-dfwv {
+        max-height: calc(100vh - 16px);
+        overflow-y: auto;
+        overscroll-behavior: contain;
+      }
+      .tp-dfwv::-webkit-scrollbar { width: 9px; }
+      .tp-dfwv::-webkit-scrollbar-thumb {
+        background: rgba(255, 255, 255, 0.22); border-radius: 5px;
+      }
+      /* Legend would sit under the panel. */
+      #legend { right: 290px; }
 
       #lockHint {
         position: fixed; inset: 0; display: flex;
@@ -110,6 +124,7 @@
     <div class="panel" id="keys">
       <b>WASD</b> fly &nbsp; <b>Space/C</b> altitude &nbsp; <b>Shift</b> overdrive
       &nbsp; <b>G</b> grid &nbsp; <b>L</b> labels &nbsp; <b>H</b> all UI
+      &nbsp; <b>1</b>/<b>2</b> playtested / retuned bee
       &nbsp;·&nbsp; greybox only — no quests, no human, no grass
     </div>
 
