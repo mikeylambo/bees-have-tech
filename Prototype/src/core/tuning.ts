@@ -147,11 +147,24 @@ export const params = {
   motes: {
     // Pollen in the air. The ONLY thing that makes speed legible at altitude,
     // where nothing is close enough to stream past you.
-    count: 900,
-    radius: 90, // half-size of the box that rides with the bee, in units
-    streakPerSpeed: 0.055, // streak length per unit/sec of bee speed
+    //
+    // Playtested on the estate, 2026-08-24: "excessive on default, felt like
+    // speed lines as the bee flew." Right — and the diagnosis is in the word
+    // LINES. Optical flow is supposed to read as specks going past, not as a
+    // radial blur effect drawn on top of the world, and at 900 motes with a
+    // streak 3x this long the two became the same picture.
+    //
+    // So: a seventh of the count, a box less than half as wide, and streaks a
+    // third as long. What survives is the thing that does the work — a few
+    // near specks streaming past — without the cartoon zoom lines.
+    count: 120,
+    radius: 41, // half-size of the box that rides with the bee, in units
+    streakPerSpeed: 0.017, // streak length per unit/sec of bee speed
+    // At this streak rate the cap is unreachable (boost terminal is 600 u/s,
+    // for a 10-unit streak). Kept as the ceiling for anyone who dials
+    // streakPerSpeed back up rather than as something that bites today.
     maxStreak: 26,
-    opacity: 0.5,
+    opacity: 0.42,
   },
   speedFx: {
     startAt: 0.18, // fraction of top speed before any of this begins
@@ -171,11 +184,15 @@ export const params = {
     outlineDarken: 0.25, // how dark the line is; 1 = invisible, 0 = black
   },
   world: {
+    // Left at the shipped seed on purpose. The playtested file came back with
+    // a reshuffled one, but a reshuffle is a dice roll, not a decision — and
+    // baking somebody's last roll as the default makes the world arbitrary in
+    // a way nobody chose.
     seed: 1337,
     // Blades are drawn in a window that follows the bee; this scales how many
-    // live in it. Guessed against software rendering — dial it on real
-    // hardware and paste the settings back.
-    grassDensity: 0.58,
+    // live in it. 0.58 was a guess made against software rendering; 0.46 is
+    // what it came back as after a pass on real hardware.
+    grassDensity: 0.46,
   },
   fps: 0,
   drawCalls: 0,

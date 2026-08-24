@@ -1,6 +1,6 @@
 # The Bees Have Tech! — Vertical Slice Plan
 
-**Status:** v10 — 2026-08-24 · supersedes the "one backyard corner" slice in CONCEPT_PILLARS.md
+**Status:** v11 — 2026-08-24 · supersedes the "one backyard corner" slice in CONCEPT_PILLARS.md
 **Target:** the seven-verb chain — Flight → Physics → Gadget → Hack → Swarm →
 Human Reaction → Chain Reaction.
 **Web version (phone-friendly):** https://claude.ai/code/artifact/1fb7ce48-5aa3-4dd8-9f45-98c0ce69c9e1
@@ -805,6 +805,36 @@ greybox with no colliders that is invisible. The moment the estate became
 solid it was a 34 m channel you could not enter. A real gutter hangs below the
 roof edge; so does this one now. Same lesson as the FPS readout and the
 draw-call probe: **the thing you never measured is the thing that is wrong.**
+
+---
+
+### Playtest tune, 2026-08-24 — pollen
+
+*"Pollen motes looked excessive on default, felt like speed lines as the bee
+flew."*
+
+The diagnosis is in the word **lines**. Optical flow is supposed to read as
+specks going past you; at 900 motes with a streak three times this long it
+stopped being a reference frame and became a radial blur effect drawn on top
+of the world — a cartoon zoom, not a sense of speed.
+
+Adopted from the playtested file: count 900 → **120**, box radius 90 → **41**
+units, streakPerSpeed 0.055 → **0.017**, opacity 0.5 → **0.42**. `maxStreak`
+stays at 26 but is now unreachable — at this rate, overdrive terminal (600
+u/s) makes a 10-unit streak — so it is a ceiling for anyone who dials the rate
+back up, not something that bites.
+
+Grass density came back 0.58 → **0.46**, the first value set on real hardware
+rather than guessed against software rendering. Measured: **2.03M → 1.66M
+triangles per frame**, an 18% cut, with draw calls unchanged at 1,334.
+
+The seed in the file was left alone. It came back reshuffled, but a reshuffle
+is a dice roll rather than a decision, and baking somebody's last roll makes
+the world arbitrary in a way nobody chose.
+
+**Not chased further.** Pollen wants a proper visual pass eventually — at this
+box radius there is very little of it left at altitude, which is the exact
+case it was built for. That is a known trade, deliberately parked.
 
 ---
 
