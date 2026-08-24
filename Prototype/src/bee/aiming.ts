@@ -1,7 +1,7 @@
 import type RAPIER_API from '@dimforge/rapier3d-compat';
 import * as THREE from 'three';
 import type { Physics } from '../core/physics';
-import type { Yard } from '../world/yard';
+import type { Yard } from '../world/props';
 import { params } from '../core/tuning';
 
 // AIM RESOLUTION — "simulate honestly, assist generously."

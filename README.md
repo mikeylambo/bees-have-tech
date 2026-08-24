@@ -63,21 +63,38 @@ Gamepad: L-stick fly · R-stick look · RT/LT altitude · **A** overdrive ·
 - **Bee presets** ✅ Playtested vs retuned flight, switchable — so scale and feel can be judged one at a time
 - **M7 — Feel & look** ✅ Pollen optical flow, speed FX, synthesised wingbeat, cel shading
 - **M8 — The household** ✅ Four people who disagree about you; exposure is now a social problem
-- **Estate blockout** 📐 90 × 120 m greybox of the flagship property, pending a verdict
+- **M9 — The estate** ✅ The 90 × 120 m property IS the game now. The backyard is gone.
+
+## The property
+
+Ninety metres by a hundred and twenty. A main house, a guest house, a garage
+and a cabana; a pool terrace, a formal garden, an orchard, a kitchen garden
+and a potting shed; and an 80 m straight driveway from the gate to the motor
+court, which is the one place you can hold overdrive in a line.
+
+The hive is in a hollow of the **west gate pillar**. The bees live in the
+front gate.
+
+Salvage lives where that kind of salvage would end up — bottle caps at the
+fire pit, screws under the climbing frame, batteries in the service yard,
+circuit boards in the potting shed — and each of those sits at a different
+distance from home, guarded by a different person.
 
 ## Who lives here
 
-Four people share the yard, and exposure depends on **which** of them is
+Four people share the property, and exposure depends on **which** of them is
 looking at you, not just whether anyone is.
 
-- **Dale** — the handy one. Sees furthest and believes the evidence. An
-  appliance running by itself is, to Dale, a story worth telling.
+- **Dale** — the handy one. Sees furthest and believes the evidence. Keeps the
+  service yard, where every battery is.
 - **Marla** — the short fuse. Escalates fastest, walks fastest, hits hardest.
+  Owns the pool terrace and all three appliances.
 - **Robin** — the kid. Notices everything, chases, never swings, and is
   actively covering for you. While Robin is the only one watching, exposure
-  **falls**.
+  **falls**. Lives at the playground, where the screws are.
 - **Ned** — the skeptic. Barely moves, barely looks, and multiplies everyone
-  else's certainty down while he's in the room.
+  else's certainty down while he's in the room. Sits at the fire pit, next to
+  the first salvage a new bee can reach.
 
 So "don't be seen" becomes "be seen by the right person", which is a better
 game than a stealth cone. The exposure bar names its watchers: ▲ for the ones

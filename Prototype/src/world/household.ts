@@ -4,7 +4,7 @@ import type { Physics } from '../core/physics';
 import { mulberry32 } from '../core/rng';
 import { params } from '../core/tuning';
 import { Human, homeRect, type HumanProfile } from './human';
-import { M } from './property';
+import { M } from './estateWorld';
 
 // THE HOUSEHOLD — M8.
 //
@@ -25,6 +25,14 @@ import { M } from './property';
 //
 // That turns "don't be seen" into "be seen by the right person", which is a
 // far better game than a stealth cone.
+//
+// M9 gave each of them a TERRITORY, and put it on top of a salvage site.
+// Nobody patrols 10,800 m2, and a person you can trivially avoid is scenery.
+// So: Dale keeps the service yard where the batteries are, Marla owns the
+// pool terrace and the appliances, Robin lives at the playground where the
+// screws are, and Ned sits at the fire pit next to the bottle caps. Every
+// errand the hive gives you is therefore an errand into somebody's patch —
+// and WHOSE decides what it costs you.
 
 /** What the household collectively made of this frame. */
 export interface HouseholdSense {
@@ -51,7 +59,8 @@ export const HOUSEHOLD: HumanProfile[] = [
     // reacts hardest to a thing that shouldn't be running by itself.
     sight: 1.15, fov: 1.0, pace: 1.0, nerve: 1.0, clout: 1.0,
     suspicion: 1.0, dampen: 1, curiosity: 1.9, swats: true,
-    home: [0.55, 0.98, 0.02, 0.42], // the shed end, where the tools are
+    // The service yard and garage — bins, compost, and every battery.
+    home: [0.03, 0.21, 0.64, 0.78],
   },
   {
     id: 'fuse',
@@ -64,7 +73,8 @@ export const HOUSEHOLD: HumanProfile[] = [
     // Escalates fastest, hits hardest, and doesn't need a second look.
     sight: 1.0, fov: 1.1, pace: 1.25, nerve: 1.8, clout: 1.35,
     suspicion: 1.7, dampen: 1, curiosity: 1.0, swats: true,
-    home: [0.66, 1.0, 0.48, 0.98], // the near end of the deck
+    // The pool terrace and the cabana: the caps, and all three appliances.
+    home: [0.62, 0.90, 0.46, 0.66],
   },
   {
     id: 'kid',
@@ -77,7 +87,9 @@ export const HOUSEHOLD: HumanProfile[] = [
     // Notices everything, chases, never swings — and actively runs cover.
     sight: 1.3, fov: 1.15, pace: 1.15, nerve: 0.6, clout: 0.5,
     suspicion: -1.2, dampen: 1, curiosity: 0.7, swats: false,
-    home: [0.02, 0.55, 0.1, 0.72], // the open lawn
+    // The playground and the east lawn. The screws are here, and so is the
+    // one person on the property who is pleased to see you.
+    home: [0.64, 0.94, 0.13, 0.36],
   },
   {
     id: 'skeptic',
@@ -90,7 +102,9 @@ export const HOUSEHOLD: HumanProfile[] = [
     // Barely moves, barely looks, and talks the whole yard back down.
     sight: 0.7, fov: 0.85, pace: 0.55, nerve: 0.5, clout: 0.8,
     suspicion: 0.3, dampen: 0.4, curiosity: 0.35, swats: true,
-    home: [0.02, 0.22, 0.72, 0.98], // the shady side of the deck
+    // The fire pit, 30 m from the gate — the first salvage a new bee reaches
+    // is guarded by the one person least inclined to believe his own eyes.
+    home: [0.12, 0.34, 0.18, 0.36],
   },
 ];
 

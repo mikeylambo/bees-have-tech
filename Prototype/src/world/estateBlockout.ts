@@ -133,7 +133,11 @@ const zones: Zone[] = [
   },
   {
     id: 'gutter', label: 'GUTTER RUN', kind: 'prop',
-    x: -23, z: 37.4, w: 34, d: 0.2, h: 0.2, y: 9, hollow: true,
+    x: -23, z: 37.4, w: 34, d: 0.2, h: 0.2, y: 8.7, hollow: true,
+    // It hung at y 9, level with the eaves — which is INSIDE the roof, whose
+    // 1 m overhang starts at z 37. Invisible in a greybox with no colliders;
+    // the moment the estate became solid it was a 34 m channel you could not
+    // enter. A gutter hangs BELOW the roof edge, which is also the fix.
     note: '34 m channel you fly inside, the length of the whole facade.',
   },
   {

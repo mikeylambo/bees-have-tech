@@ -8,20 +8,23 @@ export const params = {
   // FLIGHT_PRESETS below and is one button away, because changing the bee
   // and the world in the same breath makes both unjudgeable.
   flight: {
-    accel: 120, // horizontal accel, u/s^2
-    ascend: 100,
-    descend: 100,
+    accel: 520, // horizontal accel, u/s^2
+    ascend: 430,
+    descend: 430,
     // How thick the air is. Applied ALWAYS, proportional to speed: it decides
     // how fast you coast to a stop when you let go of the stick.
     damping: 2.6,
-    maxSpeed: 60,
-    boostMul: 5, // Wing Overdrive multiplier (accel + max speed)
+    // Kept ABOVE the thrust terminal (accel/damping = 200 u/s) on purpose, so
+    // it governs BORROWED speed — grapple swings, swat knockback, fan gusts —
+    // rather than capping powered flight.
+    maxSpeed: 260,
+    boostMul: 3, // Wing Overdrive multiplier (accel + max speed)
     // Only bites ABOVE maxSpeed. Decides how long borrowed speed — grapple
     // swings, swat knockback — stays with you before settling back down.
     overspeedDrag: 0.5,
   },
   camera: {
-    distance: 16.67,
+    distance: 21,
     height: 5.8,
     sensitivity: 0.0024,
     smoothing: 30, // higher = snappier follow
@@ -43,55 +46,55 @@ export const params = {
     swapTriggers: false, // tried the swap, went back to RT ascend
   },
   grapple: {
-    // The fence is 106 units tall and the tree 364; a 60-unit line couldn't
-    // reach the top of anything in the new yard.
-    range: 120,
-    reelSpeed: 20, // rope shortening, units/sec
+    // The boundary wall is 141 units and a mature tree 700+; reach has to
+    // scale with the property or the grapple stops being traversal.
+    range: 400,
+    reelSpeed: 66, // rope shortening, units/sec
     minLength: 1.2,
-    travelTime: 0.09, // filament flight time, seconds
+    travelTime: 0.12, // filament flight time, seconds
   },
   carry: {
-    range: 20,
+    range: 55,
     maxMass: 0.35, // heavier than this and you can only grapple it
     holdDistance: 2.4,
     holdDrop: 0.5,
-    pullSpeed: 40,
+    pullSpeed: 130,
     refMass: 0.05, // a light pebble: the "feels weightless" reference
     minFollow: 0.4, // floor on the weight-lag factor, so heavy ≠ unusable
-    breakDistance: 40, // safety net only — you should never lose a load by flying
+    breakDistance: 120, // safety net only — you should never lose a load by flying
     haulMass: 0.3, // mass at which flight is fully taxed
     haulPenalty: 0.55, // fraction of speed/accel a full load costs you
-    throwImpulse: 26,
+    throwImpulse: 85,
   },
   stinger: {
     range: 4.5, // very short — you have to commit to get in there
     cooldown: 0.45,
     lungeTime: 0.22,
-    lungeImpulse: 14, // the bee throws itself at the target
-    propImpulse: 30,
+    lungeImpulse: 46, // the bee throws itself at the target
+    propImpulse: 95,
     flinchTime: 0.85, // how long the human flails after being stung
   },
   radial: {
     timeScale: 0.25, // slow-mo while choosing, so the physics stays readable
   },
   hack: {
-    range: 120, // hacking from cover has to be possible across a real yard
+    range: 300, // hacking from cover has to be possible across a real property
     time: 0.7, // hold this long to flip an appliance
   },
   atmosphere: {
-    fanRange: 200,
+    fanRange: 260,
     fanSpread: 0.5, // radians, half-angle of the cone
-    fanForce: 165, // units/sec^2 on the axis at point-blank
+    fanForce: 540, // units/sec^2 on the axis at point-blank
     fanDamping: 0.5, // moving air is THIN air — this is why a fan throws you
   },
   hive: {
-    depositRadius: 16,
+    depositRadius: 30,
   },
   swarm: {
-    speed: 44,
+    speed: 150,
     followRadius: 8,
     orbitRadius: 14,
-    grabRadius: 5,
+    grabRadius: 9,
     beaconTime: 1.4, // converge for this long, then read the situation
     contextRadius: 70, // how far a bee looks for a job around the beacon
     distractPerception: 0.45, // human's sight range while being mobbed
@@ -102,7 +105,7 @@ export const params = {
     wetDry: 14, // units/sec it dries once off
     zapperRadius: 40,
     wetZapMultiplier: 2.4, // an electrified puddle is a much bigger problem
-    zapImpulse: 80,
+    zapImpulse: 260,
     evidenceRise: 26, // exposure/sec when a human watches tech act by itself
   },
   flower: {
@@ -111,14 +114,16 @@ export const params = {
   },
   human: {
     height: 100, // ~1.7m at bee scale — the kaiju read, and the world's ruler
-    // 0.93 m/s. He crosses his own garden in about eleven seconds, which is
-    // what makes the far corners feel like somewhere you got away to.
-    walkSpeed: 55,
+    // 1.39 m/s — a brisk walk. Crossing the 90 m width takes him a minute,
+    // which is what makes "somewhere else on the property" a real place.
+    walkSpeed: 82,
     turnSpeed: 2.2,
     // Perception
-    // 3.6 m. In the old 2.4 m yard a 130-unit range meant he saw everything
-    // from anywhere; now it's a threat radius you can be outside of.
-    sightRange: 210,
+    // 7.1 m. Doubled for the estate — but deliberately still TINY against a
+    // 90 x 120 m property (it covers 8% of the width). Danger is not ambient
+    // here; it is four moving bubbles, parked on top of the four places the
+    // salvage is. Being seen is a consequence of going where the loot is.
+    sightRange: 420,
     fovDegrees: 110,
     fovVerticalDegrees: 150, // ±75° — straight overhead / at their feet is blind
     grassConcealHeight: 3.6, // fly below the grass line and you're hidden
@@ -126,7 +131,7 @@ export const params = {
     // Reaction
     swatRange: 26, // how close he'll get before taking a swing
     swatHitRadius: 15, // the hand's actual hit sphere — smaller = fairer
-    swatImpulse: 46, // velocity change dealt to a struck bee
+    swatImpulse: 150, // velocity change dealt to a struck bee
     swatCooldown: 1.6,
     swatWindup: 0.32,
     investigateTime: 8,
@@ -201,8 +206,10 @@ export interface BeePreset {
 export const BEE_PRESETS: BeePreset[] = [
   {
     id: 'playtested',
-    label: '🐝 Playtested bee',
-    note: 'Cruise 1.0 m/s. The set Mikey tuned in the small yard, unchanged.',
+    label: '🐝 Backyard bee',
+    note: 'Cruise 0.78 m/s. The set tuned in the 10 m yard. On the estate it is'
+      + ' a two-and-a-half-minute flight from the gate to the house — kept as'
+      + ' the A/B that proves what scale did to the feel.',
     patch: {
       flight: { accel: 120, ascend: 100, descend: 100, damping: 2.6, maxSpeed: 60, boostMul: 5 },
       camera: { distance: 16.67 },
@@ -219,8 +226,9 @@ export const BEE_PRESETS: BeePreset[] = [
   },
   {
     id: 'retuned',
-    label: '⚡ Retuned bee',
-    note: 'Cruise 3.4 m/s, overdrive 10.2. Real-honeybee speeds, for a big property.',
+    label: '⚡ Estate bee (default)',
+    note: 'Cruise 3.4 m/s, overdrive 10.2 — real honeybee speeds. Shipped'
+      + ' default since the estate became the world.',
     patch: {
       flight: { accel: 520, ascend: 430, descend: 430, damping: 2.6, maxSpeed: 260, boostMul: 3 },
       camera: { distance: 21 },
@@ -238,7 +246,7 @@ export const BEE_PRESETS: BeePreset[] = [
 ];
 
 /** Which preset was last applied. Shown in the panel so it's never a guess. */
-export let activePreset = 'playtested';
+export let activePreset = 'retuned';
 
 export function applyBeePreset(id: string): boolean {
   const preset = BEE_PRESETS.find((p) => p.id === id);
@@ -255,7 +263,10 @@ export function applyBeePreset(id: string): boolean {
   return true;
 }
 
-const STORAGE_KEY = 'bht.settings.v3';
+// v4: the estate landed and every reach, speed and range moved with it. A
+// saved v3 file holds backyard numbers, and silently applying them over the
+// estate defaults would look like the new world was simply tuned badly.
+const STORAGE_KEY = 'bht.settings.v4';
 
 /** The values shipped in the build, captured before any saved file is applied. */
 const SHIPPED = JSON.parse(JSON.stringify(params)) as typeof params;

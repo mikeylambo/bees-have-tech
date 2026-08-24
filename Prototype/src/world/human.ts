@@ -3,18 +3,11 @@ import * as THREE from 'three';
 import type { Physics } from '../core/physics';
 import { params } from '../core/tuning';
 import {
-  M, WALK_BLOCKERS, WALK_BLOCK_CIRCLES, rectContains, type Rect,
-} from './property';
+  M, WALKABLE, WALK_BLOCKERS, WALK_BLOCK_CIRCLES, rectContains, type Rect,
+} from './estateWorld';
 
-/**
- * Where a person can actually stand, in metres. Inset from the fence line so
- * he never clips the planks, and it stops short of the house wall.
- */
-const WALKABLE: Rect = {
-  minX: M * -4.7, maxX: M * 4.7, minZ: M * -3.85, maxZ: M * 4.2,
-};
 /** How far to hold him off a building he's walked into. */
-const EJECT = M * 0.12;
+const EJECT = M * 0.35;
 
 /**
  * WHO this person is. The state machine below is the same for everyone —

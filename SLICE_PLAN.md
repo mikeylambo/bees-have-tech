@@ -1,6 +1,6 @@
 # The Bees Have Tech! — Vertical Slice Plan
 
-**Status:** v9 — 2026-08-23 · supersedes the "one backyard corner" slice in CONCEPT_PILLARS.md
+**Status:** v10 — 2026-08-24 · supersedes the "one backyard corner" slice in CONCEPT_PILLARS.md
 **Target:** the seven-verb chain — Flight → Physics → Gadget → Hack → Swarm →
 Human Reaction → Chain Reaction.
 **Web version (phone-friendly):** https://claude.ai/code/artifact/1fb7ce48-5aa3-4dd8-9f45-98c0ce69c9e1
@@ -715,6 +715,96 @@ Where this leaves the budget: 768 calls and 1.9M triangles is a comfortable
 desktop frame and a moderate laptop-iGPU one. It is not the free ride the old
 number implied, and the grass is most of the triangles — so the estate's
 detail budget should be spent on *geometry that isn't grass*.
+
+---
+
+### M9 — The estate is the world ✅ BUILT
+
+*"All of this is supposed to be on the estate build. We aren't doing the small
+house."*
+
+So the 10 x 8.7 m backyard is gone — `property.ts` is deleted, not deprecated —
+and the game now runs on the 90 x 120 m estate the blockout described. That is
+**124x the area**, and almost none of the work was rendering it.
+
+**The blockout became the world, and stayed the source of truth.**
+`estateBlockout.ts` is untouched as data; `estateWorld.ts` turns its 139 zones
+into geometry and colliders. Nothing in the game types in a coordinate any
+more — the walkable region, the walls a person routes around, the bare patches
+under the grass, and every salvage site are all *derived from the zone table*.
+Moving a terrace in the plan moves the bare patch under it. The M5 bug where
+the deck was missing from `WALK_BLOCKERS` is now structurally impossible.
+
+Zones become the right kind of solid:
+- `hollow` buildings get a shell — four walls, a roof, one doorway you can fly
+  through. A building the bee cannot enter is scenery, and "volume, not area"
+  dies with it.
+- The greenhouse's roof is vented; the garage's is not.
+- Tree canopies have **no collider** — flying up into the leaves is the best
+  cover on the property, and a collider there makes it a wall you bounce off.
+  Trunks are solid.
+- Roofs are hipped frusta with convex-hull colliders, so the eaves aren't
+  invisible solid air.
+- The pool is a floor and a rim, never a solid disc.
+
+**Where everything went, and why it matters.** The hive is in a hollow of the
+west gate pillar — the bees live in the front gate. Salvage is placed where
+that kind of salvage would actually end up, and the four sites sit at four
+different distances from home:
+
+| | where | who guards it |
+|---|---|---|
+| bottle caps | the fire pit, 30 m from the gate | **Ned**, the skeptic |
+| wood screws | under the playground | **Robin**, the kid |
+| batteries | the service yard, 80 m up the drive | **Dale**, the handy one |
+| circuit boards | the potting shed | (the far corner) |
+| the appliances | the pool terrace | **Marla**, the short fuse |
+
+That is the M8 household and the M9 map doing one job. Each errand the hive
+gives you is an errand into somebody's patch, and *whose* decides what it
+costs: the first salvage a new bee reaches is guarded by the one person least
+inclined to believe his own eyes, and the playground is guarded by the one
+person who is pleased to see you.
+
+The quest chain is re-ordered to walk you up the property — gate → fire pit →
+playground → service yard → potting shed → pool terrace — and delivery
+waypoints now point at the **source** until the first one is banked, then turn
+round and point home. On 10,800 m2, "deliver 4 boards" is not a task until you
+know where boards live.
+
+**Perception did not scale, on purpose.** A person still only sees 7 m — 8% of
+the property's width. Danger is not an ambient field here; it is four small
+moving bubbles parked on top of the four places worth going.
+
+**The bee had to change, and this time it is the default.** The estate preset
+(cruise 3.4 m/s, overdrive 10.2) is what ships; the backyard set survives as
+the A/B, because the comparison is the whole point of having presets. At
+default cruise the 90 m width takes 26.5 s. The saved-settings key is bumped
+to v4 — a v3 file holds backyard numbers, and silently applying them over the
+estate would look like the new world was simply tuned badly.
+
+**Draw calls: 4,078 → 1,346.** The first honest build of the estate cost 5x
+the yard, and none of it was necessary:
+- The blockout is ~1,400 boxes once windows, hedges, canopies, path lights and
+  gate bars are counted, and **not one of them ever moves**. Merged by
+  material, that is about a dozen meshes. (Everything is converted to
+  non-indexed first — `BoxGeometry` is indexed and `IcosahedronGeometry` is
+  not, and `mergeGeometries` refuses a mixed bucket.)
+- Every flower built its own petal material and eight petal meshes. Seventy-four
+  flowers were 74 materials and 592 draw calls describing objects whose petals
+  never move relative to each other. Five shared materials and one merged
+  corolla: 74 draw calls.
+
+Triangles are ~2.0M, and grass is ~95% of that — which is the useful number
+for the next art pass: **spend the estate's detail budget on geometry that
+isn't grass.**
+
+**One bug the colliders exposed.** The gutter run hung at y 9, level with the
+eaves — which is *inside* the roof, whose 1 m overhang starts at z 37. In a
+greybox with no colliders that is invisible. The moment the estate became
+solid it was a 34 m channel you could not enter. A real gutter hangs below the
+roof edge; so does this one now. Same lesson as the FPS readout and the
+draw-call probe: **the thing you never measured is the thing that is wrong.**
 
 ---
 
