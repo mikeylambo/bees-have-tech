@@ -157,12 +157,13 @@ export const params = {
   },
   look: {
     toon: true, // banded shading instead of smooth Lambert
-    // Off by default in the yard: a grass field is a wall of depth
-    // discontinuities and the edge pass finds all of them. The blockout turns
-    // it on, because there it is exactly the look we want.
-    outlines: false,
-    outlineStrength: 0.85,
-    outlineThickness: 1.3,
+    // On everywhere now. The edge pass detects on a grass-free depth buffer
+    // and uses the full one only to decide what occludes a line, so the lawn
+    // no longer swamps it.
+    outlines: true,
+    outlineStrength: 0.9,
+    outlineThickness: 1.5,
+    outlineDarken: 0.25, // how dark the line is; 1 = invisible, 0 = black
   },
   world: {
     seed: 1337,
@@ -427,6 +428,7 @@ export function createTuning(
   fx.addBinding(params.look, 'outlines', { label: 'outlines' });
   fx.addBinding(params.look, 'outlineStrength', { min: 0, max: 1, label: 'outline strength' });
   fx.addBinding(params.look, 'outlineThickness', { min: 0.5, max: 3, label: 'outline width' });
+  fx.addBinding(params.look, 'outlineDarken', { min: 0, max: 1, label: 'outline darkness' });
 
   if (world) {
   const w = pane.addFolder({ title: 'Yard (procgen)' });

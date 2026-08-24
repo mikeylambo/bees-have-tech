@@ -5,7 +5,9 @@ import { FollowCamera } from './core/camera';
 import { params, createTuning, loadSavedSettings } from './core/tuning';
 import { GrassField } from './world/grass';
 import { buildYard, syncProps, syncFlowers, applyFlowerSpring, containProps } from './world/yard';
-import { M, DECK_HEIGHT, SPAWN } from './world/property';
+import {
+  M, DECK_HEIGHT, SPAWN, WALK_BLOCKERS, WALK_BLOCK_CIRCLES,
+} from './world/property';
 
 /** Everything positioned in this file is placed in metres, like the property. */
 const m = (metres: number) => metres * M;
@@ -24,12 +26,11 @@ import { QuestLog, buildQuests } from './game/quests';
 import { RadialMenu } from './ui/radial';
 import { QuestHud } from './ui/questHud';
 import { WorkshopUI } from './ui/workshop';
-import { Human } from './world/human';
+import { Household, type HouseholdSense } from './world/household';
 import { Exposure } from './game/exposure';
 import { Sprinkler, BugZapper, BoxFan, type Appliance } from './world/appliances';
 import { Atmosphere } from './world/atmosphere';
 import { Hacker, hackerTech } from './bee/hacker';
-import { mulberry32 } from './core/rng';
 import { Motes } from './fx/motes';
 import { SpeedFx } from './fx/speedFx';
 import { Sound } from './audio/sound';
@@ -39,7 +40,7 @@ import { OutlinePass } from './look/outline';
 const NEUTRAL_INPUT: InputState = { forward: 0, strafe: 0, vertical: 0, boost: false };
 
 async function main() {
-  // Before anything is built — the yard, human and flower springs all read
+  // Before anything is built — the yard, household and flower springs all read
   // these values at construction time.
   loadSavedSettings();
 
@@ -145,7 +146,9 @@ async function main() {
     input.rumble(0.4, 0.65, 130);
     sound.hack();
     quests.hacked(a.kind);
-    if (human.canSee(physics, a.position, flight.collider)) exposure.spike(14);
+    if (household.members.some((h) => h.canSee(physics, a.position, flight.collider))) {
+      exposure.spike(14);
+    }
   }));
   const radial = new RadialMenu(belt);
 
@@ -205,17 +208,19 @@ async function main() {
   }
   refreshTechHud();
 
-  // --- M2: one human, one exposure meter ---
-  const human = new Human(physics, new THREE.Vector3(m(-2.0), 0, m(-0.5)));
-  scene.add(human.root);
+  // --- M2/M8: a household, one exposure meter ---
+  // Four people, one meter, and the meter now depends on WHICH of them is
+  // looking. See household.ts for why that's the whole design.
+  const household = new Household(physics, params.world.seed ^ 0x5bf03635);
+  scene.add(household.group);
   const exposure = new Exposure();
-  const humanRand = mulberry32(params.world.seed ^ 0x5bf03635);
 
   const swatFlash = document.getElementById('swatFlash');
   const expFill = document.getElementById('expFill');
   const expLevel = document.getElementById('expLevel');
   const expQuote = document.getElementById('expQuote');
   const expBox = document.getElementById('exposure');
+  const expSeen = document.getElementById('expSeen');
 
   function flashSwat() {
     if (!swatFlash) return;
@@ -232,21 +237,26 @@ async function main() {
     if (kind === 'sting') hitmark.classList.add('sting');
   }
 
-  human.onSwatHit = (dir) => {
+  household.onSwatHit = (dir, who) => {
     // Drop whatever you were holding — getting hit should cost you something.
     if (carry.isCarrying) carry.drop();
     if (grapple.state !== 'idle') grapple.release();
-    flight.knockback(dir, params.human.swatImpulse);
+    flight.knockback(dir, params.human.swatImpulse * who.profile.clout);
     sound.swatWhoosh();
+    // A connected swat is a story everyone in earshot now wants to hear.
     exposure.spike(6);
+    household.alertAll(beePos);
     flashSwat();
     input.rumble(1, 0.8, 320); // you got hit by a hand the size of a house
   };
-  stinger.onStingHuman = () => {
+  stinger.onStingHuman = (_dir, handle) => {
     // Being stung is not something you explain away as "just a bee."
     sound.sting();
     exposure.spike(22);
-    human.reactToSting();
+    const stung = household.memberByHandle(handle);
+    stung?.reactToSting();
+    // ...and it is definitely not something the rest of them ignore.
+    household.alertAll(beePos);
     popHitmark('sting');
     quests.event('sting-human');
     input.rumble(0.85, 0.5, 220); // sharp and unmistakable
@@ -256,11 +266,11 @@ async function main() {
     popHitmark('hit');
     input.rumble(0.25, 0.4, 70);
   };
-  human.onSwatMiss = (dir, distance) => {
+  household.onSwatMiss = (dir, distance, who) => {
     // Near miss: the air moves. Being *almost* hit should be a thrill.
     const falloff = Math.max(0, 1 - distance / (params.human.swatRange * 2.2));
     if (falloff > 0) {
-      flight.knockback(dir, params.human.swatImpulse * 0.45 * falloff);
+      flight.knockback(dir, params.human.swatImpulse * who.profile.clout * 0.45 * falloff);
       sound.swatWhoosh();
       input.rumble(0.3 * falloff, 0.5 * falloff, 160); // the air moves past you
     }
@@ -324,10 +334,49 @@ async function main() {
   let fpsAccum = 0;
   let fpsFrames = 0;
 
+  // The household's arithmetic never appears as a number. Call each rule out
+  // the first time the player is actually standing in it, then shut up.
+  const taught = new Set<string>();
+  function teachHousehold(sense: HouseholdSense) {
+    if (!sense.seen) return;
+    const covering = sense.seenBy.filter((h) => h.profile.suspicion < 0);
+    const accusing = sense.seenBy.filter((h) => h.profile.suspicion > 0);
+    const calming = sense.seenBy.filter((h) => h.profile.dampen < 1);
+    if (covering.length && !accusing.length && !taught.has('cover')) {
+      taught.add('cover');
+      questHud.say(`${covering[0].name} has seen you — and is saying nothing`);
+    } else if (calming.length && accusing.length && !taught.has('calm')) {
+      taught.add('calm');
+      questHud.say(`${calming[0].name} is talking them down`);
+    } else if (accusing.length > 1 && !taught.has('gang')) {
+      taught.add('gang');
+      questHud.say(`${accusing.length} of them are watching you`);
+    }
+  }
+
   let lastLevel = -1;
-  function updateExposureHud(seen: boolean) {
+  let lastWatchers = '';
+  function updateExposureHud(sense: HouseholdSense) {
     if (expFill) expFill.style.width = `${exposure.value}%`;
-    if (expBox) expBox.classList.toggle('seen', seen);
+    if (expBox) expBox.classList.toggle('seen', sense.seen);
+    // WHO is watching is now more actionable than WHETHER. Colour says which
+    // way each of them is pushing the meter, so you can learn the household
+    // by playing rather than by reading a manual.
+    if (expSeen) {
+      const key = sense.seenBy.map((h) => h.profile.id).join(',');
+      if (key !== lastWatchers) {
+        lastWatchers = key;
+        expSeen.textContent = '';
+        for (const h of sense.seenBy) {
+          const el = document.createElement('span');
+          const p = h.profile;
+          el.className = p.suspicion < 0 ? 'w-down' : p.dampen < 1 ? 'w-calm' : 'w-up';
+          el.textContent = `${p.suspicion < 0 ? '▼' : '▲'} ${p.name}`;
+          el.title = p.quote;
+          expSeen.appendChild(el);
+        }
+      }
+    }
     const lvl = exposure.level;
     if (lvl !== lastLevel) {
       lastLevel = lvl;
@@ -355,7 +404,8 @@ async function main() {
   (window as unknown as Record<string, unknown>).__renderer = renderer;
   (window as unknown as Record<string, unknown>).__debug = {
     beePos, beeVel, params, grapple, carry, yard, physics, flight, followCam, scene,
-    aiming, aim, human, exposure, belt, radial, stinger,
+    aiming, aim, household, exposure, belt, radial, stinger,
+    WALK_BLOCKERS, WALK_BLOCK_CIRCLES,
     appliances, sprinkler, zapper, fan, atmosphere, hacker, air,
     hive, swarm, workshop, quests, workshopUI, questHud,
     motes, speedFx, sound, outline,
@@ -439,12 +489,12 @@ async function main() {
     // --- innate stinger ---
     stinger.update(dt);
     if (!radial.open && !workshopUI.open && act.stingPressed) {
-      stinger.jab(aim.dirFromBee, beePos, human.bodyHandle);
+      stinger.jab(aim.dirFromBee, beePos, household.bodyHandles);
     }
 
     // Slow-mo while a menu is open: readable, and a bee frozen mid-swing
     // looks broken where a bee in slow motion looks deliberate. It also means
-    // the human keeps walking toward you while you shop, which is the whole
+    // the household keeps walking toward you while you shop, which is the whole
     // reason the workshop can be a menu at all.
     const menuOpen = radial.open || workshopUI.open;
     const simDt = menuOpen ? dt * params.radial.timeScale : dt;
@@ -503,7 +553,9 @@ async function main() {
 
     // --- hive, swarm, salvage ---
     hive.update(dt);
-    swarm.update(dt, hive, human.root.position, beePos, yard.dynamicProps);
+    // Decoys mob whoever is most worked up — the person actually hunting you.
+    const hunter = household.focus();
+    swarm.update(dt, hive, hunter.root.position, beePos, yard.dynamicProps);
     const banked = hive.tryDeposit(yard.dynamicProps, hive.mouthPosition(hiveMouth));
     if (banked.length > 0) {
       for (const kind of banked) quests.deliver(kind);
@@ -511,37 +563,44 @@ async function main() {
       updateBankHud();
       input.rumble(0.3, 0.5, 120);
     }
-    // The human punts props as he walks. The fence catches almost everything;
-    // this catches the rest, so a quest can never become uncompletable.
+    // The household punts props as they walk. The fence catches almost
+    // everything; this catches the rest, so a quest can never become
+    // uncompletable.
     containProps(yard.dynamicProps);
-    human.distracted = swarm.distracting;
+    // Distraction is positional: mobbing Marla shouldn't blind Dale across
+    // the lawn, or one beacon would switch off the whole household.
+    household.setDistractedNear(swarm.distracting ? hunter.root.position : null);
 
-    // --- human + exposure ---
-    const { seen } = human.update(dt, physics, beePos, flight.collider, humanRand);
+    // --- household + exposure ---
+    const sense = household.update(dt, physics, beePos, flight.collider);
     // Using tech in plain view is far more incriminating than merely existing.
     const techVisible =
       grapple.state !== 'idle' || carry.isCarrying || hacker.target !== null;
-    exposure.update(dt, seen, techVisible);
+    exposure.update(dt, sense.seen, techVisible, sense.suspicion, sense.dampen);
 
-    // Evidence: an appliance running by itself, in view. The human reacts to
-    // the WORLD behaving impossibly, not just to the bee — and he ACTS on it,
-    // because a rising meter is a number, not a reaction.
+    // Evidence: an appliance running by itself, in view. People react to the
+    // WORLD behaving impossibly, not just to the bee — and they ACT on it,
+    // because a rising meter is a number, not a reaction. How much it costs
+    // you depends entirely on who happened to be looking that way.
     for (const a of appliances) {
       if (!a.conspicuous) continue;
-      if (!human.canSee(physics, a.position, flight.collider)) continue;
-      exposure.spike(params.appliance.evidenceRise * dt);
-      if (!seen) human.investigateEvidence(a.position);
+      const weight = household.witnessEvidence(
+        physics, a.position, flight.collider, sense.seen,
+      );
+      if (weight > 0) exposure.spike(params.appliance.evidenceRise * weight * dt);
     }
 
-    // Walking into the sprinkler soaks him — a hack that inconveniences the
-    // human directly, without the bee ever being involved.
-    if (sprinkler.on && sprinkler.wets(human.root.position)) {
-      if (human.getSoaked()) {
-        exposure.spike(4);
+    // Walking into the sprinkler soaks them — a hack that inconveniences the
+    // household directly, without the bee ever being involved.
+    if (sprinkler.on) {
+      const soaked = household.soakThoseIn((p) => sprinkler.wets(p));
+      if (soaked > 0) {
+        exposure.spike(4 * soaked);
         input.rumble(0.2, 0.3, 90);
       }
     }
-    updateExposureHud(seen);
+    teachHousehold(sense);
+    updateExposureHud(sense);
 
     // --- quests ---
     quests.update(dt);
@@ -586,7 +645,9 @@ async function main() {
       reticle.className = cls;
     }
 
-    outline.render(scene, followCam.camera);
+    // Grass is excluded from edge DETECTION but still occludes edges — see
+    // OutlinePass for why that distinction is the whole fix.
+    outline.render(scene, followCam.camera, [grass.mesh]);
 
     fpsAccum += rawDt;
     fpsFrames++;
