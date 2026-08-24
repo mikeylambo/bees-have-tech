@@ -28,7 +28,10 @@ export class FollowCamera {
   ) => number | null;
 
   constructor(aspect: number) {
-    this.camera = new THREE.PerspectiveCamera(60, aspect, 0.35, 2600);
+    // Far plane covers the estate's 150 m diagonal with room to spare; fog
+    // closes in well before it, so nothing ever pops at the boundary. Near
+    // stays tight because the camera sits ~20 units off a 3-unit bee.
+    this.camera = new THREE.PerspectiveCamera(60, aspect, 0.4, 9600);
   }
 
   // Mouse deltas are pixels; stick values are -1..1 and need frame time.

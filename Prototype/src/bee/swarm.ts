@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import type { DynamicProp } from '../world/yard';
+import type { DynamicProp } from '../world/props';
 import type { Hive } from '../game/hive';
 import { params } from '../core/tuning';
 

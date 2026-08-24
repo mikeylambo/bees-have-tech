@@ -4,12 +4,12 @@ import { Input, type InputState } from './core/input';
 import { FollowCamera } from './core/camera';
 import { params, createTuning, loadSavedSettings } from './core/tuning';
 import { GrassField } from './world/grass';
-import { buildYard, syncProps, syncFlowers, applyFlowerSpring, containProps } from './world/yard';
+import { buildProps, syncProps, syncFlowers, applyFlowerSpring, containProps } from './world/props';
 import {
-  M, DECK_HEIGHT, SPAWN, WALK_BLOCKERS, WALK_BLOCK_CIRCLES,
-} from './world/property';
+  M, SPAWN, HIVE_AT, WALK_BLOCKERS, WALK_BLOCK_CIRCLES, zoneCentre,
+} from './world/estateWorld';
 
-/** Everything positioned in this file is placed in metres, like the property. */
+/** Everything positioned in this file is placed in metres, like the estate. */
 const m = (metres: number) => metres * M;
 import { Bee } from './bee/bee';
 import { FlightController } from './bee/flight';
@@ -59,7 +59,7 @@ async function main() {
   renderer.domElement.addEventListener('click', () => sound.start());
 
   const scene = new THREE.Scene();
-  const yard = buildYard(physics, scene, params.world.seed);
+  const yard = buildProps(physics, scene, params.world.seed);
   const grass = new GrassField(params.world.seed);
   scene.add(grass.mesh);
 
@@ -77,12 +77,14 @@ async function main() {
   const aim = Aiming.emptyResult();
 
   // --- M3: hackable appliances + atmosphere ---
-  // Placed so the sprinkler's spread can actually reach the zapper — the M3
-  // chain is only a chain if the two objects are within each other's radius.
-  const sprinkler = new Sprinkler(physics, new THREE.Vector3(m(1.5), 0, m(-0.8)));
-  const zapper = new BugZapper(physics, new THREE.Vector3(m(2.1), 0, m(-3.0)));
+  // Grouped at the south end of the pool terrace, which is where a lawn
+  // sprinkler, a bug zapper and a floor fan would actually be. They have to be
+  // within each other's radius — the M3 chain is only a chain if the
+  // sprinkler's 2.5 m of spread can reach the zapper.
+  const sprinkler = new Sprinkler(physics, new THREE.Vector3(m(16.4), 0, m(-3.4)));
+  const zapper = new BugZapper(physics, new THREE.Vector3(m(18.1), 0, m(-4.2)));
   const fan = new BoxFan(
-    physics, new THREE.Vector3(m(-1.6), 0, m(1.4)), new THREE.Vector3(0.3, 0, -1),
+    physics, new THREE.Vector3(m(19.0), 0, m(19.2)), new THREE.Vector3(0, 0, -1),
   );
   const appliances: Appliance[] = [sprinkler, zapper, fan];
   for (const a of [sprinkler.group, zapper.group, fan.group]) scene.add(a);
@@ -92,11 +94,10 @@ async function main() {
   const air = Atmosphere.emptySample();
 
   // --- M4: hive, swarm --- / --- M5: workshop, quests ---
-  // The hive sits at the fence line: visible to humans, reachable only by bees.
-  // Up the fence, not on the ground. At floor level it read as a pile of gold
-  // blocks in the corner; at chest height it reads as something living IN the
-  // fence — visible to humans, reachable only by flying.
-  const hive = new Hive(physics, new THREE.Vector3(m(-1.0), m(0.5), m(-3.95)));
+  // The hive lives in a hollow of the WEST GATE PILLAR — 1.4 m up a stone
+  // post at the front entrance, per the blockout. Visible to every human who
+  // walks through the gate, reachable only by something that flies.
+  const hive = new Hive(physics, HIVE_AT.clone());
   scene.add(hive.group);
   const swarm = new Swarm();
   scene.add(swarm.group);
@@ -175,8 +176,10 @@ async function main() {
     hive: hive.mouthPosition(new THREE.Vector3()),
     sprinkler: sprinkler.position,
     zapper: zapper.position,
-    deck: new THREE.Vector3(m(-0.6), DECK_HEIGHT + m(0.1), m(3.3)),
-    shed: new THREE.Vector3(m(2.2), m(1.0), m(-3.1)),
+    firepit: zoneCentre('firepit'),
+    playground: zoneCentre('playground'),
+    service: zoneCentre('service'),
+    pottingShed: zoneCentre('shed'),
   }));
 
   quests.onOffer = (q) => {

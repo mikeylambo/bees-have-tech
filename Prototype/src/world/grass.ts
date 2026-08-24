@@ -1,9 +1,7 @@
 import * as THREE from 'three';
 import { mulberry32 } from '../core/rng';
 import { params } from '../core/tuning';
-import {
-  M, LAWN, DECK, SHED, BED_BACK, BED_WEST, HEDGE, rectContains, type Rect,
-} from './property';
+import { M, grassBlocked } from './estateWorld';
 
 // Instanced grass — the visual core of the scale-inversion fantasy.
 //
@@ -50,32 +48,14 @@ const LOD_DOWN = [M * 0.8, M * 3.6];
 const SPEED_UP = [M * 2.2, M * 6.0]; // m/s thresholds
 const SPEED_DOWN = [M * 1.7, M * 5.0];
 
-/** Circular keep-outs — things that sit ON the lawn. */
-const BARE_SPOTS: Array<[number, number, number]> = [
-  [M * -2.55, M * 0.35, M * 0.85], // kiddie pool
-  [M * -2.1, M * -1.2, M * 0.4], // bird bath
-  [M * -3.1, M * 2.35, M * 0.3], // coiled hose
-  [M * -4.4, M * 3.3, M * 0.36], // bin
-  [M * -4.2, M * -2.5, M * 0.3], // tree
-  [M * 1.0, M * -1.9, M * 0.4], // wheelbarrow
-  [M * 1.75, M * -3.15, M * 0.55], // woodpile
-  [M * 0.2, M * 1.7, M * 0.5], // foot of the deck steps
-  [M * -3.4, M * 1.9, M * 0.18], // washing-line posts
-  [M * -3.4, M * -2.9, M * 0.18],
-];
-
-const KEEP_OUT: Rect[] = [DECK, SHED, BED_BACK, BED_WEST, HEDGE];
-
+/**
+ * Blades grow on open ground only — off the paving, the drive, the pool, the
+ * buildings and the hedges. The estate owns that answer (it is derived from
+ * the blockout, so moving a terrace moves the bare patch under it); the grass
+ * field just asks.
+ */
 function blocked(x: number, z: number): boolean {
-  if (!rectContains(LAWN, x, z, -M * 0.03)) return true;
-  for (const r of KEEP_OUT) if (rectContains(r, x, z, M * 0.04)) return true;
-  for (const [cx, cz, cr] of BARE_SPOTS) {
-    if ((x - cx) * (x - cx) + (z - cz) * (z - cz) < cr * cr) return true;
-  }
-  // The stone path wanders; keep the blades off it.
-  const pathX = M * 0.2 + Math.sin(z / (M * 1.1)) * (M * 0.28);
-  if (z > -M * 3.3 && z < M * 2.2 && Math.abs(x - pathX) < M * 0.24) return true;
-  return false;
+  return grassBlocked(x, z);
 }
 
 function bladeGeometry(): THREE.BufferGeometry {

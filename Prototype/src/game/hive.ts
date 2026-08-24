@@ -1,8 +1,8 @@
 import * as THREE from 'three';
 import type { Physics } from '../core/physics';
-import type { DynamicProp, SalvageKind } from '../world/yard';
+import type { DynamicProp, SalvageKind } from '../world/props';
 import { params } from '../core/tuning';
-import { M } from '../world/property';
+import { M } from '../world/estateWorld';
 
 /**
  * The hive is roughly 1.2 m across — big enough to be a landmark from the far

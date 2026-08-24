@@ -1,11 +1,15 @@
 import * as THREE from 'three';
-import type { SalvageKind } from '../world/yard';
-import { SALVAGE_LABEL } from '../world/yard';
+import type { SalvageKind } from '../world/props';
+import { SALVAGE_LABEL } from '../world/props';
 import type { ApplianceKind } from '../world/appliances';
-import { M } from '../world/property';
+import { M } from '../world/estateBlockout';
 
-/** How close counts as "you got there", in metres of world. */
-const ARRIVE_R = M * 0.55;
+/**
+ * How close counts as "you got there", in metres of world. Generous on
+ * purpose: on a 90 x 120 m property arriving at a 55 cm sphere while cruising
+ * at 3.4 m/s is a precision task nobody asked for.
+ */
+const ARRIVE_R = M * 1.6;
 
 // QUESTS — the framing device, per the pillar: "missions are framing devices
 // and punchlines; the sandbox generates the actual comedy."
@@ -38,6 +42,14 @@ export interface Objective {
   /** Where the waypoint points while this objective is open. */
   marker?: THREE.Vector3;
   markerLabel?: string;
+  /**
+   * Where the THING IS, as opposed to where it goes. On a 90 x 120 m estate
+   * "deliver 4 boards" is not a task until you know boards live in the
+   * potting shed, so the waypoint points at the source until the first one
+   * lands, then turns round and points home.
+   */
+  findAt?: THREE.Vector3;
+  findLabel?: string;
 }
 
 export interface QuestReward {
@@ -61,12 +73,16 @@ export interface QuestWorld {
   hive: THREE.Vector3;
   sprinkler: THREE.Vector3;
   zapper: THREE.Vector3;
-  deck: THREE.Vector3;
-  shed: THREE.Vector3;
+  /** Where each kind of salvage actually lives, so quests can send you there. */
+  firepit: THREE.Vector3;
+  playground: THREE.Vector3;
+  service: THREE.Vector3;
+  pottingShed: THREE.Vector3;
 }
 
 const deliver = (
   salvage: SalvageKind, need: number, hive: THREE.Vector3,
+  findAt?: THREE.Vector3, findLabel?: string,
 ): Objective => ({
   kind: 'deliver',
   text: `Deliver ${need} ${SALVAGE_LABEL[salvage]}${need > 1 ? 's' : ''} to the hive`,
@@ -75,6 +91,8 @@ const deliver = (
   salvage,
   marker: hive,
   markerLabel: 'HIVE',
+  findAt,
+  findLabel,
 });
 
 export function buildQuests(w: QuestWorld): Quest[] {
@@ -83,10 +101,10 @@ export function buildQuests(w: QuestWorld): Quest[] {
       id: 'homecoming',
       title: 'Home Base',
       giver: 'THE HIVE',
-      pitch: 'Something in the back fence is humming. That would be everyone you know.',
+      pitch: 'Something in the west gate pillar is humming. That would be everyone you know.',
       objectives: [{
         kind: 'visit',
-        text: 'Find the hive in the back fence',
+        text: 'Find the hive in the gate pillar',
         need: 1,
         have: 0,
         at: w.hive,
@@ -100,12 +118,12 @@ export function buildQuests(w: QuestWorld): Quest[] {
       },
     },
     {
-      id: 'batteries',
-      title: 'Batteries Not Included',
+      id: 'caps',
+      title: 'Bottle Service',
       giver: 'THE HIVE',
-      pitch: 'Anything with a charge left in it, we can take apart. Bring three.',
-      hint: 'Batteries die where the tools live — around the shed.',
-      objectives: [deliver('battery', 3, w.hive)],
+      pitch: 'Three bottle caps. Stamped steel, perfectly good, and they left them lying about.',
+      hint: 'Somebody was drinking at the fire pit. Somebody always is.',
+      objectives: [deliver('cap', 3, w.hive, w.firepit, 'FIRE PIT')],
       reward: {
         salvage: 3,
         blueprints: ['harness'],
@@ -132,12 +150,24 @@ export function buildQuests(w: QuestWorld): Quest[] {
       },
     },
     {
-      id: 'boards',
-      title: 'Board Meeting',
+      id: 'screws',
+      title: 'Loose Fittings',
       giver: 'THE HIVE',
-      pitch: 'Green boards with gold lines on them. Four. Do not ask what they do.',
-      hint: 'Scattered across the open lawn.',
-      objectives: [deliver('board', 4, w.hive)],
+      pitch: 'The big climbing frame is held together with our next four projects.',
+      hint: 'Under the playground, on the east lawn. Mind the child.',
+      objectives: [deliver('screw', 4, w.hive, w.playground, 'PLAYGROUND')],
+      reward: {
+        salvage: 6,
+        text: '+6 salvage · nothing new to learn, just a very good payday',
+      },
+    },
+    {
+      id: 'batteries',
+      title: 'Batteries Not Included',
+      giver: 'THE HIVE',
+      pitch: 'Anything with a charge left in it, we can take apart. Bring three.',
+      hint: 'The service yard, behind the garage. That is the far end of the drive.',
+      objectives: [deliver('battery', 3, w.hive, w.service, 'SERVICE YARD')],
       reward: {
         salvage: 3,
         blueprints: ['wingman'],
@@ -145,12 +175,12 @@ export function buildQuests(w: QuestWorld): Quest[] {
       },
     },
     {
-      id: 'caps',
-      title: 'Bottle Service',
+      id: 'boards',
+      title: 'Board Meeting',
       giver: 'THE HIVE',
-      pitch: 'Three bottle caps. Stamped steel, perfectly good, and they left them lying about.',
-      hint: 'Up on the deck, where the drinks were.',
-      objectives: [deliver('cap', 3, w.hive)],
+      pitch: 'Green boards with gold lines on them. Four. Do not ask what they do.',
+      hint: 'The potting shed is four square metres of other people\'s useful rubbish.',
+      objectives: [deliver('board', 4, w.hive, w.pottingShed, 'POTTING SHED')],
       reward: {
         salvage: 3,
         blueprints: ['cloak'],
@@ -162,7 +192,7 @@ export function buildQuests(w: QuestWorld): Quest[] {
       title: 'Weather Machine',
       giver: 'THE HIVE',
       pitch: 'Turn the water on. Then turn the blue light on. Then stand somewhere else.',
-      hint: 'Water reaching a live bug zapper does something the manual does not mention.',
+      hint: 'Both are at the south end of the pool terrace.',
       objectives: [
         {
           kind: 'hack',
@@ -193,11 +223,11 @@ export function buildQuests(w: QuestWorld): Quest[] {
       id: 'firstcontact',
       title: 'Considerably Hotter',
       giver: 'THE HIVE',
-      pitch: 'One last thing. Remind him whose yard this is.',
+      pitch: 'One last thing. Remind them whose property this is.',
       hint: 'The stinger is not tech. It came with the bee.',
       objectives: [{
         kind: 'event',
-        text: 'Sting the human',
+        text: 'Sting somebody',
         need: 1,
         have: 0,
         tag: 'sting-human',
@@ -271,7 +301,13 @@ export class QuestLog {
   /** The objective the waypoint should point at right now. */
   marker(): { point: THREE.Vector3; label: string } | null {
     const o = this.currentObjective();
-    if (!o?.marker) return null;
+    if (!o) return null;
+    // Send them to the source first. Once one has been delivered they know
+    // where home is, and the useful arrow is the one pointing back at it.
+    if (o.findAt && o.have === 0) {
+      return { point: o.findAt, label: o.findLabel ?? 'LOOK HERE' };
+    }
+    if (!o.marker) return null;
     return { point: o.marker, label: o.markerLabel ?? '' };
   }
 
