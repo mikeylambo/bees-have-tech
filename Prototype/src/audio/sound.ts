@@ -14,6 +14,9 @@ export class Sound {
   private ctx: Ctx | null = null;
   private master: GainNode | null = null;
   private wingGain: GainNode | null = null;
+  private mowOsc: OscillatorNode | null = null;
+  private mowFilter: BiquadFilterNode | null = null;
+  private mowGain: GainNode | null = null;
   private wingOsc: OscillatorNode | null = null;
   private wingSub: OscillatorNode | null = null;
   private wingFilter: BiquadFilterNode | null = null;
@@ -67,6 +70,38 @@ export class Sound {
     this.wingGain.connect(this.master);
     this.wingOsc.start();
     this.wingSub.start();
+
+    // --- the mower ---
+    // A hazard that roams behind you and cannot be heard is not a hazard, it
+    // is an ambush. Two voices, because a motor is two things: a low square
+    // that carries a long way (the engine) and bandpassed noise on top (the
+    // blades). Gain is driven by distance in mower(), so it announces itself
+    // before it arrives.
+    this.mowFilter = ctx.createBiquadFilter();
+    this.mowFilter.type = 'bandpass';
+    this.mowFilter.frequency.value = 1400;
+    this.mowFilter.Q.value = 0.8;
+
+    this.mowGain = ctx.createGain();
+    this.mowGain.gain.value = 0;
+
+    this.mowOsc = ctx.createOscillator();
+    this.mowOsc.type = 'square';
+    this.mowOsc.frequency.value = 62;
+
+    const blades = ctx.createBufferSource();
+    blades.buffer = this.noiseBuffer;
+    blades.loop = true;
+    const bladeGain = ctx.createGain();
+    bladeGain.gain.value = 0.5;
+    blades.connect(bladeGain);
+    bladeGain.connect(this.mowFilter);
+
+    this.mowOsc.connect(this.mowGain);
+    this.mowFilter.connect(this.mowGain);
+    this.mowGain.connect(this.master);
+    this.mowOsc.start();
+    blades.start();
   }
 
   setMasterVolume(v: number) {
@@ -89,6 +124,23 @@ export class Sound {
     this.wingFilter.frequency.setTargetAtTime(700 + s * 2400 + (boost ? 900 : 0), t, 0.06);
     const target = this.enabled ? 0.05 + s * 0.085 + (boost ? 0.05 : 0) : 0;
     this.wingGain.gain.setTargetAtTime(target, t, 0.08);
+  }
+
+  /**
+   * The mower, heard from `distance01` away (0 = on top of you, 1 = out of
+   * earshot). Silent when it isn't running.
+   */
+  mower(running: boolean, distance01: number) {
+    if (!this.ctx || !this.mowGain || !this.mowOsc || !this.mowFilter) return;
+    const t = this.ctx.currentTime;
+    const near = Math.min(1, Math.max(0, 1 - distance01));
+    // Squared falloff, so it is quiet across the property and unmistakable
+    // in the last few metres.
+    const target = this.enabled && running ? 0.03 + near * near * 0.16 : 0;
+    this.mowGain.gain.setTargetAtTime(target, t, 0.25);
+    // A touch of pitch with proximity reads as the thing bearing down on you.
+    this.mowOsc.frequency.setTargetAtTime(58 + near * 12, t, 0.3);
+    this.mowFilter.frequency.setTargetAtTime(1100 + near * 900, t, 0.3);
   }
 
   /** Filtered noise burst — the basis of every impact in the game. */

@@ -7,6 +7,7 @@ import { GrassField } from './world/grass';
 import { buildProps, syncProps, syncFlowers, applyFlowerSpring, containProps } from './world/props';
 import {
   M, SPAWN, HIVE_AT, WALK_BLOCKERS, WALK_BLOCK_CIRCLES, zoneCentre,
+  grassBlocked, isCut, cutFraction,
 } from './world/estateWorld';
 
 /** Everything positioned in this file is placed in metres, like the estate. */
@@ -29,6 +30,7 @@ import { WorkshopUI } from './ui/workshop';
 import { Household, type HouseholdSense } from './world/household';
 import { Exposure } from './game/exposure';
 import { Sprinkler, BugZapper, BoxFan, type Appliance } from './world/appliances';
+import { Mower } from './world/mower';
 import { Atmosphere } from './world/atmosphere';
 import { Hacker, hackerTech } from './bee/hacker';
 import { Motes } from './fx/motes';
@@ -114,8 +116,13 @@ async function main() {
   const fan = new BoxFan(
     physics, new THREE.Vector3(m(19.0), 0, m(19.2)), new THREE.Vector3(0, 0, -1),
   );
-  const appliances: Appliance[] = [sprinkler, zapper, fan];
-  for (const a of [sprinkler.group, zapper.group, fan.group]) scene.add(a);
+  // THE MOWER — the first thing on this property that hunts you. Docked at
+  // the south end of the west lawn: 66 m of unbroken flight line, which is
+  // the best run on the estate and now the one with something on it.
+  const mower = new Mower(physics, new THREE.Vector3(m(-34), 0, m(-42)));
+  const MOWER_DOCK = mower.position.clone();
+  const appliances: Appliance[] = [sprinkler, zapper, fan, mower];
+  for (const a of [sprinkler.group, zapper.group, fan.group, mower.group]) scene.add(a);
 
   const atmosphere = new Atmosphere();
   atmosphere.add(fan.zone);
@@ -469,6 +476,9 @@ async function main() {
   const camPos = new THREE.Vector3();
   let firstFrame = true;
   let zapCooldown = 0;
+  let mowerCooldown = 0;
+  /** Counters the headless suite reads — cheaper than inferring from velocity. */
+  const probe = { mowerHits: 0 };
   let wasElectrified = false;
   const hiveMouth = new THREE.Vector3();
   const propBodies = yard.dynamicProps.map((p) => p.body);
@@ -480,7 +490,8 @@ async function main() {
     aiming, aim, household, exposure, belt, radial, stinger,
     WALK_BLOCKERS, WALK_BLOCK_CIRCLES,
     appliances, sprinkler, zapper, fan, atmosphere, hacker, air,
-    hive, swarm, workshop, quests, workshopUI, questHud,
+    hive, swarm, workshop, quests, workshopUI, questHud, mower, MOWER_DOCK,
+    grass, grassBlocked, isCut, cutFraction, probe,
     motes, speedFx, sound, outline,
     shell, taught, buildCtx,
   };
@@ -581,6 +592,18 @@ async function main() {
   });
 
   const onboarding = new Onboarding(teachOnce);
+
+  // The cut has to be VISIBLE, not just recorded. Tiles outside the grass
+  // window scatter fresh when you fly to them and read mown for free; this
+  // handles the ones under your nose, and only fires when the blades actually
+  // took something down.
+  mower.onCut = (x, z) => grass.invalidateAt(x, z);
+  // Weather, announced. A machine starting itself is the property having a
+  // life of its own, and it is worth saying once so it doesn't read as a bug.
+  mower.onWake = () => teachOnce(
+    'mower',
+    'Something just started itself out on the west lawn.',
+  );
 
   shell.onChange = (to, from) => {
     // Flush when you STOP PLAYING — not on every transition. Flushing on the
@@ -762,6 +785,8 @@ async function main() {
     sprinkler.update(dt, atmosphere);
     zapper.update(dt);
     fan.update(dt);
+    mower.update(dt);
+    mower.punt(propBodies);
     hacker.update(beePos);
     // Water reaching a live zapper electrifies the puddle. This is the whole
     // point of M3: two objects with one verb each producing a third thing that
@@ -791,6 +816,23 @@ async function main() {
       }
     }
     zapCooldown = Math.max(0, zapCooldown - dt);
+
+    // --- the mower ---
+    const struck = running ? mower.strikes(beePos) : null;
+    if (struck && mowerCooldown <= 0) {
+      mowerCooldown = 1.4;
+      probe.mowerHits++;
+      flight.knockback(struck, params.mower.strikeImpulse);
+      if (carry.isCarrying) carry.drop();
+      if (grapple.state !== 'idle') grapple.release();
+      sound.hitProp();
+      flashSwat();
+      input.rumble(1, 1, 340);
+    }
+    mowerCooldown = Math.max(0, mowerCooldown - dt);
+    // Heard across the property, unmistakable in the last few metres. A
+    // roaming hazard you cannot hear coming is an ambush, not a hazard.
+    sound.mower(running && mower.on, beePos.distanceTo(mower.position) / m(34));
 
     // --- hive, swarm, salvage ---
     hive.update(dt);
