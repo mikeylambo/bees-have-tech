@@ -37,6 +37,16 @@ export interface Actions {
   interactPressed: boolean;
   /** Menu navigation, edge-detected: -1 up, +1 down. */
   menuDelta: number;
+  /** Esc / Start — open or close the pause menu. */
+  pausePressed: boolean;
+  /** X / Back — HELD, not pressed: the shell owns the timing. */
+  rescueHeld: boolean;
+  /** Menu adjust, edge-detected: -1 left, +1 right. Sliders and toggles. */
+  menuDeltaX: number;
+  /** Enter / Space / E / A / RB — activate the highlighted menu row. */
+  confirmPressed: boolean;
+  /** Backspace / B — go back one screen. */
+  cancelPressed: boolean;
 }
 
 export class Input {
@@ -49,13 +59,28 @@ export class Input {
   private prevSting = false;
   private prevAlt = false;
   private prevInteract = false;
+  private prevPause = false;
   private prevNavUp = false;
   private prevNavDown = false;
+  private prevNavLeft = false;
+  private prevNavRight = false;
+  private prevConfirm = false;
+  private prevCancel = false;
   private wheelDelta = 0;
   locked = false;
   padConnected = false;
+  /**
+   * The shell gates this: clicking the canvas should take pointer lock while
+   * you are FLYING, and do nothing at all while a menu is up. Without the
+   * gate, clicking a title-screen button also grabs the cursor.
+   */
+  canLock: () => boolean = () => true;
+  /** So the shell can pause when the browser drops the lock (Esc does that). */
+  onLockChange?: (locked: boolean) => void;
+  private canvas: HTMLCanvasElement;
 
   constructor(canvas: HTMLCanvasElement) {
+    this.canvas = canvas;
     canvas.addEventListener('mousedown', (e) => {
       if (this.locked) e.preventDefault();
       this.mouseButtons.add(e.button);
@@ -77,14 +102,12 @@ export class Input {
     window.addEventListener('blur', () => this.keys.clear());
 
     canvas.addEventListener('click', () => {
-      // requestPointerLock returns a promise in Chromium and can reject in
-      // embedded/automated contexts — mouse-look just stays off until a real
-      // user gesture succeeds.
-      if (!this.locked) Promise.resolve(canvas.requestPointerLock()).catch(() => {});
+      if (this.canLock()) this.requestLock();
     });
     document.addEventListener('pointerlockchange', () => {
       this.locked = document.pointerLockElement === canvas;
       this.updateHint();
+      this.onLockChange?.(this.locked);
     });
     document.addEventListener('mousemove', (e) => {
       if (!this.locked) return;
@@ -139,10 +162,23 @@ export class Input {
     const interact = this.keys.has('KeyR') || p.interact;
     // Menu nav shares WASD with flight on purpose — you are never doing both,
     // and a menu that needs its own keys is a menu people mis-press.
+    // Esc never reaches keydown while pointer-locked in some browsers — the
+    // lock exit eats it — so pause also listens for the lock being dropped,
+    // over in main. Here it is just another button.
+    const pause = this.keys.has('Escape') || p.start;
     const navUp = this.keys.has('KeyW') || this.keys.has('ArrowUp') || p.dpadUp;
     const navDown = this.keys.has('KeyS') || this.keys.has('ArrowDown') || p.dpadDown;
     const menuDelta =
       (navDown && !this.prevNavDown ? 1 : 0) - (navUp && !this.prevNavUp ? 1 : 0);
+    const navLeft = this.keys.has('KeyA') || this.keys.has('ArrowLeft') || p.dpadLeft;
+    const navRight = this.keys.has('KeyD') || this.keys.has('ArrowRight') || p.dpadRight;
+    const menuDeltaX =
+      (navRight && !this.prevNavRight ? 1 : 0) - (navLeft && !this.prevNavLeft ? 1 : 0);
+    // A/Cross is `boost` in flight and confirm in a menu. You are never doing
+    // both, and confirm-is-A is the one pad convention nobody has to be told.
+    const confirm = this.keys.has('Enter') || this.keys.has('Space')
+      || this.keys.has('KeyE') || p.use || p.boost;
+    const cancel = this.keys.has('Backspace') || p.sting;
 
     const a: Actions = {
       useHeld: use,
@@ -154,15 +190,40 @@ export class Input {
       cycleDelta: this.wheelDelta,
       interactPressed: interact && !this.prevInteract,
       menuDelta,
+      pausePressed: pause && !this.prevPause,
+      rescueHeld: this.keys.has('KeyX') || p.back,
+      menuDeltaX,
+      confirmPressed: confirm && !this.prevConfirm,
+      cancelPressed: cancel && !this.prevCancel,
     };
     this.prevUse = use;
     this.prevSting = sting;
     this.prevAlt = alt;
     this.prevInteract = interact;
+    this.prevPause = pause;
     this.prevNavUp = navUp;
     this.prevNavDown = navDown;
+    this.prevNavLeft = navLeft;
+    this.prevNavRight = navRight;
+    this.prevConfirm = confirm;
+    this.prevCancel = cancel;
     this.wheelDelta = 0;
     return a;
+  }
+
+  /**
+   * requestPointerLock returns a promise in Chromium and can reject in
+   * embedded/automated contexts — mouse-look just stays off until a real user
+   * gesture succeeds, which is why nothing here treats failure as an error.
+   */
+  requestLock() {
+    if (this.locked) return;
+    Promise.resolve(this.canvas.requestPointerLock()).catch(() => {});
+  }
+
+  releaseLock() {
+    if (!this.locked) return;
+    document.exitPointerLock();
   }
 
   /** Controller haptics — the clearest hit confirmation on a pad. */

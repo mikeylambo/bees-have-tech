@@ -14,6 +14,12 @@ export class SpeedFx {
   private fov = 0;
   private eased = 0;
   private vignette: HTMLElement | null;
+  /**
+   * The FOV kick and the camera dolly are JavaScript, not CSS, so
+   * `prefers-reduced-motion` cannot reach them — a media query does not know
+   * about a projection matrix. The shell's setting does, and sets this.
+   */
+  reduced = false;
 
   constructor(private cam: FollowCamera) {
     this.fov = cam.camera.fov;
@@ -29,12 +35,14 @@ export class SpeedFx {
     // Exponential smoothing: frame-rate independent, and it can't overshoot.
     this.eased += (t - this.eased) * (1 - Math.exp(-p.responsiveness * dt));
 
-    const e = this.eased;
+    // Reduced motion keeps the vignette — it darkens, it does not move — and
+    // drops the two effects that actually shift the world under you.
+    const e = this.reduced ? 0 : this.eased;
     this.cam.camera.fov = this.fov + e * p.fovKick;
     this.cam.camera.updateProjectionMatrix();
     this.cam.distanceScale = 1 + e * p.dolly;
 
-    if (this.vignette) this.vignette.style.opacity = `${e * p.vignette}`;
+    if (this.vignette) this.vignette.style.opacity = `${this.eased * p.vignette}`;
   }
 
   /** Called when the base FOV changes (resize keeps aspect, not fov). */
