@@ -243,6 +243,14 @@ export function buildQuests(w: QuestWorld): Quest[] {
 
 const _d = new THREE.Vector3();
 
+/** The shell's view of quest progress. Position only, never content. */
+export interface QuestSave {
+  index: number;
+  finished: boolean;
+  have: number[][];
+  backlog: Array<[string, number]>;
+}
+
 export class QuestLog {
   private quests: Quest[];
   private index = 0;
@@ -316,6 +324,56 @@ export class QuestLog {
     const q = this.active;
     if (!q) return null;
     return q.objectives.find((o) => o.have < o.need) ?? null;
+  }
+
+  // ---- persistence. Additive: the shell reads and writes position, never
+  // content. What a quest IS lives in buildQuests() and the shell never sees
+  // it — this is only where you had got to. ----
+
+  /** Everything the shell needs to put the log back exactly as it was. */
+  snapshot(): QuestSave {
+    return {
+      index: this.index,
+      finished: this.finished,
+      // The handoff is deliberately NOT saved. It is a 3.4 s pause so a
+      // completion banner can land; restoring mid-pause would open a save on
+      // a blank quest log for no reason.
+      have: this.quests.map((q) => q.objectives.map((o) => o.have)),
+      backlog: [...this.backlog.entries()],
+    };
+  }
+
+  /**
+   * Put the log back. Returns false if the save does not describe THIS chain —
+   * a quest added or removed since it was written — in which case the caller
+   * discards rather than half-restoring somebody into a chain that moved.
+   */
+  restore(save: QuestSave): boolean {
+    if (!Array.isArray(save.have) || save.have.length !== this.quests.length) return false;
+    for (let i = 0; i < this.quests.length; i++) {
+      const row = save.have[i];
+      if (!Array.isArray(row) || row.length !== this.quests[i].objectives.length) return false;
+    }
+    if (typeof save.index !== 'number' || save.index < 0 || save.index > this.quests.length) {
+      return false;
+    }
+    for (let i = 0; i < this.quests.length; i++) {
+      this.quests[i].objectives.forEach((o, j) => {
+        o.have = Math.max(0, Math.min(o.need, save.have[i][j] | 0));
+      });
+    }
+    this.index = save.index;
+    this.finished = !!save.finished;
+    this.handoff = 0;
+    this.backlog = new Map(save.backlog ?? []);
+    return true;
+  }
+
+  /** Re-offer whatever is current, without re-crediting the backlog. */
+  resume() {
+    const q = this.active;
+    if (!q) return;
+    this.onOffer?.(q);
   }
 
   // ---- event hooks. Each one just counts; nothing here knows a system. ----

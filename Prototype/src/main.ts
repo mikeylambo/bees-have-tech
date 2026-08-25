@@ -36,6 +36,12 @@ import { SpeedFx } from './fx/speedFx';
 import { Sound } from './audio/sound';
 import { applyLook } from './look/toon';
 import { OutlinePass } from './look/outline';
+import { Shell } from './shell/state';
+import {
+  readProgress, applyProgress, clearProgress, ProgressWriter,
+  type ProgressWorld,
+} from './shell/progress';
+import { Rescue, rescueToHive } from './shell/rescue';
 
 const NEUTRAL_INPUT: InputState = { forward: 0, strafe: 0, vertical: 0, boost: false };
 
@@ -280,6 +286,28 @@ async function main() {
   };
 
   const input = new Input(renderer.domElement);
+  // THE SHELL. It routes input and scales time; it never edits the sim.
+  const shell = new Shell();
+  shell.requestLock = () => input.requestLock();
+  shell.releaseLock = () => input.releaseLock();
+  // Clicking the canvas grabs the cursor only while you are actually flying.
+  input.canLock = () => shell.state === 'playing';
+  // Esc leaves pointer lock before any keydown arrives, so the lock dropping
+  // IS the pause gesture on KBM. Treat it as one rather than fighting it.
+  input.onLockChange = (locked) => {
+    if (!locked && shell.state === 'playing') shell.pause('player');
+  };
+  // Alt-tabbing out of a game where somebody is walking toward you, and
+  // coming back to a raised exposure meter, is the build taking something
+  // from you while you weren't looking.
+  const pauseOnLostFocus = () => {
+    if (shell.state === 'playing') shell.pause('lostFocus');
+  };
+  window.addEventListener('blur', pauseOnLostFocus);
+  document.addEventListener('visibilitychange', () => {
+    if (document.hidden) pauseOnLostFocus();
+  });
+
   const followCam = new FollowCamera(window.innerWidth / window.innerHeight);
   const speedFx = new SpeedFx(followCam);
   const outline = new OutlinePass(renderer);
@@ -339,21 +367,28 @@ async function main() {
 
   // The household's arithmetic never appears as a number. Call each rule out
   // the first time the player is actually standing in it, then shut up.
+  // Shared with the shell's onboarding lines and saved with progress, so
+  // "once" means once across refreshes rather than once per page load.
   const taught = new Set<string>();
+  /** Say a line the first time it is true, and remember that forever. */
+  function teachOnce(id: string, line: string): boolean {
+    if (taught.has(id)) return false;
+    taught.add(id);
+    questHud.say(line);
+    saves.touch();
+    return true;
+  }
   function teachHousehold(sense: HouseholdSense) {
     if (!sense.seen) return;
     const covering = sense.seenBy.filter((h) => h.profile.suspicion < 0);
     const accusing = sense.seenBy.filter((h) => h.profile.suspicion > 0);
     const calming = sense.seenBy.filter((h) => h.profile.dampen < 1);
-    if (covering.length && !accusing.length && !taught.has('cover')) {
-      taught.add('cover');
-      questHud.say(`${covering[0].name} has seen you — and is saying nothing`);
-    } else if (calming.length && accusing.length && !taught.has('calm')) {
-      taught.add('calm');
-      questHud.say(`${calming[0].name} is talking them down`);
-    } else if (accusing.length > 1 && !taught.has('gang')) {
-      taught.add('gang');
-      questHud.say(`${accusing.length} of them are watching you`);
+    if (covering.length && !accusing.length) {
+      teachOnce('cover', `${covering[0].name} has seen you — and is saying nothing`);
+    } else if (calming.length && accusing.length) {
+      teachOnce('calm', `${calming[0].name} is talking them down`);
+    } else if (accusing.length > 1) {
+      teachOnce('gang', `${accusing.length} of them are watching you`);
     }
   }
 
@@ -412,9 +447,66 @@ async function main() {
     appliances, sprinkler, zapper, fan, atmosphere, hacker, air,
     hive, swarm, workshop, quests, workshopUI, questHud,
     motes, speedFx, sound, outline,
+    shell, taught, buildCtx,
   };
   updateBankHud();
-  quests.begin();
+
+  // ---- the shell: rescue, progress, and the point the game actually starts ----
+
+  // `taught` is the M8 household set, reused rather than duplicated: both the
+  // household lines and the onboarding lines mean exactly the same thing —
+  // say it once, ever — so one set, and it persists across a refresh now.
+  const progressWorld: ProgressWorld = {
+    quests, workshop, hive, exposure, belt, taught,
+  };
+  const saves = new ProgressWriter(progressWorld);
+
+  const rescue = new Rescue();
+  rescue.onRescue = () => {
+    rescueToHive(flight.body, hive.mouthPosition(new THREE.Vector3()), () => {
+      if (carry.isCarrying) carry.drop();
+      if (grapple.state !== 'idle') grapple.release();
+    });
+    sound.unlock();
+    input.rumble(0.4, 0.6, 220);
+  };
+
+  // Progress applies AFTER the world is built and BEFORE quests.begin(), or a
+  // returning player gets pitched quest 1 on top of the quest they were on.
+  const saved = readProgress();
+  let restored = false;
+  if (saved) {
+    restored = applyProgress(saved, progressWorld, buildCtx);
+    // A blob that doesn't describe this build's quest chain is discarded
+    // whole. Half-restoring somebody into a chain that moved is worse than
+    // starting them over.
+    if (!restored) clearProgress();
+    else {
+      updateBankHud();
+      refreshTechHud();
+    }
+  }
+  if (restored) quests.resume();
+  else quests.begin();
+
+  // Anything worth losing sleep over gets written a moment later; a burst
+  // collapses into one write.
+  quests.onProgress = ((prev) => (q, o) => { prev?.(q, o); saves.touch(); })(quests.onProgress);
+  quests.onComplete = ((prev) => (q) => { prev?.(q); saves.touch(); })(quests.onComplete);
+  window.addEventListener('pagehide', () => saves.flush());
+
+  Object.assign(
+    (window as unknown as Record<string, Record<string, unknown>>).__debug,
+    { rescue, saves, progressWorld },
+  );
+
+  // Pass 1 has no title screen yet, so the machine walks straight through it.
+  // Pass 2 replaces this line with the Play button.
+  shell.ready();
+  shell.play();
+  shell.onChange = (to) => {
+    if (to !== 'playing') saves.flush();
+  };
 
   function frame(now: number) {
     requestAnimationFrame(frame);
@@ -422,15 +514,38 @@ async function main() {
     // the simulation, but the FPS readout must use the REAL frame time or it
     // reports a comfortable 20 while the game runs at one frame a second.
     const rawDt = (now - last) / 1000;
-    const dt = Math.min(rawDt, 1 / 20);
     last = now;
 
     const look = input.takeLook();
     const act = input.actions();
+
+    // --- the shell gets first look at input, and decides whether the sim runs ---
+    if (act.pausePressed) shell.togglePause();
+    const running = shell.running;
+
+    // FROZEN MEANS FROZEN. Everything downstream that advances the world reads
+    // `dt` — the household's walk, the appliances, the exposure meter, the
+    // stinger cooldown — so while paused it is zero, not merely unstepped.
+    // Rendering still runs on rawDt, which is why the world stays visible
+    // behind the menu instead of the pause screen being a black rectangle.
+    const dt = running ? Math.min(rawDt, 1 / 20) : 0;
+
+    // Hold to come home. Charged only while flying, so a key held behind a
+    // menu doesn't quietly bank a rescue — and drained on rawDt so the ring
+    // still visibly lets go if you pause mid-hold.
+    rescue.update(
+      Math.min(rawDt, 1 / 20), act.rescueHeld,
+      running && !workshopUI.open && !radial.open,
+    );
+
     const shopping = workshopUI.open;
-    // While the radial or the shop is open the stick steers the menu.
-    if (!act.radialHeld && !shopping) followCam.addLook(look, dt);
-    const state = input.state();
+    // While the radial or the shop is open the stick steers the menu; while a
+    // shell screen is up, nothing steers the camera at all.
+    if (running && !act.radialHeld && !shopping) followCam.addLook(look, dt);
+    // Paused means the bee gets neutral input, exactly as it does while the
+    // workshop is open — or a key held across the pause boundary arrives as a
+    // shove on resume.
+    const state = running ? input.state() : NEUTRAL_INPUT;
 
     // The crosshair finds a point; gadgets then fire from the BEE toward it,
     // so close-range shots don't miss by camera parallax.
@@ -441,12 +556,12 @@ async function main() {
 
     // --- the hive workshop: a shop that is a PLACE ---
     const atHive = hive.nearMouth(beePos);
-    workshopUI.showPrompt(atHive && !radial.open);
-    if (act.interactPressed) {
+    workshopUI.showPrompt(running && atHive && !radial.open);
+    if (running && act.interactPressed) {
       if (shopping) workshopUI.hide();
       else if (atHive && !radial.open) workshopUI.show(hive.stored);
     }
-    if (workshopUI.open) {
+    if (running && workshopUI.open) {
       const nav = act.menuDelta + act.cycleDelta;
       if (nav !== 0) workshopUI.move(Math.sign(nav), hive.stored);
       if (act.usePressed) {
@@ -456,12 +571,13 @@ async function main() {
           quests.built();
           updateBankHud();
           refreshTechHud();
+          saves.touch();
         }
       }
     }
 
     // --- tech radial: switches tools, never uses them ---
-    if (!workshopUI.open) {
+    if (running && !workshopUI.open) {
       if (act.radialHeld && !radial.open) radial.show();
       if (act.radialHeld) {
         // Right stick on a pad, mouse motion on KBM. Y is inverted so "up" on
@@ -482,7 +598,7 @@ async function main() {
     // --- active tech ---
     const techCtx = { physics, beePos, aim, beeCollider: flight.collider, dt };
     const tech = belt.active;
-    if (!radial.open && !workshopUI.open && tech) {
+    if (running && !radial.open && !workshopUI.open && tech) {
       if (act.usePressed) tech.useStart?.(techCtx);
       if (act.useHeld) tech.useHold?.(techCtx);
       if (act.useReleased) tech.useEnd?.(techCtx);
@@ -491,7 +607,7 @@ async function main() {
 
     // --- innate stinger ---
     stinger.update(dt);
-    if (!radial.open && !workshopUI.open && act.stingPressed) {
+    if (running && !radial.open && !workshopUI.open && act.stingPressed) {
       stinger.jab(aim.dirFromBee, beePos, household.bodyHandles);
     }
 
@@ -499,8 +615,12 @@ async function main() {
     // looks broken where a bee in slow motion looks deliberate. It also means
     // the household keeps walking toward you while you shop, which is the whole
     // reason the workshop can be a menu at all.
+    // Pause is the SAME lever the radial and the workshop already use, at
+    // zero. Rendering continues — a paused game that shows a black rectangle
+    // has thrown away the one asset it has — but the accumulator stops, so
+    // nothing integrates and resuming cannot produce a catch-up spike.
     const menuOpen = radial.open || workshopUI.open;
-    const simDt = menuOpen ? dt * params.radial.timeScale : dt;
+    const simDt = !running ? 0 : menuOpen ? dt * params.radial.timeScale : dt;
     accumulator += simDt;
     const load = carry.loadFactor();
     const flightInput = workshopUI.open ? NEUTRAL_INPUT : state;
@@ -564,6 +684,7 @@ async function main() {
       for (const kind of banked) quests.deliver(kind);
       sound.deposit();
       updateBankHud();
+      saves.touch();
       input.rumble(0.3, 0.5, 120);
     }
     // The household punts props as they walk. The fence catches almost
@@ -619,7 +740,11 @@ async function main() {
     const speed = beeVel.length();
     motes.update(dt, beePos, beeVel);
     speedFx.update(dt, speed);
-    sound.wing(speed / (params.flight.maxSpeed * params.flight.boostMul), state.boost);
+    // A wingbeat behind a pause menu is a bee that did not stop.
+    sound.wing(
+      running ? speed / (params.flight.maxSpeed * params.flight.boostMul) : 0,
+      running && state.boost,
+    );
     grapple.update(dt, beePos);
     syncProps(yard.dynamicProps);
     syncFlowers(yard.flowers);

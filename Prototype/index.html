@@ -180,6 +180,30 @@
       #exposure .w-down { color: #7fe0a0; }
       #exposure .w-calm { color: #bcd0e0; }
 
+      /* ---- Rescue: hold to come home ---- */
+      /* A hold, not a tap, because this property is meant to be crossed —
+         the 80 m drive only means something if flying it is the only way to
+         be at the other end of it. */
+      #rescueRing {
+        position: fixed; left: 50%; bottom: 26%; z-index: 9;
+        transform: translateX(-50%); display: flex; flex-direction: column;
+        align-items: center; gap: 4px; pointer-events: none;
+        opacity: 0; transition: opacity 120ms linear;
+        font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+        font-size: 9px; letter-spacing: 0.22em; color: #ffd75e;
+        text-shadow: 0 1px 3px rgba(0, 0, 0, 0.8);
+      }
+      #rescueRing.show { opacity: 1; }
+      #rescueRing svg { width: 44px; height: 44px; transform: rotate(-90deg); }
+      #rescueRing circle { fill: none; stroke-width: 3; }
+      #rescueRing .rr-track { stroke: rgba(20, 24, 18, 0.75); }
+      #rescueRing .rr-fill {
+        stroke: #ffd75e; stroke-linecap: round;
+        stroke-dasharray: 119.4; stroke-dashoffset: 119.4;
+      }
+      #rescueRing.done .rr-fill { stroke: #63ffa8; }
+      #rescueRing.done .rr-label { color: #63ffa8; }
+
       /* Closes in as you accelerate. Peripheral darkening is a real part of
          how speed is perceived, and it costs one div. */
       #speedVignette {
