@@ -42,14 +42,34 @@ import {
   type ProgressWorld,
 } from './shell/progress';
 import { Rescue, rescueToHive } from './shell/rescue';
+import { Settings } from './shell/settings';
+import { Screens } from './shell/screens';
+import { AttractCamera } from './shell/attract';
+import { Onboarding } from './shell/onboarding';
+import { hasProgress } from './shell/progress';
 
 const NEUTRAL_INPUT: InputState = { forward: 0, strafe: 0, vertical: 0, boost: false };
 
+/** Set across a New Game reload so the fresh page starts in play, not on the title. */
+const AUTOPLAY = 'bees-autoplay';
+
 async function main() {
+  // The boot screen is already on the page — inlined in index.html so it
+  // paints before a single byte of this file arrives. All we do is tell it
+  // the truth about what is taking the time. Two rAFs per phase, because a
+  // textContent change nobody yields for is a change nobody sees.
+  const bootEl = document.getElementById('boot');
+  const bootPhase = document.getElementById('bootPhase');
+  const phase = (label: string) => new Promise<void>((done) => {
+    if (bootPhase) bootPhase.textContent = label;
+    requestAnimationFrame(() => requestAnimationFrame(() => done()));
+  });
+
   // Before anything is built — the yard, household and flower springs all read
   // these values at construction time.
   loadSavedSettings();
 
+  await phase('starting physics');
   const physics = await initPhysics();
 
   const renderer = new THREE.WebGLRenderer({ antialias: true });
@@ -65,7 +85,9 @@ async function main() {
   renderer.domElement.addEventListener('click', () => sound.start());
 
   const scene = new THREE.Scene();
+  await phase('building the estate');
   const yard = buildProps(physics, scene, params.world.seed);
+  await phase('scattering the yard');
   const grass = new GrassField(params.world.seed);
   scene.add(grass.mesh);
 
@@ -325,11 +347,21 @@ async function main() {
     return hit ? hit.timeOfImpact : null;
   };
 
-  createTuning(
-    (seed) => grass.scatter(seed),
-    () => applyFlowerSpring(physics, yard.flowers),
-    { onLookChange: () => applyLook(scene) },
-  );
+  // The tuning panel is a DEVELOPMENT TOOL sitting on top of the game. Behind
+  // ?dev, or summoned with backtick. Everything a player should be able to
+  // change lives in Settings instead — which is the single change that most
+  // makes this read as a game rather than a demo.
+  const devRequested = new URLSearchParams(location.search).has('dev');
+  let devPane: unknown = null;
+  const openDevPanel = () => {
+    if (devPane) return;
+    devPane = createTuning(
+      (seed) => grass.scatter(seed),
+      () => applyFlowerSpring(physics, yard.flowers),
+      { onLookChange: () => applyLook(scene) },
+    );
+  };
+  if (devRequested) openDevPanel();
   // Banded shading over everything already built.
   applyLook(scene);
 
@@ -337,6 +369,9 @@ async function main() {
 
   window.addEventListener('keydown', (e) => {
     if (e.code === 'KeyH') document.body.classList.toggle('hide-ui');
+    // Backtick summons the dev panel without a reload — the same tool, one
+    // keystroke away, for anyone who did not think to add ?dev before loading.
+    if (e.code === 'Backquote') openDevPanel();
     // Esc leaves pointer lock anyway; make it close the shop too rather than
     // stranding the player in a panel with the mouse free.
     if (e.code === 'Escape' && workshopUI.open) workshopUI.hide();
@@ -500,13 +535,90 @@ async function main() {
     { rescue, saves, progressWorld },
   );
 
-  // Pass 1 has no title screen yet, so the machine walks straight through it.
-  // Pass 2 replaces this line with the Play button.
-  shell.ready();
-  shell.play();
-  shell.onChange = (to) => {
-    if (to !== 'playing') saves.flush();
+  // ---- player settings, the screens, and the attract camera ----
+
+  const settings = new Settings();
+  const attract = new AttractCamera();
+  settings.onChange = (v) => {
+    // The plan called this `setVolume`; the method Sound actually ships is
+    // `setMasterVolume`. It no-ops until the audio graph exists, which is why
+    // Play re-applies it right after start().
+    sound.setMasterVolume(v.volume);
+    // prefers-reduced-motion is CSS-only and cannot reach a projection matrix
+    // or a camera path, so both read the flag instead.
+    speedFx.reduced = v.reducedMotion;
+    attract.reducedMotion = v.reducedMotion;
   };
+  settings.apply();
+
+  const screens = new Screens({
+    settings,
+    hasSave: () => hasProgress(),
+    play: () => {
+      // ONE click does both: WebAudio needs a gesture and so does pointer
+      // lock, and spending two clicks on one intention is a tax.
+      sound.start();
+      sound.setMasterVolume(settings.values.volume);
+      shell.play();
+    },
+    newGame: () => {
+      clearProgress();
+      // A fresh run means a fresh world — props unconsumed, salvage unspent,
+      // the household back on their marks — and rebuilding an estate in place
+      // is a great deal more code than reloading the page for it. The flag
+      // survives the reload so New Game lands you in the GAME rather than
+      // back on the title screen you just left.
+      try {
+        sessionStorage.setItem(AUTOPLAY, '1');
+      } catch { /* the reload still gives a clean world, just via the title */ }
+      window.location.reload();
+    },
+    resume: () => shell.resume(),
+    quitToTitle: () => {
+      saves.flush();
+      shell.toTitle();
+    },
+  });
+
+  const onboarding = new Onboarding(teachOnce);
+
+  shell.onChange = (to, from) => {
+    // Flush when you STOP PLAYING — not on every transition. Flushing on the
+    // way into the title wrote an empty save during boot, which made Continue
+    // live on a run that did not exist.
+    if (from === 'playing') saves.flush();
+    if (to === 'title') {
+      attract.reset();
+      screens.show('title');
+    } else if (to === 'paused') {
+      screens.show('pause');
+    } else {
+      screens.hide();
+    }
+    // The "click to fly" hint belongs to flying, not to a menu. The HUD only
+    // goes away on the TITLE — behind a pause menu, seeing your own exposure
+    // meter and quest tracker is the point of the world staying visible.
+    document.body.classList.toggle('in-menu', to !== 'playing');
+    document.body.classList.toggle('in-title', to === 'title');
+  };
+
+  Object.assign(
+    (window as unknown as Record<string, Record<string, unknown>>).__debug,
+    { screens, settings, attract, onboarding },
+  );
+
+  bootEl?.classList.add('gone');
+  setTimeout(() => bootEl?.remove(), 400);
+  shell.ready();
+  // Came back from a New Game click: skip the title we were just on.
+  try {
+    if (sessionStorage.getItem(AUTOPLAY)) {
+      sessionStorage.removeItem(AUTOPLAY);
+      sound.start();
+      sound.setMasterVolume(settings.values.volume);
+      shell.play();
+    }
+  } catch { /* no session storage: the title screen is a fine place to land */ }
 
   function frame(now: number) {
     requestAnimationFrame(frame);
@@ -520,7 +632,13 @@ async function main() {
     const act = input.actions();
 
     // --- the shell gets first look at input, and decides whether the sim runs ---
-    if (act.pausePressed) shell.togglePause();
+    // Menus first: while a screen is up, Esc means "back one screen" until you
+    // are at the root of it, and only then does it mean resume.
+    const consumedCancel = screens.update(act);
+    if (act.pausePressed && !consumedCancel) {
+      if (shell.state === 'paused' && screens.depth > 1) screens.back();
+      else if (shell.state !== 'title') shell.togglePause();
+    }
     const running = shell.running;
 
     // FROZEN MEANS FROZEN. Everything downstream that advances the world reads
@@ -724,6 +842,11 @@ async function main() {
       }
     }
     teachHousehold(sense);
+    if (running) {
+      onboarding.update(dt, {
+        atHive, watched: sense.seen, beePos, speed: beeVel.length(),
+      });
+    }
     updateExposureHud(sense);
 
     // --- quests ---
@@ -754,8 +877,15 @@ async function main() {
     // Shadows ride with the bee — see property.ts for why a yard-wide frustum
     // can't work at this size.
     yard.updateShadow(beePos);
-    followCam.update(dt, beePos, firstFrame);
-    firstFrame = false;
+    // The title screen's background is the actual game: a slow push up 80 m of
+    // driveway toward a nine-metre house, using geometry that already exists.
+    if (shell.state === 'title') {
+      attract.update(Math.min(rawDt, 1 / 20), followCam.camera);
+      firstFrame = true; // so entering play snaps to the bee rather than easing
+    } else {
+      followCam.update(dt, beePos, firstFrame);
+      firstFrame = false;
+    }
 
     // Reticle state: what would this shot do?
     if (reticle) {

@@ -26,6 +26,8 @@ export interface PadState {
   /** D-pad, edge-detected upstream, for driving menus. */
   dpadUp: boolean;
   dpadDown: boolean;
+  dpadLeft: boolean;
+  dpadRight: boolean;
   /** Start / Options — pause. The pad had no way to stop the game before. */
   start: boolean;
   /** Back / Select — hold to come home. X/Square is already `alt`. */
@@ -38,6 +40,7 @@ const EMPTY: PadState = {
   ascend: 0, descend: 0, boost: false,
   use: false, sting: false, alt: false, radial: false,
   interact: false, dpadUp: false, dpadDown: false,
+  dpadLeft: false, dpadRight: false,
   start: false, back: false,
 };
 
@@ -125,6 +128,8 @@ export class Gamepads {
       interact: pressed(3), // Y / Triangle — the workshop, at the hive
       dpadUp: pressed(12),
       dpadDown: pressed(13),
+      dpadLeft: pressed(14),
+      dpadRight: pressed(15),
       start: pressed(9), // Start / Options
       back: pressed(8), // Back / Select / Share
     };

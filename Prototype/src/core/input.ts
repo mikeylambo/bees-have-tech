@@ -41,6 +41,12 @@ export interface Actions {
   pausePressed: boolean;
   /** X / Back — HELD, not pressed: the shell owns the timing. */
   rescueHeld: boolean;
+  /** Menu adjust, edge-detected: -1 left, +1 right. Sliders and toggles. */
+  menuDeltaX: number;
+  /** Enter / Space / E / A / RB — activate the highlighted menu row. */
+  confirmPressed: boolean;
+  /** Backspace / B — go back one screen. */
+  cancelPressed: boolean;
 }
 
 export class Input {
@@ -56,6 +62,10 @@ export class Input {
   private prevPause = false;
   private prevNavUp = false;
   private prevNavDown = false;
+  private prevNavLeft = false;
+  private prevNavRight = false;
+  private prevConfirm = false;
+  private prevCancel = false;
   private wheelDelta = 0;
   locked = false;
   padConnected = false;
@@ -160,6 +170,15 @@ export class Input {
     const navDown = this.keys.has('KeyS') || this.keys.has('ArrowDown') || p.dpadDown;
     const menuDelta =
       (navDown && !this.prevNavDown ? 1 : 0) - (navUp && !this.prevNavUp ? 1 : 0);
+    const navLeft = this.keys.has('KeyA') || this.keys.has('ArrowLeft') || p.dpadLeft;
+    const navRight = this.keys.has('KeyD') || this.keys.has('ArrowRight') || p.dpadRight;
+    const menuDeltaX =
+      (navRight && !this.prevNavRight ? 1 : 0) - (navLeft && !this.prevNavLeft ? 1 : 0);
+    // A/Cross is `boost` in flight and confirm in a menu. You are never doing
+    // both, and confirm-is-A is the one pad convention nobody has to be told.
+    const confirm = this.keys.has('Enter') || this.keys.has('Space')
+      || this.keys.has('KeyE') || p.use || p.boost;
+    const cancel = this.keys.has('Backspace') || p.sting;
 
     const a: Actions = {
       useHeld: use,
@@ -173,6 +192,9 @@ export class Input {
       menuDelta,
       pausePressed: pause && !this.prevPause,
       rescueHeld: this.keys.has('KeyX') || p.back,
+      menuDeltaX,
+      confirmPressed: confirm && !this.prevConfirm,
+      cancelPressed: cancel && !this.prevCancel,
     };
     this.prevUse = use;
     this.prevSting = sting;
@@ -181,6 +203,10 @@ export class Input {
     this.prevPause = pause;
     this.prevNavUp = navUp;
     this.prevNavDown = navDown;
+    this.prevNavLeft = navLeft;
+    this.prevNavRight = navRight;
+    this.prevConfirm = confirm;
+    this.prevCancel = cancel;
     this.wheelDelta = 0;
     return a;
   }

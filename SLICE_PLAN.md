@@ -1,6 +1,6 @@
 # The Bees Have Tech! — Vertical Slice Plan
 
-**Status:** v11 — 2026-08-24 · supersedes the "one backyard corner" slice in CONCEPT_PILLARS.md
+**Status:** v12 — 2026-08-25 · supersedes the "one backyard corner" slice in CONCEPT_PILLARS.md
 **Target:** the seven-verb chain — Flight → Physics → Gadget → Hack → Swarm →
 Human Reaction → Chain Reaction.
 **Web version (phone-friendly):** https://claude.ai/code/artifact/1fb7ce48-5aa3-4dd8-9f45-98c0ce69c9e1
@@ -835,6 +835,82 @@ the world arbitrary in a way nobody chose.
 **Not chased further.** Pollen wants a proper visual pass eventually — at this
 box radius there is very little of it left at altitude, which is the exact
 case it was built for. That is a known trade, deliberately parked.
+
+---
+
+### The shell — it stops being a sandbox ✅ BUILT
+
+*"It's time to make this feel like more of a game than a sandbox."*
+
+M0–M9 built a simulation you load into and never leave. No moment where the
+game starts, no way to stop that isn't alt-tab, nothing that survives a
+refresh, and no way out of a wedged bee except losing the run. Full plan in
+[SHELL_PLAN.md](SHELL_PLAN.md); it is two passes, invisible then visible.
+
+**The one rule: the shell routes input and scales time, and never edits the
+sim.** Flight, camera, exposure arithmetic, quest content and the household are
+read, never written. That leaves two levers and both already existed — the
+`simDt` multiplier the radial and workshop use for slow-mo, and the input line
+the workshop already feeds `NEUTRAL_INPUT`.
+
+**Pause is that first lever at zero**, not `cancelAnimationFrame`: rendering
+continues so the world stays visible behind the menu, but the accumulator
+stops, so nothing integrates and resuming cannot produce a catch-up spike.
+Frozen means frozen — `dt` itself is zero while paused, because the
+household's walk, the appliances, the stinger cooldown and the exposure meter
+all read `dt` directly and a pause that stops only physics is not a pause. Esc,
+Start on a pad (newly mapped), and **losing the window**: alt-tabbing out of a
+game where somebody is walking toward you and coming back to a raised meter is
+the build taking something while you weren't looking.
+
+**Rescue** is hold X, or Back on a pad, for 1.2 s with a fill ring. A hold
+rather than a tap because the 80 m drive only means something if flying it is
+the only way to be at the other end of it. It does **not** reset exposure —
+rescue is for geometry, not consequences.
+
+**Progress** persists under `bees-progress-v1`, kept separate from the dev
+tuning store: one is a designer's tuning file, the other is a player's save.
+Quest position, blueprints, salvage, exposure, belt slot, taught lines — and
+deliberately *not* prop or household positions, which would break the format
+every time the yard changed for a fidelity nobody asked for. Built blueprints
+restore by **replaying `build()`**, since upgrades are multiplicative over the
+shipped defaults (M5), so a replay from a fresh page is exact and it is the
+only way belt items and recruited bees come back. Version mismatch discards and
+never migrates.
+
+**The title screen's background is the actual game** — a live camera drifting
+the gate → drive → house spine. The estate's best argument is that it is big,
+and a slow push up 80 m of driveway makes that argument with geometry that
+already exists. Play takes pointer lock and starts audio in one click, because
+spending two clicks on one intention is a tax.
+
+**The tuning panel moved behind `?dev`** (or backtick). It is a development
+tool that was sitting on top of the game; the four things a player should
+actually be able to change — volume, sensitivity, invert Y, reduced motion —
+moved into Settings. Reduced motion needs a *flag* rather than only the media
+query, because the FOV kick and camera dolly are JavaScript and
+`prefers-reduced-motion` cannot reach a projection matrix.
+
+**Three bugs the tests caught, all of them the same shape — something firing
+at the wrong moment:**
+
+1. **Reaching the title wrote an empty save.** `onChange` flushed on every
+   transition, and boot passes through `title`, so `Continue` was live on a run
+   that did not exist. A save is worth writing when you stop *playing*, not
+   when you arrive at a menu.
+2. **New Game reloaded you back to the title you just left.** It reloads for a
+   clean world; it now carries a session flag across the reload so it lands in
+   the game.
+3. **The menu cursor carried across screens.** Opening Settings put you on
+   whichever row index the last screen left behind, so A/D adjusted a setting
+   nobody was looking at.
+
+Verified 26/26 in a shell suite and 16/16 in a pass-1 suite — including that
+pause drifts *nothing* (person, bee and meter all exactly zero over ten
+frames), that a mid-chain refresh restores quest position, salvage, blueprints,
+belt, exposure and taught lines exactly, that stale/corrupt/moved-chain blobs
+are discarded silently, and that every menu is drivable by synthetic pad edges
+alone. Gameplay suite still 50/50.
 
 ---
 

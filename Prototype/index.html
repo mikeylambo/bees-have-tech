@@ -9,6 +9,25 @@
       href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><text y='26' font-size='26'>%F0%9F%90%9D</text></svg>"
     />
     <style>
+      /* ---- BOOT ----
+         Inlined and first in the file so it paints before a single byte of
+         JavaScript arrives. Physics, an estate, 325 colliders and a grass
+         field are not free, and until now that time was a white screen.
+         The phase text is honest: a progress bar that lies is worse than
+         text that doesn't move. */
+      #boot {
+        position: fixed; inset: 0; z-index: 60; display: flex;
+        flex-direction: column; align-items: center; justify-content: center;
+        gap: 10px; background: #12160f; color: #ffd75e;
+        font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+        transition: opacity 320ms ease-out;
+      }
+      #boot.gone { opacity: 0; pointer-events: none; }
+      #boot .b-mark { font-size: 34px; }
+      #boot .b-name { font-size: 13px; letter-spacing: 0.3em; }
+      #boot .b-phase {
+        font-size: 11px; color: #9aa89a; letter-spacing: 0.1em; min-height: 14px;
+      }
       html, body { margin: 0; height: 100%; overflow: hidden; background: #87c5eb; }
       #app { position: fixed; inset: 0; }
       canvas { display: block; }
@@ -74,18 +93,8 @@
         #hitmark.pop { animation: none; opacity: 0; }
       }
 
-      /* Link out to the estate blockout. Clickable, so it can't live in the
-         pointer-events:none HUD. */
-      #greybox {
-        position: fixed; right: 16px; top: 14px; z-index: 11;
-        padding: 6px 12px; border-radius: 999px; text-decoration: none;
-        background: rgba(20, 24, 18, 0.7);
-        border: 1px solid rgba(255, 215, 94, 0.35);
-        font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
-        font-size: 11px; color: #ffd75e;
-      }
-      #greybox:hover { background: rgba(255, 215, 94, 0.18); }
-      body.hide-ui #greybox { display: none; }
+      /* The estate blockout link moved to the title screen. It is a developer
+         view and it does not belong on top of the game. */
 
       /* H hides the dev UI so the yard can be seen (and screenshotted) clean. */
       body.hide-ui .hud,
@@ -179,6 +188,107 @@
       #exposure .w-up { color: #ff8a72; }
       #exposure .w-down { color: #7fe0a0; }
       #exposure .w-calm { color: #bcd0e0; }
+
+      /* A menu is not a place you fly from. */
+      body.in-menu #lockHint,
+      body.in-menu #reticle,
+      body.in-menu #shopPrompt,
+      body.in-menu #rescueRing { display: none; }
+      /* The title gets a clean plate; a pause menu keeps the HUD behind it,
+         because seeing your own exposure and quest state is the point of the
+         world staying visible. */
+      body.in-title .hud,
+      body.in-title #exposure,
+      body.in-title #bank,
+      body.in-title #techHud,
+      body.in-title #questTrack,
+      body.in-title #waypoint { display: none; }
+
+      /* ---- SHELL SCREENS: title, pause, settings, controls ----
+         Same honey-gold on near-black, same ui-monospace, same radius and
+         hairline border as the HUD. A title screen that looks like a
+         different product than the HUD under it is worse than none. */
+      #shellScreen {
+        position: fixed; inset: 0; z-index: 50; display: none;
+        align-items: center; justify-content: center;
+        background: rgba(8, 12, 6, 0.55);
+        font-family: ui-monospace, SFMono-Regular, Menlo, monospace; color: #fff;
+      }
+      #shellScreen.show { display: flex; }
+      /* The title sits over a live camera drifting the property, so it leans
+         to one side and lets the estate do the talking. */
+      #shellScreen.is-title {
+        justify-content: flex-start; align-items: flex-end;
+        padding: 0 0 8vh 7vw;
+        /* Left-to-right, not diagonal: a diagonal scrim darkens the top-left
+           sky hardest, which reads as a rendering fault rather than a
+           deliberate plate for the text to sit on. */
+        background:
+          linear-gradient(90deg,
+            rgba(8, 12, 6, 0.86) 0%, rgba(8, 12, 6, 0.52) 30%, rgba(8, 12, 6, 0) 58%),
+          linear-gradient(0deg, rgba(8, 12, 6, 0.5) 0%, rgba(8, 12, 6, 0) 34%);
+      }
+      .sm-panel {
+        width: min(420px, 86vw); padding: 18px 20px 14px; border-radius: 12px;
+        background: rgba(20, 24, 18, 0.86);
+        border: 1px solid rgba(255, 215, 94, 0.4);
+        box-shadow: 0 22px 60px rgba(0, 0, 0, 0.55);
+      }
+      .sm-panel.wide { width: min(560px, 92vw); }
+      #shellScreen.is-title .sm-panel {
+        background: none; border: 0; box-shadow: none; padding: 0; width: auto;
+      }
+      .sm-title {
+        font-size: clamp(26px, 4.6vw, 46px); font-weight: 700; letter-spacing: 0.02em;
+        color: #ffd75e; text-shadow: 0 3px 18px rgba(0, 0, 0, 0.85);
+      }
+      .sm-tag {
+        margin: 8px 0 22px; font-size: 12px; line-height: 1.8; color: #cfe0ca;
+        text-shadow: 0 2px 8px rgba(0, 0, 0, 0.9);
+      }
+      .sm-h2 {
+        font-size: 12px; letter-spacing: 0.24em; color: #ffd75e;
+        padding-bottom: 10px; margin-bottom: 8px;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.14);
+      }
+      .sm-sub { font-size: 11.5px; color: #cfe0ca; line-height: 1.6; margin-bottom: 10px; }
+      .sm-row {
+        display: flex; align-items: center; gap: 12px; cursor: pointer;
+        padding: 7px 10px; border-radius: 7px; font-size: 13px;
+        border: 1px solid transparent; pointer-events: auto;
+      }
+      .sm-row.sel {
+        background: rgba(255, 215, 94, 0.12);
+        border-color: rgba(255, 215, 94, 0.55);
+      }
+      .sm-row.off { opacity: 0.4; cursor: default; }
+      .sm-name { flex: 1; }
+      .sm-val { color: #ffd75e; font-size: 11px; letter-spacing: 0.04em; }
+      .sm-row.off .sm-val { color: #9aa89a; }
+      .sm-note {
+        display: block; cursor: default; font-size: 10.5px; color: #9aa89a;
+        line-height: 1.6; padding-top: 10px; font-style: italic;
+      }
+      .sm-keys {
+        margin-top: 12px; padding-top: 9px; font-size: 10px; color: #7d8a7d;
+        border-top: 1px solid rgba(255, 255, 255, 0.12);
+      }
+      #shellScreen.is-title .sm-keys { border-top: 0; }
+      .sm-keys b { color: #ffd75e; }
+      .sm-ctl, .sm-ctl-head {
+        display: grid; grid-template-columns: 1.2fr 1fr 1fr; gap: 10px;
+        padding: 4px 10px; font-size: 11.5px;
+      }
+      .sm-ctl-head {
+        color: #ffd75e; font-size: 9px; letter-spacing: 0.18em;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.12); padding-bottom: 6px;
+      }
+      .sm-ctl span:first-child { color: #cfe0ca; }
+      .sm-ctl span:not(:first-child) { color: #9aa89a; }
+
+      @media (prefers-reduced-motion: reduce) {
+        #boot { transition: none; }
+      }
 
       /* ---- Rescue: hold to come home ---- */
       /* A hold, not a tap, because this property is meant to be crossed —
@@ -508,6 +618,11 @@
     </style>
   </head>
   <body>
+    <div id="boot">
+      <div class="b-mark">🐝</div>
+      <div class="b-name">THE BEES HAVE TECH!</div>
+      <div class="b-phase" id="bootPhase">starting up</div>
+    </div>
     <div id="app"></div>
     <div id="lockHint">🐝 click to fly</div>
     <div id="reticle"></div>
@@ -536,7 +651,6 @@
       <b>H</b> hide UI
       <span id="padStatus" style="color:#7dff9b"></span>
     </div>
-    <a id="greybox" href="./estate.html">📐 estate blockout</a>
     <div id="bank">
       <span class="salvage" id="salvageCount">0 salvage</span>
       <span class="built" id="builtCount">no blueprints yet</span>
