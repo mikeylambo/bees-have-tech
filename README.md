@@ -72,6 +72,7 @@ Every menu is fully drivable by pad alone and by keyboard alone.
 - **M8 — The household** ✅ Four people who disagree about you; exposure is now a social problem
 - **M9 — The estate** ✅ The 90 × 120 m property IS the game now. The backyard is gone.
 - **The shell** ✅ Title, pause, settings, rescue, and a run that survives a refresh
+- **M10 — The mower** ✅ A roaming, hackable hazard that leaves the lawn cut behind it
 
 ## The property
 
@@ -107,6 +108,20 @@ looking at you, not just whether anyone is.
 So "don't be seen" becomes "be seen by the right person", which is a better
 game than a stealth cone. The exposure bar names its watchers: ▲ for the ones
 raising it, ▼ for the one who isn't.
+
+## The thing on the lawn
+
+A robot mower works the lawn panels on its own schedule. At bee scale it is a
+roaming world boss: it launches loose props, throws the bee, and you can hear
+it coming a long way off.
+
+It has one verb, like every hackable object — but the verb means *not what it
+was about to do*. Switching it **off** mid-shift clears a path across the west
+lawn. Switching it **on** out of hours is the most incriminating thing on the
+property, because a mower running at its usual hour is a Tuesday and a mower
+running because a bee started it is not.
+
+Wherever it has been, the grass is gone, and stays gone.
 
 ## The loop, as it plays now
 

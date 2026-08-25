@@ -90,6 +90,8 @@ export class GrassField {
   private speedLod = 0;
   private tile = TILE0;
   private seed: number;
+  /** Slots whose ground changed under them and need re-scattering. */
+  private pending = new Set<number>();
   /** World tile coords currently held by each slot; NaN = never filled. */
   private heldX = new Int32Array(TILE_COUNT).fill(0x7fffffff);
   private heldZ = new Int32Array(TILE_COUNT).fill(0x7fffffff);
@@ -194,6 +196,26 @@ export class GrassField {
     this.dirty = true;
   }
 
+  /**
+   * Something changed the ground under this point — the mower, most likely —
+   * so re-scatter the tile holding it.
+   *
+   * fillTile is deterministic in WORLD tile coords, so a refill produces the
+   * same field it produced before, minus whatever the ground now refuses to
+   * grow. That is the whole trick behind a lawn that stays mown: the blades
+   * are not deleted, they are never scattered.
+   *
+   * Tiles outside the window are ignored, because a tile you cannot see gets
+   * scattered fresh the moment you fly to it anyway.
+   */
+  invalidateAt(x: number, z: number) {
+    const tx = Math.floor(x / this.tile);
+    const tz = Math.floor(z / this.tile);
+    const slot = mod(tz, TILES_ACROSS) * TILES_ACROSS + mod(tx, TILES_ACROSS);
+    if (this.heldX[slot] !== tx || this.heldZ[slot] !== tz) return;
+    this.pending.add(slot);
+  }
+
   update(dt: number, focus: THREE.Vector3, speed = 0) {
     this.uTime.value += dt;
     this.uCenter.value.copy(focus);
@@ -242,6 +264,18 @@ export class GrassField {
           this.fillTile(slot, tx, tz);
         }
       }
+    }
+
+    // Re-scatter anything mown under the window this frame. Bounded by the
+    // number of tiles on screen, and only ever queued when a cut actually
+    // took something down.
+    if (this.pending.size > 0) {
+      for (const slot of this.pending) {
+        const tx = this.heldX[slot];
+        if (tx === 0x7fffffff) continue;
+        this.fillTile(slot, tx, this.heldZ[slot]);
+      }
+      this.pending.clear();
     }
 
     if (this.dirty) {

@@ -112,6 +112,21 @@ export const params = {
     stiffness: 12,
     damping: 1,
   },
+  mower: {
+    // 0.35 m/s — slower than the household walks, which is what makes it a
+    // hazard you can outrun but not ignore. A mower you can never escape is
+    // a fail state; one you can always escape is scenery.
+    speed: 20,
+    // It does not nudge props, it launches them. Comedy beats realism.
+    puntImpulse: 190,
+    // What being hit costs you, as a velocity change.
+    strikeImpulse: 320,
+    // Seconds of each half of the duty cycle. It starts parked, so the first
+    // time it wakes up is about a minute into a run — long enough to have
+    // learned to fly, early enough to still be near the gate.
+    dutyOn: 95,
+    dutyOff: 70,
+  },
   human: {
     height: 100, // ~1.7m at bee scale — the kaiju read, and the world's ruler
     // 1.39 m/s — a brisk walk. Crossing the 90 m width takes him a minute,

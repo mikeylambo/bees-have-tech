@@ -106,9 +106,65 @@ const GRASS_BARE: Array<[number, number, number]> = ZONES
   .filter((z) => z.kind === 'planting' && z.h >= 5)
   .map((z) => [m(z.x), m(z.z), m(Math.max(z.w, z.d) * 0.42)] as [number, number, number]);
 
+// ---- the cut ----
+//
+// Somebody mows this lawn, and at bee scale that is not a chore, it is a
+// geological event. The mower needs to leave the world CHANGED, so the cut is
+// stored rather than drawn: a coarse grid of "this has been mown" cells that
+// the grass field consults when it scatters a tile.
+//
+// 0.5 m cells over 90 x 120 m is 180 x 240 = 43,200 bytes. One Uint8Array,
+// an O(1) lookup in a test the field already runs per blade, and a lawn that
+// stays mown because the blades were never scattered there in the first place
+// — no decals, no second render pass, nothing to keep in sync.
+const CUT_CELL = m(0.5);
+const CUT_W = Math.ceil((BOUNDS.maxX - BOUNDS.minX) / CUT_CELL);
+const CUT_D = Math.ceil((BOUNDS.maxZ - BOUNDS.minZ) / CUT_CELL);
+const cut = new Uint8Array(CUT_W * CUT_D);
+
+function cutIndex(x: number, z: number): number {
+  const ix = Math.floor((x - BOUNDS.minX) / CUT_CELL);
+  const iz = Math.floor((z - BOUNDS.minZ) / CUT_CELL);
+  if (ix < 0 || iz < 0 || ix >= CUT_W || iz >= CUT_D) return -1;
+  return iz * CUT_W + ix;
+}
+
+/** Mow a disc. Returns true if anything was actually still standing there. */
+export function cutGrass(x: number, z: number, radius: number): boolean {
+  let changed = false;
+  const r = Math.max(CUT_CELL * 0.5, radius);
+  for (let dz = -r; dz <= r; dz += CUT_CELL) {
+    for (let dx = -r; dx <= r; dx += CUT_CELL) {
+      if (dx * dx + dz * dz > r * r) continue;
+      const i = cutIndex(x + dx, z + dz);
+      if (i < 0 || cut[i]) continue;
+      cut[i] = 1;
+      changed = true;
+    }
+  }
+  return changed;
+}
+
+export function isCut(x: number, z: number): boolean {
+  const i = cutIndex(x, z);
+  return i >= 0 && cut[i] === 1;
+}
+
+/** How much of the lawn has been taken down. Drives the "somebody noticed" beat. */
+export function cutFraction(): number {
+  let n = 0;
+  for (let i = 0; i < cut.length; i++) n += cut[i];
+  return n / cut.length;
+}
+
+export function clearCut() {
+  cut.fill(0);
+}
+
 /** Blades grow on open ground only. Injected into the grass field. */
 export function grassBlocked(x: number, z: number): boolean {
   if (!rectContains(BOUNDS, x, z, -m(1))) return true;
+  if (isCut(x, z)) return true;
   for (const r of GRASS_KEEP_OUT) if (rectContains(r, x, z)) return true;
   for (const [cx, cz, cr] of GRASS_BARE) {
     if ((x - cx) * (x - cx) + (z - cz) * (z - cz) < cr * cr) return true;

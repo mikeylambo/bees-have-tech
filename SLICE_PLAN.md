@@ -1,6 +1,6 @@
 # The Bees Have Tech! — Vertical Slice Plan
 
-**Status:** v12 — 2026-08-25 · supersedes the "one backyard corner" slice in CONCEPT_PILLARS.md
+**Status:** v13 — 2026-08-25 · supersedes the "one backyard corner" slice in CONCEPT_PILLARS.md
 **Target:** the seven-verb chain — Flight → Physics → Gadget → Hack → Swarm →
 Human Reaction → Chain Reaction.
 **Web version (phone-friendly):** https://claude.ai/code/artifact/1fb7ce48-5aa3-4dd8-9f45-98c0ce69c9e1
@@ -911,6 +911,81 @@ frames), that a mid-chain refresh restores quest position, salvage, blueprints,
 belt, exposure and taught lines exactly, that stale/corrupt/moved-chain blobs
 are discarded silently, and that every menu is drivable by synthetic pad edges
 alone. Gameplay suite still 50/50.
+
+---
+
+### M10 — The mower ✅ BUILT
+
+The shell made the build *framed* like a game. This is the thing that makes it
+*play* like one: until now the only pressure was two swatting adults with seven
+metres of eyesight on ten thousand square metres, and you could fly for minutes
+at a time in no danger at all.
+
+Straight off the pillars' scale-inversion table — **lawn mower → roaming world
+boss**. It is a *robot* mower, and that is a design choice rather than a
+detail: it roams on its own so the threat exists whether or not a human is
+involved, bump-and-turn is honest AI for it rather than a simplification, and
+nobody has to animate a person pushing a thing for ninety metres.
+
+**It obeys the M3 rule — exactly one verb.** All the depth is in the overlap.
+Switch it on near Marla and it is a joke; switch it off to cross the east lawn
+and it is a tactic.
+
+**The evidence rule is the interesting part.** A mower crossing a lawn at its
+usual hour is not evidence — it is a Tuesday. If it were, the exposure meter
+would climb while the player did nothing at all, and the whole ladder would
+quietly stop meaning anything. So the machine runs on a duty cycle, the single
+verb flips whatever the schedule *wants*, and `conspicuous` is exactly the
+override:
+
+```
+on          = scheduled XOR hacked
+conspicuous = hacked
+```
+
+A mower running because a bee turned it on is the most incriminating thing on
+the property, and Dale's 1.9× curiosity was already built for it.
+
+**The cut persists, and it costs 43 KB.** Rather than decals or a second
+render pass, the mown ground is a coarse grid — 0.5 m cells over the whole
+estate, one `Uint8Array` — that the grass field consults when it scatters a
+tile. The blades are not deleted; they are *never scattered*. Tiles outside
+the grass window read mown for free the moment you fly to them, and the field
+gained an `invalidateAt()` so the ones under your nose re-scatter live.
+
+It is also audible: a low square for the engine and bandpassed noise for the
+blades, gain driven by distance squared. A roaming hazard you cannot hear
+coming is an ambush, not a hazard.
+
+**Three bugs, found by testing rather than by playing:**
+
+1. **The strike radius barely cleared the deck collider** (0.42 m against
+   0.35 × 0.28 m half-extents), so in practice you bumped into the machine and
+   were never caught by it. A hazard you can only trigger from inside a solid
+   object is not a hazard. Now 0.6 m — a real skirt of danger where the blades
+   actually are.
+2. **`strikes()` returned a shared module temp**, so a caller who held the
+   result watched it change under them on the next call. Fine for the frame
+   loop, which uses it immediately; a trap for everyone else. It clones now —
+   a strike happens at most once every 1.4 s and the allocation is not the
+   thing to economise on.
+3. **It was docked in a corner** of the lawn's inset rect, so it spent its
+   first ten seconds spinning against two edges: 3.8 m of travel in a minute,
+   which reads as broken rather than as weather. Moved clear: 17.8 m.
+
+One test-harness lesson worth keeping: a screenshot script that sets
+`followCam.yaw` and expects the camera to move is wrong whenever the shell is
+not `playing`, because the follow camera integrates with `dt` and `dt` is
+**zero** unless the game is running. Two of these shots photographed the spawn
+point instead of their subject before that was noticed. Shot scripts drive
+`camera.position` and `lookAt` directly now.
+
+Verified 11/11 in a mower suite: it starts itself with nobody involved, running
+on schedule is not evidence, hacking it out of hours is, it roams for a minute
+without ever leaving the property, the blades take the grass down and the
+ground remembers, the bee is thrown out mostly upward, props are launched
+rather than nudged, and flying over the deck is safe while flying through the
+skirt is not.
 
 ---
 
