@@ -1,6 +1,6 @@
 # The Bees Have Tech! — Vertical Slice Plan
 
-**Status:** v13 — 2026-08-25 · supersedes the "one backyard corner" slice in CONCEPT_PILLARS.md
+**Status:** v14 — 2026-08-28 · supersedes the "one backyard corner" slice in CONCEPT_PILLARS.md
 **Target:** the seven-verb chain — Flight → Physics → Gadget → Hack → Swarm →
 Human Reaction → Chain Reaction.
 **Web version (phone-friendly):** https://claude.ai/code/artifact/1fb7ce48-5aa3-4dd8-9f45-98c0ce69c9e1
@@ -986,6 +986,79 @@ without ever leaving the property, the blades take the grass down and the
 ground remembers, the bee is thrown out mostly upward, props are launched
 rather than nudged, and flying over the deck is safe while flying through the
 skirt is not.
+
+---
+
+### Shell refinement — the four things playing it exposed ✅ BUILT
+
+Three days away from the build, then an audit. The four that mattered:
+
+**A save nobody is told about is a save nobody trusts.** Progress had been
+writing silently since the shell landed, so you never learned it was safe to
+close the tab. One pip, briefly, on every successful write.
+
+**Settings was a floor, not a screen.** Four rows. Now seven: field of view
+(which has to reach the camera *and* rebase the speed kick, or the kick springs
+back to the old base on the next frame), a HUD toggle wired to the same
+`hide-ui` class the H key already owns — one switch, not two, kept in sync in
+both directions — and a reset to shipped defaults, captured before any saved
+file lands so "reset" means the build's values rather than whatever was loaded.
+
+**Two interaction languages.** The workshop predates the shell's menus and
+looked it: different chrome, and it only took E/RB where every other screen
+takes Enter/A and backs out on Esc/B. It keeps its own behaviour — it is a
+PLACE, and it slows time rather than stopping it — and it now wears the same
+panel and answers the same keys.
+
+**No way to review a run.** What you had done and what you owned was visible
+only by flying to the hive and opening the shop, which made "what am I doing"
+a trip across ninety metres. The Journal is a read-only screen off the pause
+menu: quests with their objective counts, every blueprint split into built /
+known / locked, and the bank at the top. A snapshot taken when it opens, not a
+live view of the simulation.
+
+One small honesty fix along the way: the keys strip claimed "A/D adjust" on
+screens with nothing to adjust. A strip that lists controls the screen ignores
+is the kind of small lie that makes a player distrust the rest of it.
+
+Verified 14/14 in a refinement suite, alongside the four existing suites.
+
+### The ladder, renamed
+
+`NATURE / NUISANCE / INFESTATION / ANOMALY / SPECIES` had two problems: two of
+the rungs were the same idea wearing different adjectives, and the top one was
+a noun nobody would say out loud. Renamed:
+
+| | | what it means |
+|---|---|---|
+| 1 | **NATURAL** | wildlife. You are weather. |
+| 2 | **NUISANCE** | irritating. Swat it. |
+| 3 | **MENACE** | harmful, and doing it on purpose. This is who you call pest control about. |
+| 4 | **ANOMALY** | inexplicable. No longer a pest-control problem. |
+| 5 | **THREAT** | dangerous. Someone with a badge is on the lawn. |
+
+Each rung is a different REGISTER rather than a stronger adjective —
+irritating → harmful → inexplicable → dangerous — which is what makes it read
+as escalation instead of as a volume knob. The quotes went with them: they are
+what a person would actually say at that rung, because the meter is the
+household's opinion and not a score.
+
+The HUD counts from **one**. The rungs get talked about as "level 5 is when
+the agents come", and a readout that calls the first rung 0 makes the top one
+4 — off by one from every conversation anyone has about it.
+
+### Still open, and named honestly
+
+- **The exposure meter is decorative.** `exposure.level` has no consumers
+  outside the HUD and the save. Nothing escalates, nothing spawns, nothing
+  ends — the ladder the design doc calls the spine is a label that changes
+  colour, and you can sit at 100 indefinitely. This is the largest structural
+  gap in the build and the cheapest large thing to fix.
+- **No spatial awareness on 10,800 m².** One waypoint, no compass, no map,
+  and the mower is audible but not locatable — its audio is mono gain by
+  distance with no direction.
+- **The in-game hint strip is a permanent dev crutch**, three lines deep,
+  now that a Controls screen exists to hold the same information.
 
 ---
 

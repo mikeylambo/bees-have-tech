@@ -290,6 +290,54 @@
         #boot { transition: none; }
       }
 
+      /* ---- Journal ---- */
+      .sm-jhead {
+        color: #ffd75e; font-size: 9px; letter-spacing: 0.2em;
+        margin: 12px 0 6px; padding-bottom: 5px;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.12);
+      }
+      .sm-jhead:first-child { margin-top: 0; }
+      .sm-jq { padding: 4px 10px; font-size: 12px; }
+      .sm-jq-title { color: #dfe8db; }
+      .sm-jq.done .sm-jq-title { color: #7bd39a; }
+      .sm-obj {
+        display: flex; gap: 8px; font-size: 11px; color: #9aa89a;
+        padding: 2px 0 2px 14px;
+      }
+      .sm-obj b { margin-left: auto; color: #ffd75e; }
+      .sm-bp {
+        display: grid; grid-template-columns: 22px 140px 1fr 52px;
+        gap: 9px; align-items: center; padding: 4px 10px; font-size: 11.5px;
+      }
+      .sm-bp .ic { text-align: center; }
+      .sm-bp .nm { color: #dfe8db; }
+      .sm-bp .ef { color: #9aa89a; font-size: 10.5px; }
+      .sm-bp .ct { color: #ffd75e; text-align: right; font-weight: 700; }
+      .sm-bp.built .ct { color: #63ffa8; font-size: 10px; }
+      .sm-bp.locked { opacity: 0.42; }
+      .sm-bp.locked .ct { color: #7d8a7d; }
+      /* The Journal is long; let it scroll rather than run off the panel. */
+      #shellScreen .sm-list { max-height: 62vh; overflow-y: auto; }
+      #shellScreen .sm-list::-webkit-scrollbar { width: 8px; }
+      #shellScreen .sm-list::-webkit-scrollbar-thumb {
+        background: rgba(255, 255, 255, 0.2); border-radius: 4px;
+      }
+
+      /* ---- Saved. One pip, briefly: a save nobody is told about is a save
+         nobody trusts. ---- */
+      #saveTick {
+        position: fixed; left: 16px; top: 44px; z-index: 9;
+        padding: 3px 9px; border-radius: 999px;
+        background: rgba(20, 24, 18, 0.72);
+        border: 1px solid rgba(99, 255, 168, 0.4);
+        font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+        font-size: 9px; letter-spacing: 0.18em; color: #63ffa8;
+        pointer-events: none; opacity: 0;
+        transition: opacity 220ms ease-out;
+      }
+      #saveTick.show { opacity: 1; }
+      body.in-title #saveTick { display: none; }
+
       /* ---- Rescue: hold to come home ---- */
       /* A hold, not a tap, because this property is meant to be crossed —
          the 80 m drive only means something if flying it is the only way to
@@ -553,11 +601,15 @@
         font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
       }
       #shop.show { display: flex; }
+      /* The workshop predates the shell's menus and looked it. Same panel
+         chrome, same row idiom, same keys strip — it keeps its own behaviour
+         (it is a PLACE, and it slows time rather than stopping it) and stops
+         looking like a different product. */
       .shop-panel {
-        width: min(560px, 88vw); padding: 16px 18px; border-radius: 12px;
-        background: rgba(14, 19, 12, 0.95);
-        border: 1px solid rgba(255, 215, 94, 0.42);
-        box-shadow: 0 22px 60px rgba(0, 0, 0, 0.6);
+        width: min(560px, 92vw); padding: 18px 20px 14px; border-radius: 12px;
+        background: rgba(20, 24, 18, 0.86);
+        border: 1px solid rgba(255, 215, 94, 0.4);
+        box-shadow: 0 22px 60px rgba(0, 0, 0, 0.55);
         color: #fff;
       }
       #shop.deny .shop-panel { animation: shopDeny 260ms ease-out; }
@@ -568,15 +620,15 @@
       }
       .shop-head {
         display: flex; justify-content: space-between; align-items: baseline;
-        font-size: 12px; letter-spacing: 0.14em; color: #ffd75e;
+        font-size: 12px; letter-spacing: 0.24em; color: #ffd75e;
         padding-bottom: 10px; margin-bottom: 8px;
         border-bottom: 1px solid rgba(255, 255, 255, 0.14);
       }
       .shop-bank { color: #63ffa8; letter-spacing: 0; }
       .shop-list { list-style: none; margin: 0; padding: 0; }
       .shop-list li {
-        display: flex; align-items: center; gap: 10px;
-        padding: 7px 9px; border-radius: 7px; font-size: 12px;
+        display: flex; align-items: center; gap: 12px;
+        padding: 7px 10px; border-radius: 7px; font-size: 13px;
         border: 1px solid transparent;
       }
       .shop-list li.sel {
@@ -597,9 +649,12 @@
       .shop-blurb {
         min-height: 30px; margin-top: 10px; padding-top: 9px;
         border-top: 1px solid rgba(255, 255, 255, 0.14);
-        font-size: 11.5px; color: #cfe0ca; line-height: 1.5;
+        font-size: 11.5px; color: #cfe0ca; line-height: 1.5; font-style: italic;
       }
-      .shop-keys { margin-top: 6px; font-size: 10px; color: #7d8a7d; }
+      .shop-keys {
+        margin-top: 12px; padding-top: 9px; font-size: 10px; color: #7d8a7d;
+        border-top: 1px solid rgba(255, 255, 255, 0.12);
+      }
       .shop-keys b { color: #ffd75e; }
 
       @media (prefers-reduced-motion: reduce) {
@@ -631,7 +686,7 @@
     <div id="speedVignette"></div>
     <div id="exposure">
       <div class="label">
-        <span id="expLevel">EXPOSURE 0 · NATURE</span>
+        <span id="expLevel">EXPOSURE 1 · NATURAL</span>
         <span class="quote" id="expQuote">"just a bee"</span>
       </div>
       <div class="track"><div class="fill" id="expFill"></div></div>
@@ -651,6 +706,7 @@
       <b>H</b> hide UI
       <span id="padStatus" style="color:#7dff9b"></span>
     </div>
+    <div id="saveTick">◆ SAVED</div>
     <div id="bank">
       <span class="salvage" id="salvageCount">0 salvage</span>
       <span class="built" id="builtCount">no blueprints yet</span>

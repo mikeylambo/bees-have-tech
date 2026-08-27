@@ -27,8 +27,8 @@ export class WorkshopUI {
         <ul class="shop-list"></ul>
         <div class="shop-blurb"></div>
         <div class="shop-keys">
-          <b>W/S</b> or <b>scroll</b> choose &nbsp; <b>E</b> / <b>RB</b> build &nbsp;
-          <b>R</b> / <b>Y</b> close
+          <b>W/S</b> choose &nbsp; <b>Enter</b>/<b>A</b> build &nbsp;
+          <b>Esc</b>/<b>B</b> or <b>R</b>/<b>Y</b> close
         </div>
       </div>`;
     document.body.appendChild(this.root);

@@ -22,7 +22,7 @@ import { TechBelt } from './bee/tech';
 import { grappleTech, tractorTech, beaconTech } from './bee/techItems';
 import { Swarm } from './bee/swarm';
 import { Hive } from './game/hive';
-import { Workshop, type BuildContext } from './game/blueprints';
+import { Workshop, BLUEPRINTS, type BuildContext } from './game/blueprints';
 import { QuestLog, buildQuests } from './game/quests';
 import { RadialMenu } from './ui/radial';
 import { QuestHud } from './ui/questHud';
@@ -373,9 +373,17 @@ async function main() {
   applyLook(scene);
 
   const reticle = document.getElementById('reticle');
+  /** Wired once player settings exist — see the H handler below. */
+  let onHudToggle: (() => void) | null = null;
 
   window.addEventListener('keydown', (e) => {
-    if (e.code === 'KeyH') document.body.classList.toggle('hide-ui');
+    if (e.code === 'KeyH') {
+      document.body.classList.toggle('hide-ui');
+      // Set once Settings exists. `settings` is a const declared further down,
+      // so naming it directly here would be a TDZ throw for anyone who hits H
+      // during boot.
+      onHudToggle?.();
+    }
     // Backtick summons the dev panel without a reload — the same tool, one
     // keystroke away, for anyone who did not think to add ?dev before loading.
     if (e.code === 'Backquote') openDevPanel();
@@ -461,7 +469,10 @@ async function main() {
     if (lvl !== lastLevel) {
       lastLevel = lvl;
       const info = exposure.levelInfo;
-      if (expLevel) expLevel.textContent = `EXPOSURE ${lvl} · ${info.name}`;
+      // ONE-BASED on screen. The rungs are talked about as "level 5 is when
+      // the agents come", and a HUD that calls the first rung 0 makes the top
+      // one 4 — off by one from every conversation anyone has about it.
+      if (expLevel) expLevel.textContent = `EXPOSURE ${lvl + 1} · ${info.name}`;
       if (expQuote) expQuote.textContent = info.quote;
       if (expBox) {
         expBox.classList.remove('lvl1', 'lvl2', 'lvl3', 'lvl4');
@@ -506,6 +517,15 @@ async function main() {
     quests, workshop, hive, exposure, belt, taught,
   };
   const saves = new ProgressWriter(progressWorld);
+  // A save nobody is told about is a save nobody trusts. One pip, briefly.
+  const saveTick = document.getElementById('saveTick');
+  let saveTickT: number | undefined;
+  saves.onWrite = () => {
+    if (!saveTick) return;
+    saveTick.classList.add('show');
+    clearTimeout(saveTickT);
+    saveTickT = setTimeout(() => saveTick.classList.remove('show'), 1400) as unknown as number;
+  };
 
   const rescue = new Rescue();
   rescue.onRescue = () => {
@@ -551,6 +571,11 @@ async function main() {
   const settings = new Settings();
   const attract = new AttractCamera();
   settings.onChange = (v) => {
+    // FOV lives on the camera, and SpeedFx rebases off it — set it in both
+    // places or the speed kick springs back to the old base on the next frame.
+    followCam.camera.fov = v.fov;
+    followCam.camera.updateProjectionMatrix();
+    speedFx.rebase(v.fov);
     // The plan called this `setVolume`; the method Sound actually ships is
     // `setMasterVolume`. It no-ops until the audio graph exists, which is why
     // Play re-applies it right after start().
@@ -560,10 +585,33 @@ async function main() {
     speedFx.reduced = v.reducedMotion;
     attract.reducedMotion = v.reducedMotion;
   };
+  onHudToggle = () => settings.syncHudFromDom();
   settings.apply();
 
   const screens = new Screens({
     settings,
+    // A snapshot, taken when the screen opens. The Journal is a read-only
+    // record of the run, not a live view of the simulation.
+    journal: () => ({
+      salvage: hive.stored,
+      lifetime: hive.lifetime,
+      quests: quests.all().map((q, i) => ({
+        title: q.title,
+        done: i < quests.completedCount,
+        objectives: q.objectives.map((o) => ({
+          text: o.text, have: o.have, need: o.need,
+        })),
+      })).filter((_, i) => i <= quests.completedCount),
+      blueprints: BLUEPRINTS.map((b) => ({
+        icon: b.icon,
+        name: b.name,
+        effect: b.effect,
+        cost: b.cost,
+        state: workshop.built.has(b.id)
+          ? 'built' as const
+          : workshop.known.has(b.id) ? 'known' as const : 'locked' as const,
+      })),
+    }),
     hasSave: () => hasProgress(),
     play: () => {
       // ONE click does both: WebAudio needs a gesture and so does pointer
@@ -705,7 +753,11 @@ async function main() {
     if (running && workshopUI.open) {
       const nav = act.menuDelta + act.cycleDelta;
       if (nav !== 0) workshopUI.move(Math.sign(nav), hive.stored);
-      if (act.usePressed) {
+      // The shell's menus take Enter/A to confirm and B to back out. The
+      // workshop predates them and only took E/RB; accepting both means one
+      // menu grammar across the whole game rather than two.
+      if (act.cancelPressed) workshopUI.hide();
+      if (act.usePressed || act.confirmPressed) {
         const bought = workshopUI.confirm(hive.stored, buildCtx);
         if (bought) {
           hive.spend(bought.cost);

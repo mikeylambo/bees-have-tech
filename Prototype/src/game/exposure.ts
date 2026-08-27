@@ -12,12 +12,21 @@ import { params } from '../core/tuning';
 // who is covering for you) drives the meter DOWN while looking straight at
 // you — being seen by the right person is now a hiding place.
 
+/**
+ * The five rungs, and what the household files you under at each.
+ *
+ * Each one is a different REGISTER rather than a stronger adjective, which is
+ * what makes the ladder read as escalation instead of as a volume knob:
+ * irritating -> harmful -> inexplicable -> dangerous. The quotes are what a
+ * person would actually say at that rung, because the meter is their opinion
+ * and not a score.
+ */
 export const EXPOSURE_LEVELS = [
-  { name: 'NATURE', quote: '"just a bee"', at: 0 },
-  { name: 'NUISANCE', quote: '"annoying bee"', at: 25 },
-  { name: 'INFESTATION', quote: '"we have a problem"', at: 50 },
+  { name: 'NATURAL', quote: '"just a bee"', at: 0 },
+  { name: 'NUISANCE', quote: '"shoo"', at: 25 },
+  { name: 'MENACE', quote: '"it is doing that on purpose"', at: 50 },
   { name: 'ANOMALY', quote: '"that bee has a LASER"', at: 75 },
-  { name: 'SPECIES', quote: '"first contact"', at: 100 },
+  { name: 'THREAT', quote: '"who do we call about this"', at: 100 },
 ] as const;
 
 export class Exposure {
