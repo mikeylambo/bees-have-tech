@@ -37,6 +37,7 @@ Auto-deploys from `main`; build root is `Prototype/`.
 | R | Hive Workshop — only at the hive mouth |
 | **X (hold)** | **Come home** — rescues a wedged bee to the hive |
 | **Esc** | **Pause** — the world stops dead behind the menu |
+| Journal | In the pause menu: quests, blueprints, and the bank |
 | Mouse | Look · H hides the HUD |
 
 Gamepad: L-stick fly · R-stick look · RT/LT altitude · **A** overdrive ·

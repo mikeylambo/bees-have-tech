@@ -121,12 +121,14 @@ export function applyProgress(
   return true;
 }
 
-export function writeProgress(w: ProgressWorld) {
+export function writeProgress(w: ProgressWorld): boolean {
   try {
     localStorage.setItem(KEY, JSON.stringify(captureProgress(w)));
+    return true;
   } catch {
     // Quota or private mode. A run that cannot be saved is still a run worth
     // playing, and there is nothing useful to say about it mid-flight.
+    return false;
   }
 }
 
@@ -143,17 +145,26 @@ export function clearProgress() {
  */
 export class ProgressWriter {
   private timer: number | undefined;
+  /**
+   * Fired after a successful write. A save nobody is told about is a save
+   * nobody trusts — you never learn it is safe to close the tab.
+   */
+  onWrite?: () => void;
 
   constructor(private world: ProgressWorld, private delayMs = 900) {}
 
   touch() {
     clearTimeout(this.timer);
-    this.timer = setTimeout(() => writeProgress(this.world), this.delayMs) as unknown as number;
+    this.timer = setTimeout(() => this.write(), this.delayMs) as unknown as number;
   }
 
   /** Write right now — pausing, quitting, closing the tab. */
   flush() {
     clearTimeout(this.timer);
-    writeProgress(this.world);
+    this.write();
+  }
+
+  private write() {
+    if (writeProgress(this.world)) this.onWrite?.();
   }
 }

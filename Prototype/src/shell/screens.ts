@@ -1,6 +1,6 @@
 import type { Actions } from '../core/input';
 import type { Settings } from './settings';
-import { SENS_MIN, SENS_MAX } from './settings';
+import { SENS_MIN, SENS_MAX, FOV_MIN, FOV_MAX } from './settings';
 
 // THE SCREENS — title, pause, settings, controls.
 //
@@ -136,7 +136,22 @@ export class Menu {
   }
 }
 
-export type ScreenId = 'title' | 'pause' | 'settings' | 'controls' | 'confirmNew';
+export type ScreenId =
+  | 'title' | 'pause' | 'settings' | 'controls' | 'confirmNew' | 'journal';
+
+/** Everything the Journal needs to describe a run back to the player. */
+export interface JournalEntry {
+  title: string;
+  done: boolean;
+  objectives: Array<{ text: string; have: number; need: number }>;
+}
+
+export interface JournalData {
+  quests: JournalEntry[];
+  salvage: number;
+  lifetime: number;
+  blueprints: Array<{ icon: string; name: string; effect: string; cost: number; state: 'built' | 'known' | 'locked' }>;
+}
 
 export interface ScreenHooks {
   hasSave: () => boolean;
@@ -145,6 +160,8 @@ export interface ScreenHooks {
   resume: () => void;
   quitToTitle: () => void;
   settings: Settings;
+  /** Read once per open — the Journal is a snapshot, not a live view. */
+  journal: () => JournalData;
 }
 
 const CONTROLS: Array<[string, string, string]> = [
@@ -241,9 +258,15 @@ export class Screens {
     const head = this.panel.querySelector('.sm-head') as HTMLElement;
     const keys = this.panel.querySelector('.sm-keys') as HTMLElement;
     this.panel.classList.toggle('wide', id === 'controls');
-    keys.innerHTML = this.stack.length > 1
-      ? '<b>W/S</b> choose &nbsp; <b>A/D</b> adjust &nbsp; <b>Enter</b>/<b>A</b> select &nbsp; <b>Esc</b>/<b>B</b> back'
-      : '<b>W/S</b> choose &nbsp; <b>Enter</b>/<b>A</b> select';
+    // Reference screens have nothing to choose or adjust, so they must not
+    // claim otherwise — a keys strip that lists controls the screen ignores
+    // is the kind of small lie that makes a player distrust the rest of it.
+    const reference = id === 'controls' || id === 'journal';
+    keys.innerHTML = reference
+      ? '<b>Esc</b>/<b>B</b> back'
+      : this.stack.length > 1
+        ? '<b>W/S</b> choose &nbsp; <b>A/D</b> adjust &nbsp; <b>Enter</b>/<b>A</b> select &nbsp; <b>Esc</b>/<b>B</b> back'
+        : '<b>W/S</b> choose &nbsp; <b>Enter</b>/<b>A</b> select';
 
     switch (id) {
       case 'title': {
@@ -291,11 +314,46 @@ export class Screens {
         head.innerHTML = '<div class="sm-h2">PAUSED</div>';
         this.menu.set([
           { kind: 'action', label: 'Resume', run: () => this.hooks.resume() },
+          { kind: 'action', label: 'Journal', run: () => this.push('journal') },
           { kind: 'action', label: 'Settings', run: () => this.push('settings') },
           { kind: 'action', label: 'Controls', run: () => this.push('controls') },
           { kind: 'action', label: 'Quit to title', run: () => this.hooks.quitToTitle() },
         ]);
         this.menu.focus('Resume');
+        break;
+      }
+
+      case 'journal': {
+        // Read-only. Everything here was previously visible ONLY by flying to
+        // the hive and opening the shop, which meant "what have I done and
+        // what do I own" was a trip across the property rather than a glance.
+        const j = this.hooks.journal();
+        head.innerHTML = '<div class="sm-h2">JOURNAL</div>'
+          + `<div class="sm-sub">${j.salvage} salvage banked`
+          + ` · ${j.lifetime} brought home all told</div>`;
+        this.menu.set([]);
+        const objRow = (o: { text: string; have: number; need: number }) => `
+          <div class="sm-obj${o.have >= o.need ? ' done' : ''}">
+            <span>${o.have >= o.need ? '✔' : '□'} ${o.text}</span>
+            <b>${o.need > 1 ? `${o.have}/${o.need}` : ''}</b>
+          </div>`;
+        const questBlock = j.quests.length === 0
+          ? '<div class="sm-note">Nothing yet.</div>'
+          : j.quests.map((q) => `
+              <div class="sm-jq${q.done ? ' done' : ''}">
+                <div class="sm-jq-title">${q.done ? '✔' : '▸'} ${q.title}</div>
+                ${q.done ? '' : q.objectives.map(objRow).join('')}
+              </div>`).join('');
+        const bpBlock = j.blueprints.map((b) => `
+          <div class="sm-bp ${b.state}">
+            <span class="ic">${b.icon}</span>
+            <span class="nm">${b.name}</span>
+            <span class="ef">${b.state === 'locked' ? 'not yet learned' : b.effect}</span>
+            <span class="ct">${b.state === 'built' ? 'BUILT' : b.state === 'known' ? b.cost : '—'}</span>
+          </div>`).join('');
+        this.list.innerHTML = `
+          <div class="sm-jhead">QUESTS</div>${questBlock}
+          <div class="sm-jhead">BLUEPRINTS</div>${bpBlock}`;
         break;
       }
 
@@ -321,8 +379,23 @@ export class Screens {
             get: () => s.values.invertY, set: (v) => s.set('invertY', v),
           },
           {
+            kind: 'slider', label: 'Field of view',
+            min: FOV_MIN, max: FOV_MAX, step: 5,
+            get: () => s.values.fov,
+            set: (v) => s.set('fov', Math.round(v)),
+            format: (v) => `${Math.round(v)}°`,
+          },
+          {
+            kind: 'toggle', label: 'Show HUD',
+            get: () => s.values.showHud, set: (v) => s.set('showHud', v),
+          },
+          {
             kind: 'toggle', label: 'Reduced motion',
             get: () => s.values.reducedMotion, set: (v) => s.set('reducedMotion', v),
+          },
+          {
+            kind: 'action', label: 'Reset to defaults', hint: 'all of the above',
+            run: () => { s.reset(); this.render(); },
           },
           {
             kind: 'note',

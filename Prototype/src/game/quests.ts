@@ -277,6 +277,11 @@ export class QuestLog {
     return this.index;
   }
 
+  /** Read-only view of the chain, for the Journal. Content, never mutation. */
+  all(): readonly Quest[] {
+    return this.quests;
+  }
+
   get total(): number {
     return this.quests.length;
   }
