@@ -1133,6 +1133,68 @@ follows; this was the one place that had quietly opted out.
 
 Verified in a sixth suite, alongside the five existing ones.
 
+### Type — three faces, one of which moves ✅ BUILT
+
+Every screen in this build was `ui-monospace`. That is the typeface of a
+terminal, which was honest while the whole thing WAS a tuning panel, and became
+a lie the moment there was a title screen. Twenty-three identical
+`font-family` declarations, all of them saying "dev tool with a game behind
+it".
+
+Three faces now, self-hosted, each with a rule about when it is used — because
+three fonts without rules is not a system, it is three fonts.
+
+| | face | job |
+|---|---|---|
+| **machinery** | Archivo (variable: wght 300–900, **wdth 62–125**) | menus, HUD, quest titles, the objective verb |
+| **voice** | Fraunces Italic (SOFT 60, WONK 1, pinned) | quotes, asides, anything the game says in its own register |
+| **keys** | JetBrains Mono | keycaps, and nothing else |
+
+Archivo is an industrial grotesque, which is what a bee wearing tech should
+sound like. Fraunces is the comedy: every quote in this game is somebody's
+*opinion* — *"just a bee"*, *"I have had ENOUGH of this bee"*, *"it is a bee,
+Marla"* — and a soft, faintly wonky old-style italic gives those a human
+register against the hard grotesque of everything they are reacting to. Its
+wonk and softness are pinned in the file itself, because one voice is wanted
+here, not a slider.
+
+The mono is the one that needed a rule most. A monospace that means "this is a
+thing you press" is doing work; a monospace that means "this is a user
+interface" is a placeholder. So it survives on keycaps only, and the digits it
+used to line up are handled by `font-variant-numeric: tabular-nums` on the
+body instead — counters and distances still don't jitter, without a second
+family to buy it.
+
+**The one piece of type that moves.** The exposure tier is the only word on
+screen whose *meaning* escalates, so it is the only one that gets to change
+shape. Weight and width ride the meter itself rather than the rung:
+
+| | wght | wdth | tracking |
+|---|---|---|---|
+| 0 | 400 | 84% | 0.16em |
+| 50 | 650 | 104% | 0.085em |
+| 100 | 900 | 125% | 0.01em |
+
+NATURAL is light, wide-set and airy — it does not want your attention. THREAT
+is black, fully extended and nearly touching itself. Continuous, not stepped,
+so the word visibly thickens *between* rungs while the household makes up its
+mind; the rungs are where it changes colour and what it says. Measured in
+browser: `wght 415 / wdth 85.2` at 3%, `wght 895 / wdth 124.6` at 99%.
+
+This is what a variable font is FOR, and it is the reason the width axis was
+worth its bytes. Same five letters doing work a colour swap was doing alone.
+
+**Self-hosted, deliberately.** 199 KB of woff2 in `public/fonts/`, latin
+subset, axis-reduced by the request that fetched them. A `<link>` to a font
+CDN would have been one line, and it would have meant the boot screen — which
+is inline HTML and paints before a single byte of JavaScript — rendering in a
+fallback and reflowing a moment later, on a third party's uptime. Archivo is
+preloaded for that reason; it is the face that paints first.
+
+One thing this changed that is worth knowing: Archivo's x-height sits lower
+than the monospace it replaced, so the smallest *reading* text needed its
+point back. The labels and kickers did not — they are meant to be small.
+
 ### Still open, and named honestly
 
 - **The exposure meter is decorative.** `exposure.level` has no consumers
