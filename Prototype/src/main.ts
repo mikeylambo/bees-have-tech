@@ -26,6 +26,7 @@ import { Workshop, BLUEPRINTS, type BuildContext } from './game/blueprints';
 import { QuestLog, buildQuests } from './game/quests';
 import { RadialMenu } from './ui/radial';
 import { QuestHud } from './ui/questHud';
+import { CastCard } from './ui/castCard';
 import { WorkshopUI } from './ui/workshop';
 import { Household, type HouseholdSense } from './world/household';
 import { Exposure } from './game/exposure';
@@ -641,6 +642,19 @@ async function main() {
 
   const onboarding = new Onboarding(teachOnce);
 
+  // Introduce the cast. M8 gave the property four residents whose disagreement
+  // IS the exposure meter, and the player met all of that as four anonymous
+  // figures on a lawn. Each of them gets one card, the first time they clock
+  // you — which is the moment it means something — and it rides in the same
+  // taught set as everything else, so once means once.
+  const castCard = new CastCard();
+  function meet(id: string, role: string, name: string, quote: string, color: number) {
+    if (taught.has(`met:${id}`)) return;
+    taught.add(`met:${id}`);
+    saves.touch();
+    castCard.show({ id, name, role, quote, color });
+  }
+
   // The cut has to be VISIBLE, not just recorded. Tiles outside the grass
   // window scatter fresh when you fly to them and read mown for free; this
   // handles the ones under your nose, and only fires when the blades actually
@@ -648,10 +662,13 @@ async function main() {
   mower.onCut = (x, z) => grass.invalidateAt(x, z);
   // Weather, announced. A machine starting itself is the property having a
   // life of its own, and it is worth saying once so it doesn't read as a bug.
-  mower.onWake = () => teachOnce(
-    'mower',
-    'Something just started itself out on the west lawn.',
-  );
+  mower.onWake = () => {
+    teachOnce('mower', 'Something just started itself out on the west lawn.');
+    // The one thing on the property that hunts you deserves an introduction
+    // as much as the people do.
+    meet('mower', 'THE GROUNDSKEEPER', 'Robot Mower',
+      '"it does the lawns on Tuesdays"', 0xd8683a);
+  };
 
   shell.onChange = (to, from) => {
     // Flush when you STOP PLAYING — not on every transition. Flushing on the
@@ -660,6 +677,7 @@ async function main() {
     if (from === 'playing') saves.flush();
     if (to === 'title') {
       attract.reset();
+      castCard.clear();
       screens.show('title');
     } else if (to === 'paused') {
       screens.show('pause');
@@ -675,7 +693,7 @@ async function main() {
 
   Object.assign(
     (window as unknown as Record<string, Record<string, unknown>>).__debug,
-    { screens, settings, attract, onboarding },
+    { screens, settings, attract, onboarding, castCard },
   );
 
   bootEl?.classList.add('gone');
@@ -935,6 +953,11 @@ async function main() {
         input.rumble(0.2, 0.3, 90);
       }
     }
+    // Anyone seeing you for the first time introduces themselves.
+    for (const who of sense.seenBy) {
+      meet(who.profile.id, who.profile.role, who.name,
+        who.profile.quote, who.profile.colors.shirt);
+    }
     teachHousehold(sense);
     if (running) {
       onboarding.update(dt, {
@@ -947,10 +970,21 @@ async function main() {
     quests.update(dt);
     quests.checkVisit(beePos);
     questHud.update(dt);
+    // Sim time, not wall time: pausing mid-introduction holds the card rather
+    // than burning it behind the menu.
+    castCard.update(dt);
     const mark = quests.marker();
     questHud.marker(
       followCam.camera, mark?.point ?? null, mark?.label ?? '', beePos,
     );
+    // The pill's ring reads count progress when there is a count, and
+    // PROXIMITY when the objective is a single thing to reach — which on
+    // 10,800 m² is the most useful number the HUD can show.
+    const obj = quests.currentObjective();
+    const reach = mark?.point && obj
+      ? 1 - Math.min(1, beePos.distanceTo(mark.point) / m(28))
+      : 0;
+    questHud.objective(running ? obj : null, reach);
 
     bee.update(dt, beePos, beeVel, state.boost);
     // Sense of speed: pollen streaming past, then the camera's reaction to it.

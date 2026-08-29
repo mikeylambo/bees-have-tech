@@ -27,7 +27,15 @@ export type ObjectiveKind = 'deliver' | 'visit' | 'hack' | 'build' | 'event';
 
 export interface Objective {
   kind: ObjectiveKind;
+  /** The full sentence, for the tracker and the offer card. */
   text: string;
+  /**
+   * Two or three words, imperative. This is what the objective pill shows,
+   * and it is a different job from `text`: the tracker explains the task, the
+   * pill answers "what am I doing right now" at a glance while flying at
+   * 3.4 m/s. Long sentences do not survive being read at speed.
+   */
+  verb: string;
   need: number;
   have: number;
   /** deliver: which salvage counts. */
@@ -80,11 +88,19 @@ export interface QuestWorld {
   pottingShed: THREE.Vector3;
 }
 
+const VERB: Record<SalvageKind, string> = {
+  battery: 'Steal Batteries',
+  board: 'Steal Boards',
+  cap: 'Steal Caps',
+  screw: 'Steal Screws',
+};
+
 const deliver = (
   salvage: SalvageKind, need: number, hive: THREE.Vector3,
   findAt?: THREE.Vector3, findLabel?: string,
 ): Objective => ({
   kind: 'deliver',
+  verb: VERB[salvage],
   text: `Deliver ${need} ${SALVAGE_LABEL[salvage]}${need > 1 ? 's' : ''} to the hive`,
   need,
   have: 0,
@@ -104,6 +120,7 @@ export function buildQuests(w: QuestWorld): Quest[] {
       pitch: 'Something in the west gate pillar is humming. That would be everyone you know.',
       objectives: [{
         kind: 'visit',
+        verb: 'Find The Hive',
         text: 'Find the hive in the gate pillar',
         need: 1,
         have: 0,
@@ -138,6 +155,7 @@ export function buildQuests(w: QuestWorld): Quest[] {
       hint: 'Hover at the hive mouth and press R (or Y) to open the workshop.',
       objectives: [{
         kind: 'build',
+        verb: 'Build Something',
         text: 'Build anything at the hive workshop',
         need: 1,
         have: 0,
@@ -196,6 +214,7 @@ export function buildQuests(w: QuestWorld): Quest[] {
       objectives: [
         {
           kind: 'hack',
+          verb: 'Hack The Sprinkler',
           text: 'Hack the sprinkler',
           need: 1,
           have: 0,
@@ -205,6 +224,7 @@ export function buildQuests(w: QuestWorld): Quest[] {
         },
         {
           kind: 'event',
+          verb: 'Electrify It',
           text: 'Electrify the puddle',
           need: 1,
           have: 0,
@@ -227,6 +247,7 @@ export function buildQuests(w: QuestWorld): Quest[] {
       hint: 'The stinger is not tech. It came with the bee.',
       objectives: [{
         kind: 'event',
+        verb: 'Sting Somebody',
         text: 'Sting somebody',
         need: 1,
         have: 0,

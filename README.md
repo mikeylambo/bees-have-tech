@@ -52,7 +52,7 @@ Every menu is fully drivable by pad alone and by keyboard alone.
 | [CONCEPT_PILLARS.md](CONCEPT_PILLARS.md) | Identity, pillars, what this game is NOT |
 | [SLICE_PLAN.md](SLICE_PLAN.md) | Scope, core loop, milestones M0–M5 |
 | [Prototype/](Prototype/) | Playable build — Three.js + Rapier + TypeScript + Vite |
-| [Prototype/src/world/property.ts](Prototype/src/world/property.ts) | The built environment: fences, house, deck, shed, beds, neighbourhood |
+| [Prototype/src/world/estateWorld.ts](Prototype/src/world/estateWorld.ts) | The built environment: everything on the estate, derived from the zone table |
 | [Prototype/src/game/quests.ts](Prototype/src/game/quests.ts) | Quest chain and objective tracking |
 | [Prototype/src/game/blueprints.ts](Prototype/src/game/blueprints.ts) | Workshop catalog — what salvage buys |
 | [Prototype/src/world/grass.ts](Prototype/src/world/grass.ts) | The grass field that rides along with the bee |
@@ -74,6 +74,8 @@ Every menu is fully drivable by pad alone and by keyboard alone.
 - **M9 — The estate** ✅ The 90 × 120 m property IS the game now. The backyard is gone.
 - **The shell** ✅ Title, pause, settings, rescue, and a run that survives a refresh
 - **M10 — The mower** ✅ A roaming, hackable hazard that leaves the lawn cut behind it
+- **Refinement** ✅ Save tick, fuller settings, the Journal, and a renamed exposure ladder
+- **Premium pass** ✅ The objective pill and cast cards — patterns studied from *Dumpster Gang*
 
 ## The property
 
@@ -110,6 +112,11 @@ So "don't be seen" becomes "be seen by the right person", which is a better
 game than a stealth cone. The exposure bar names its watchers: ▲ for the ones
 raising it, ▼ for the one who isn't.
 
+The first time each of them clocks you, they introduce themselves — name, job
+in the household, their line about you, and a colour swatch matching the shirt
+you'll be seeing across the lawn. Once each, ever, and it survives a refresh.
+The mower gets one too.
+
 ## The thing on the lawn
 
 A robot mower works the lawn panels on its own schedule. At bee scale it is a
@@ -134,6 +141,17 @@ while it's open, so the human keeps walking toward you while you shop.
 
 Salvage is finite and the catalog costs more than a careless run collects.
 Choosing what to wear is the point.
+
+## What the HUD tells you
+
+Centre-top, under the exposure bar, is the **objective pill**: the thing you
+are doing right now as an instruction — *Steal Batteries*, *Find The Hive* —
+wrapped in a ring. The ring fills with the count when the objective counts
+things, and with **how close you are** when it is one place to reach, going
+green in the last stretch. On a hundred metres of property that proximity read
+is the difference between a waypoint and a direction.
+
+The quest tracker keeps the full sentence; the pill keeps the verb.
 
 ## Scale and speed
 

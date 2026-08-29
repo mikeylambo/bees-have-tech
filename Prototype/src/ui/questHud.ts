@@ -32,6 +32,11 @@ export class QuestHud {
   private wpLabel: HTMLElement;
   private wpDist: HTMLElement;
   private toastTimer = 0;
+  private pill: HTMLElement;
+  private pillVerb: HTMLElement;
+  private pillCount: HTMLElement;
+  private pillRing: SVGCircleElement;
+  private lastPill = '';
 
   constructor() {
     const mk = (id: string, html = '') => {
@@ -45,6 +50,26 @@ export class QuestHud {
     this.track = mk('questTrack');
     this.card = mk('questCard');
     this.toast = mk('questToast');
+
+    // THE OBJECTIVE PILL.
+    //
+    // The tracker in the corner EXPLAINS the task; this answers "what am I
+    // doing right now" at a glance while flying at 3.4 m/s, which is a
+    // different job and needs a different amount of text. Two or three words
+    // and a ring, centred where the eye already is.
+    this.pill = document.createElement('div');
+    this.pill.id = 'objPill';
+    this.pill.innerHTML = `
+      <svg class="op-ring" viewBox="0 0 24 24" aria-hidden="true">
+        <circle class="op-track" cx="12" cy="12" r="9.5" />
+        <circle class="op-fill" cx="12" cy="12" r="9.5" />
+      </svg>
+      <span class="op-verb"></span>
+      <span class="op-count"></span>`;
+    document.body.appendChild(this.pill);
+    this.pillVerb = this.pill.querySelector('.op-verb') as HTMLElement;
+    this.pillCount = this.pill.querySelector('.op-count') as HTMLElement;
+    this.pillRing = this.pill.querySelector('.op-fill') as SVGCircleElement;
     this.banner = mk('questBanner');
     this.waypoint = mk(
       'waypoint',
@@ -123,6 +148,41 @@ export class QuestHud {
       <div class="qt-title">Nothing left to prove</div>
       <div class="qt-hint">The yard is yours. Go break it.</div>`;
     this.track.classList.add('show');
+  }
+
+  /**
+   * The pill, once a frame.
+   *
+   * `proximity` is 0..1 and only used when the objective is a single thing to
+   * REACH rather than a count to fill. A ring that sits empty until the one
+   * moment it fills is a ring doing nothing; on a 90 x 120 m property, "how
+   * close am I" is the honest progress for that kind of objective — and it is
+   * the closest thing the build has to spatial awareness.
+   */
+  objective(o: Objective | null, proximity: number) {
+    if (!o) {
+      this.pill.classList.remove('show');
+      this.lastPill = '';
+      return;
+    }
+    const counted = o.need > 1;
+    const t = counted ? o.have / o.need : proximity;
+    const key = `${o.verb}|${o.have}/${o.need}`;
+    if (key !== this.lastPill) {
+      this.lastPill = key;
+      this.pillVerb.textContent = o.verb;
+      this.pillCount.textContent = counted ? `${o.have}/${o.need}` : '';
+      // Re-trigger the entrance whenever the objective itself changes, not on
+      // every tick of the ring.
+      this.pill.classList.remove('show');
+      void this.pill.offsetWidth;
+    }
+    this.pill.classList.add('show');
+    // 59.7 is the circumference of r=9.5, drawn as a dash offset so the ring
+    // fills without any per-frame path maths.
+    this.pillRing.style.strokeDashoffset =
+      `${59.7 * (1 - Math.max(0, Math.min(1, t)))}`;
+    this.pill.classList.toggle('near', !counted && t > 0.86);
   }
 
   update(dt: number) {

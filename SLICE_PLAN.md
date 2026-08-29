@@ -1047,6 +1047,67 @@ The HUD counts from **one**. The rungs get talked about as "level 5 is when
 the agents come", and a readout that calls the first rung 0 makes the top one
 4 — off by one from every conversation anyone has about it.
 
+### Reference pass — Dumpster Gang, and what actually transfers ✅ BUILT
+
+*Dumpster Gang* (Coyote House Games / Curve Games, Dec 2026) is a co-op
+raccoon game: small animals, a human neighbourhood, physics props, and an
+escalation that eventually puts an Exterminator on the street. Close enough
+to this build's shape that it is worth studying, and far enough away in tone
+that copying its look would be a mistake.
+
+**What it does that we do not, ranked by what it buys:**
+
+1. **The antagonist is INTRODUCED.** Its Exterminator arrives on a full
+   character card — portrait, name, title — before he is a problem. A
+   silhouette you have been introduced to is a different object from a
+   silhouette. Ours: four residents whose disagreement *is* the exposure
+   meter, met as four anonymous figures on a lawn.
+2. **The chaos meter has a consequence.** Accumulated mess summons the
+   Exterminator; getting caught is a fail state you recover from rather than
+   a game over. Ours escalates a label and nothing else — the gap already
+   named below, and independent confirmation that it is the right one to
+   close.
+3. **The current objective is on screen as a VERB.** Not a distance to a
+   diamond: a two-word instruction with its own progress.
+4. Co-op, character customisation, and a stylised outlined display type —
+   all real, none of them things this build should chase now. The type
+   especially: we already have one visual language (honey-gold `#ffd75e` on
+   near-black, `ui-monospace`), and a second one bolted on reads as an asset
+   pack, not as polish.
+
+So two patterns came across, rendered in our own language rather than theirs.
+
+**The objective pill.** Centre-top, under the exposure bar: the current
+objective as an imperative — *Steal Batteries*, *Reach the shed* — with a
+circular ring around a counter. The ring reads `have/need` when the objective
+counts things, and **proximity** (`1 − dist/28 m`) when it is a single place
+to reach, going warm inside 86%. That second mode is the useful one: it is
+the first spatial feedback the build has ever had on 10,800 m², and it costs
+one number that was already being computed for the marker.
+
+The verb had to be added to the data — an objective knew it needed three
+caps, but not that the word for that is *steal*. `Objective.verb` now carries
+it, and salvage kinds map through one table, so a new quest gets a readable
+instruction for free.
+
+**Cast cards.** A lower-third the first time each resident clocks you: name,
+their job in the household (`THE SHORT FUSE`), their line about you, and a
+colour swatch matching their shirt — which is the one thing a 3D portrait
+would otherwise have to carry, because it makes the card and the figure on
+the lawn obviously the same person. The mower gets one too; the thing that
+hunts you deserves an introduction as much as the people do. Fired once ever,
+remembered in the save's `taught` set as `met:<id>`.
+
+**The bug it surfaced.** The card was driven by two clocks — a 4.2 s CSS
+`@keyframes` on the wall clock, and the JS hold timer on sim time. They agree
+right up until you pause mid-introduction, at which point the card fades
+while the timer says hold. Replaced the animation with a transition and moved
+the timer onto `dt`, so there is exactly one clock and the shell's freeze
+means frozen here too. That is the same rule the rest of the shell already
+follows; this was the one place that had quietly opted out.
+
+Verified in a sixth suite, alongside the five existing ones.
+
 ### Still open, and named honestly
 
 - **The exposure meter is decorative.** `exposure.level` has no consumers
@@ -1054,9 +1115,11 @@ the agents come", and a readout that calls the first rung 0 makes the top one
   ends — the ladder the design doc calls the spine is a label that changes
   colour, and you can sit at 100 indefinitely. This is the largest structural
   gap in the build and the cheapest large thing to fix.
-- **No spatial awareness on 10,800 m².** One waypoint, no compass, no map,
-  and the mower is audible but not locatable — its audio is mono gain by
-  distance with no direction.
+- **Still thin on spatial awareness over 10,800 m².** The objective pill's
+  proximity ring is the first real answer — you now know whether you are
+  getting warmer — but there is still no compass and no map, and the mower is
+  audible without being locatable: its audio is mono gain by distance with no
+  direction.
 - **The in-game hint strip is a permanent dev crutch**, three lines deep,
   now that a Controls screen exists to hold the same information.
 
