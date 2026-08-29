@@ -572,43 +572,71 @@
         #castCard.show { transform: none; }
       }
 
-      /* ---- THE OBJECTIVE PILL ----
-         Borrowed as a PATTERN from Dumpster Gang's verb capsules, rendered in
-         our own language rather than theirs: same honey-gold on near-black,
-         same ui-monospace, same hairline border as everything else. A title
-         screen that looks like a different product than the HUD is bad; a HUD
-         that looks like a different GAME is worse. */
+      /* ---- THE OBJECTIVE TAG: A COMB, AND A PILL OUT OF IT ----
+         Dumpster Gang's verb capsule is the right IDEA — say what you are
+         doing, centre-top, at a glance — and the wrong shape to borrow, because
+         a capsule with a ring in it is what every game does and none of it is
+         ours. So the gauge is a honeycomb cell that FILLS WITH HONEY, and the
+         text rides a pill protruding from behind it.
+
+         A comb reads as a fraction without being measured: half a cell is a
+         shape your eye gets for free, where an arc is something you have to
+         estimate. And it costs the same single number the ring did. */
       #objPill {
-        position: fixed; left: 50%; top: 68px; z-index: 10;
+        position: fixed; left: 50%; top: 62px; z-index: 10;
         transform: translateX(-50%) translateY(-6px);
-        display: flex; align-items: center; gap: 9px;
-        padding: 6px 15px 6px 8px; border-radius: 999px;
-        background: rgba(20, 24, 18, 0.78);
-        border: 1px solid rgba(255, 215, 94, 0.42);
-        box-shadow: 0 6px 22px rgba(0, 0, 0, 0.45);
+        display: flex; align-items: center;
         font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
         color: #fff; pointer-events: none; opacity: 0;
-        transition: opacity 220ms ease-out, transform 220ms ease-out,
-                    border-color 200ms linear;
+        transition: opacity 220ms ease-out, transform 220ms ease-out;
       }
       #objPill.show { opacity: 1; transform: translateX(-50%) translateY(0); }
-      /* Close enough that the ring is nearly full — the one moment the pill
-         should pull the eye. */
-      #objPill.near { border-color: rgba(99, 255, 168, 0.75); }
-      #objPill .op-ring { width: 22px; height: 22px; transform: rotate(-90deg); }
-      #objPill circle { fill: none; stroke-width: 2.5; }
-      #objPill .op-track { stroke: rgba(255, 255, 255, 0.16); }
-      #objPill .op-fill {
-        stroke: #ffd75e; stroke-linecap: round;
-        stroke-dasharray: 59.7; stroke-dashoffset: 59.7;
-        transition: stroke-dashoffset 160ms linear, stroke 200ms linear;
+
+      /* The cell sits ON TOP of the pill and is opaque, so the seam where the
+         pill emerges is hidden rather than showing as a double-dark overlap. */
+      #objPill .op-comb {
+        width: 28px; height: 32px; position: relative; z-index: 1;
+        filter: drop-shadow(0 4px 10px rgba(0, 0, 0, 0.5));
+        transition: filter 220ms ease-out;
       }
-      #objPill.near .op-fill { stroke: #63ffa8; }
+      #objPill .op-cell { fill: rgba(18, 22, 16, 0.96); }
+      #objPill .op-rim {
+        fill: none; stroke: rgba(255, 215, 94, 0.62); stroke-width: 1.7;
+        stroke-linejoin: round; transition: stroke 200ms linear;
+      }
+      #objPill .op-honey { fill: url(#opHoney); transition: y 160ms linear; }
+      /* The surface line is what makes it read as liquid rather than as a bar
+         that happens to be hexagonal. */
+      #objPill .op-meniscus {
+        fill: rgba(255, 250, 226, 0.9); transition: y 160ms linear;
+      }
+
+      /* The pill proper. Its left end is tucked under the comb, which is why
+         the padding is lopsided — the text has to clear the cell, not the box. */
+      #objPill .op-tag {
+        margin-left: -13px; padding: 5px 15px 5px 22px;
+        display: flex; align-items: baseline; gap: 8px;
+        border-radius: 999px;
+        background: rgba(20, 24, 18, 0.82);
+        border: 1px solid rgba(255, 215, 94, 0.42);
+        box-shadow: 0 6px 22px rgba(0, 0, 0, 0.45);
+        transition: border-color 200ms linear;
+      }
       #objPill .op-verb {
         font-size: 13px; font-weight: 700; letter-spacing: 0.04em;
       }
       #objPill .op-count { font-size: 11px; color: #ffd75e; }
       #objPill .op-count:empty { display: none; }
+
+      /* Nearly there. The comb glows the colour it is already full of — a
+         green here would be a second language for one moment of one widget. */
+      #objPill.near .op-rim { stroke: #ffe89a; }
+      #objPill.near .op-tag { border-color: rgba(255, 232, 154, 0.8); }
+      #objPill.near .op-comb {
+        filter: drop-shadow(0 4px 10px rgba(0, 0, 0, 0.5))
+                drop-shadow(0 0 7px rgba(255, 215, 94, 0.8));
+      }
+
       body.in-menu #objPill { display: none; }
       @media (prefers-reduced-motion: reduce) {
         #objPill { transition: opacity 220ms ease-out; }
