@@ -1075,15 +1075,40 @@ that copying its look would be a mistake.
    near-black, `ui-monospace`), and a second one bolted on reads as an asset
    pack, not as polish.
 
+The line to hold, and it is worth stating because it is easy to cross by
+accident: take the **question a widget answers**, never its shape. "What am I
+doing right now, centre-top, at a glance" is a genuine gap in our HUD. A
+capsule with a progress ring in it is just their answer to it, and adopting an
+answer wholesale is how a game ends up looking assembled rather than made.
+
 So two patterns came across, rendered in our own language rather than theirs.
 
-**The objective pill.** Centre-top, under the exposure bar: the current
-objective as an imperative — *Steal Batteries*, *Reach the shed* — with a
-circular ring around a counter. The ring reads `have/need` when the objective
-counts things, and **proximity** (`1 − dist/28 m`) when it is a single place
-to reach, going warm inside 86%. That second mode is the useful one: it is
-the first spatial feedback the build has ever had on 10,800 m², and it costs
-one number that was already being computed for the marker.
+**The objective tag — a comb, and a pill out of it.** Centre-top, under the
+exposure bar: the current objective as an imperative — *Steal Batteries*,
+*Find The Hive* — on a pill protruding from behind a **honeycomb cell**.
+
+The verb capsule was the right idea to take and the wrong shape to copy. Their
+gauge is a ring, which is what every game uses, and a HUD element that could
+belong to any of them is exactly the thing a distinct game should not have. So
+the gauge here is the CELL: it fills with honey from the bottom, with a bright
+surface line riding the top so it reads as liquid rather than as a bar that
+happens to be hexagonal.
+
+It is also the better gauge on its own terms. A half-full comb is a *shape* —
+you get the fraction without measuring it — where a half-swept arc is
+something the eye has to estimate against a circle it is also inferring. Same
+single number driving it either way: one rect sliding up behind a hexagonal
+clip, no per-frame path maths.
+
+The fill reads `have/need` when the objective counts things, and **proximity**
+(`1 − dist/28 m`) when it is a single place to reach, the rim brightening and
+the cell glowing inside the last 14%. That second mode is the useful one: it
+is the first spatial feedback the build has ever had on 10,800 m², and it
+costs one number that was already being computed for the marker.
+
+The geometry is not eyeballed. A regular hexagon with a circumradius of 19 is
+38 tall and 32.9 wide, which is where the path's numbers come from, and the
+same path is used three times — dark backing, honey clip, gold rim.
 
 The verb had to be added to the data — an objective knew it needed three
 caps, but not that the word for that is *steal*. `Objective.verb` now carries
@@ -1115,8 +1140,8 @@ Verified in a sixth suite, alongside the five existing ones.
   ends — the ladder the design doc calls the spine is a label that changes
   colour, and you can sit at 100 indefinitely. This is the largest structural
   gap in the build and the cheapest large thing to fix.
-- **Still thin on spatial awareness over 10,800 m².** The objective pill's
-  proximity ring is the first real answer — you now know whether you are
+- **Still thin on spatial awareness over 10,800 m².** The objective tag's
+  proximity fill is the first real answer — you now know whether you are
   getting warmer — but there is still no compass and no map, and the mower is
   audible without being locatable: its audio is mono gain by distance with no
   direction.

@@ -75,7 +75,7 @@ Every menu is fully drivable by pad alone and by keyboard alone.
 - **The shell** ✅ Title, pause, settings, rescue, and a run that survives a refresh
 - **M10 — The mower** ✅ A roaming, hackable hazard that leaves the lawn cut behind it
 - **Refinement** ✅ Save tick, fuller settings, the Journal, and a renamed exposure ladder
-- **Premium pass** ✅ The objective pill and cast cards — patterns studied from *Dumpster Gang*
+- **Premium pass** ✅ The honeycomb objective tag and cast cards — patterns studied from *Dumpster Gang*
 
 ## The property
 
@@ -144,14 +144,17 @@ Choosing what to wear is the point.
 
 ## What the HUD tells you
 
-Centre-top, under the exposure bar, is the **objective pill**: the thing you
-are doing right now as an instruction — *Steal Batteries*, *Find The Hive* —
-wrapped in a ring. The ring fills with the count when the objective counts
-things, and with **how close you are** when it is one place to reach, going
-green in the last stretch. On a hundred metres of property that proximity read
-is the difference between a waypoint and a direction.
+Centre-top, under the exposure bar, is the **objective tag**: a honeycomb cell
+with a pill protruding from behind it, carrying the thing you are doing right
+now as an instruction — *Steal Batteries*, *Find The Hive*.
 
-The quest tracker keeps the full sentence; the pill keeps the verb.
+The cell is the gauge, and it **fills with honey**. It fills with the count
+when the objective counts things, and with **how close you are** when it is one
+place to reach, glowing in the last stretch. On a hundred metres of property
+that proximity read is the difference between a waypoint and a direction.
+
+The quest tracker keeps the full sentence; the tag keeps the verb; the toast
+keeps the confirmation. Three surfaces, three jobs, one column.
 
 ## Scale and speed
 

@@ -15,6 +15,13 @@ import type { Objective, Quest } from '../game/quests';
 
 const _v = new THREE.Vector3();
 
+// One honeycomb cell, pointy-top, drawn once and reused three times: the dark
+// backing, the clip the honey rises inside, and the gold rim on top. A regular
+// hexagon with a circumradius of 19 is 38 tall and 32.9 wide, which is where
+// these numbers come from — they are not eyeballed.
+const CELL = 'M16.5 0 L33 9.5 L33 28.5 L16.5 38 L0 28.5 L0 9.5 Z';
+const CELL_H = 38;
+
 function objectiveRow(o: Objective): string {
   const done = o.have >= o.need;
   const count = o.need > 1 ? `<b>${o.have}/${o.need}</b>` : '';
@@ -35,7 +42,8 @@ export class QuestHud {
   private pill: HTMLElement;
   private pillVerb: HTMLElement;
   private pillCount: HTMLElement;
-  private pillRing: SVGCircleElement;
+  private pillHoney: SVGRectElement;
+  private pillMeniscus: SVGRectElement;
   private lastPill = '';
 
   constructor() {
@@ -51,25 +59,45 @@ export class QuestHud {
     this.card = mk('questCard');
     this.toast = mk('questToast');
 
-    // THE OBJECTIVE PILL.
+    // THE OBJECTIVE TAG — a honeycomb cell with a pill protruding from it.
     //
     // The tracker in the corner EXPLAINS the task; this answers "what am I
     // doing right now" at a glance while flying at 3.4 m/s, which is a
-    // different job and needs a different amount of text. Two or three words
-    // and a ring, centred where the eye already is.
+    // different job and needs a different amount of text. Two or three words,
+    // centred where the eye already is.
+    //
+    // The gauge is the CELL, and it fills with honey rather than sweeping a
+    // ring. A ring is every other game's progress indicator; a comb filling up
+    // is this one's, it costs the same one number, and it reads at a glance
+    // because a half-full cell is a shape and not an arc you have to measure.
     this.pill = document.createElement('div');
     this.pill.id = 'objPill';
     this.pill.innerHTML = `
-      <svg class="op-ring" viewBox="0 0 24 24" aria-hidden="true">
-        <circle class="op-track" cx="12" cy="12" r="9.5" />
-        <circle class="op-fill" cx="12" cy="12" r="9.5" />
+      <svg class="op-comb" viewBox="-2 -2 37 42" aria-hidden="true">
+        <defs>
+          <clipPath id="opCombClip"><path d="${CELL}" /></clipPath>
+          <linearGradient id="opHoney" gradientUnits="userSpaceOnUse"
+                          x1="0" y1="0" x2="0" y2="38">
+            <stop offset="0" stop-color="#ffe9a8" />
+            <stop offset="1" stop-color="#d99a1f" />
+          </linearGradient>
+        </defs>
+        <path class="op-cell" d="${CELL}" />
+        <g clip-path="url(#opCombClip)">
+          <rect class="op-honey" x="0" y="38" width="33" height="38" />
+          <rect class="op-meniscus" x="0" y="38" width="33" height="1.5" />
+        </g>
+        <path class="op-rim" d="${CELL}" />
       </svg>
-      <span class="op-verb"></span>
-      <span class="op-count"></span>`;
+      <div class="op-tag">
+        <span class="op-verb"></span>
+        <span class="op-count"></span>
+      </div>`;
     document.body.appendChild(this.pill);
     this.pillVerb = this.pill.querySelector('.op-verb') as HTMLElement;
     this.pillCount = this.pill.querySelector('.op-count') as HTMLElement;
-    this.pillRing = this.pill.querySelector('.op-fill') as SVGCircleElement;
+    this.pillHoney = this.pill.querySelector('.op-honey') as SVGRectElement;
+    this.pillMeniscus = this.pill.querySelector('.op-meniscus') as SVGRectElement;
     this.banner = mk('questBanner');
     this.waypoint = mk(
       'waypoint',
@@ -178,10 +206,12 @@ export class QuestHud {
       void this.pill.offsetWidth;
     }
     this.pill.classList.add('show');
-    // 59.7 is the circumference of r=9.5, drawn as a dash offset so the ring
-    // fills without any per-frame path maths.
-    this.pillRing.style.strokeDashoffset =
-      `${59.7 * (1 - Math.max(0, Math.min(1, t)))}`;
+    // The honey is one rect sliding up behind a hexagonal clip: no per-frame
+    // path maths, and the surface line rides with it so it reads as liquid
+    // rather than as a bar that happens to be hex-shaped.
+    const fill = CELL_H * (1 - Math.max(0, Math.min(1, t)));
+    this.pillHoney.setAttribute('y', fill.toFixed(2));
+    this.pillMeniscus.setAttribute('y', (fill - 0.75).toFixed(2));
     this.pill.classList.toggle('near', !counted && t > 0.86);
   }
 
