@@ -50,6 +50,7 @@ export const HOUSEHOLD: HumanProfile[] = [
   {
     id: 'handy',
     name: 'Dale',
+    role: 'THE HANDY ONE',
     quote: '"that is not stock bee hardware"',
     heightScale: 1.06,
     colors: {
@@ -65,6 +66,7 @@ export const HOUSEHOLD: HumanProfile[] = [
   {
     id: 'fuse',
     name: 'Marla',
+    role: 'THE SHORT FUSE',
     quote: '"I have had ENOUGH of this bee"',
     heightScale: 0.99,
     colors: {
@@ -79,6 +81,7 @@ export const HOUSEHOLD: HumanProfile[] = [
   {
     id: 'kid',
     name: 'Robin',
+    role: 'THE KID',
     quote: '"nobody look over here"',
     heightScale: 0.62,
     colors: {
@@ -94,6 +97,7 @@ export const HOUSEHOLD: HumanProfile[] = [
   {
     id: 'skeptic',
     name: 'Ned',
+    role: 'THE SKEPTIC',
     quote: '"it is a bee, Marla"',
     heightScale: 0.94,
     colors: {

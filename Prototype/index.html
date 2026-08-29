@@ -530,9 +530,95 @@
         margin-top: 10px; font-size: 11px; color: #63ffa8;
       }
 
-      /* The toast — small, frequent, unmissable for a second. */
+      /* ---- CAST CARDS ----
+         A lower third, not a full-screen takeover: you are still flying, and
+         the whole point is meeting somebody who is at that moment looking
+         straight at you. The swatch carries what a 3D portrait otherwise
+         would — this card and that figure on the lawn are one person. */
+      #castCard {
+        position: fixed; left: 6vw; bottom: 22vh; z-index: 12;
+        display: flex; align-items: stretch; gap: 12px;
+        max-width: min(380px, 62vw);
+        padding: 12px 18px 12px 12px; border-radius: 12px;
+        background: rgba(20, 24, 18, 0.88);
+        border: 1px solid rgba(255, 215, 94, 0.4);
+        box-shadow: 0 18px 46px rgba(0, 0, 0, 0.55);
+        font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+        color: #fff; pointer-events: none;
+        opacity: 0; transform: translateX(-14px);
+      }
+      /* A TRANSITION, not an animation. An animation runs on wall clock, and
+         the card's hold is counted in SIM time — so pausing mid-card used to
+         fade it out while the timer still said hold. One clock owns it now,
+         and it is the same one that owns everything else. */
+      #castCard {
+        transition: opacity 260ms ease-out, transform 260ms ease-out;
+      }
+      #castCard.show { opacity: 1; transform: translateX(0); }
+      #castCard .cc-swatch {
+        width: 5px; border-radius: 3px; background: #ffd75e; flex: 0 0 5px;
+      }
+      #castCard .cc-role {
+        font-size: 9px; letter-spacing: 0.24em; color: #ffd75e;
+      }
+      #castCard .cc-name {
+        font-size: 24px; font-weight: 700; letter-spacing: 0.01em;
+        margin: 3px 0 5px;
+      }
+      #castCard .cc-quote { font-size: 11.5px; color: #cfe0ca; font-style: italic; }
+      body.in-menu #castCard { display: none; }
+      @media (prefers-reduced-motion: reduce) {
+        #castCard { transition: opacity 260ms ease-out; }
+        #castCard.show { transform: none; }
+      }
+
+      /* ---- THE OBJECTIVE PILL ----
+         Borrowed as a PATTERN from Dumpster Gang's verb capsules, rendered in
+         our own language rather than theirs: same honey-gold on near-black,
+         same ui-monospace, same hairline border as everything else. A title
+         screen that looks like a different product than the HUD is bad; a HUD
+         that looks like a different GAME is worse. */
+      #objPill {
+        position: fixed; left: 50%; top: 68px; z-index: 10;
+        transform: translateX(-50%) translateY(-6px);
+        display: flex; align-items: center; gap: 9px;
+        padding: 6px 15px 6px 8px; border-radius: 999px;
+        background: rgba(20, 24, 18, 0.78);
+        border: 1px solid rgba(255, 215, 94, 0.42);
+        box-shadow: 0 6px 22px rgba(0, 0, 0, 0.45);
+        font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+        color: #fff; pointer-events: none; opacity: 0;
+        transition: opacity 220ms ease-out, transform 220ms ease-out,
+                    border-color 200ms linear;
+      }
+      #objPill.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+      /* Close enough that the ring is nearly full — the one moment the pill
+         should pull the eye. */
+      #objPill.near { border-color: rgba(99, 255, 168, 0.75); }
+      #objPill .op-ring { width: 22px; height: 22px; transform: rotate(-90deg); }
+      #objPill circle { fill: none; stroke-width: 2.5; }
+      #objPill .op-track { stroke: rgba(255, 255, 255, 0.16); }
+      #objPill .op-fill {
+        stroke: #ffd75e; stroke-linecap: round;
+        stroke-dasharray: 59.7; stroke-dashoffset: 59.7;
+        transition: stroke-dashoffset 160ms linear, stroke 200ms linear;
+      }
+      #objPill.near .op-fill { stroke: #63ffa8; }
+      #objPill .op-verb {
+        font-size: 13px; font-weight: 700; letter-spacing: 0.04em;
+      }
+      #objPill .op-count { font-size: 11px; color: #ffd75e; }
+      #objPill .op-count:empty { display: none; }
+      body.in-menu #objPill { display: none; }
+      @media (prefers-reduced-motion: reduce) {
+        #objPill { transition: opacity 220ms ease-out; }
+        #objPill.show { transform: translateX(-50%); }
+      }
+
+      /* The toast — small, frequent, unmissable for a second. Sits below the
+         pill, so the centre column reads exposure / objective / confirmation. */
       #questToast {
-        position: fixed; left: 50%; top: 62px; z-index: 21;
+        position: fixed; left: 50%; top: 108px; z-index: 21;
         transform: translateX(-50%); padding: 6px 14px; border-radius: 999px;
         background: rgba(14, 19, 12, 0.86);
         border: 1px solid rgba(255, 215, 94, 0.45);

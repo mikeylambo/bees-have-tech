@@ -22,6 +22,8 @@ export interface HumanProfile {
   id: string;
   /** Shown on the exposure HUD when this person can see you. */
   name: string;
+  /** Their job in the household — the cast card's kicker line. */
+  role: string;
   /** Their read on the situation, quoted when they clock you. */
   quote: string;
   /** Body height as a fraction of params.human.height. */
@@ -56,6 +58,7 @@ export interface HumanProfile {
 export const SOLO_PROFILE: HumanProfile = {
   id: 'solo',
   name: 'The Homeowner',
+  role: 'THE HOMEOWNER',
   quote: '"...huh."',
   heightScale: 1,
   colors: { shirt: 0xc4552f, pants: 0x3c4a63, skin: 0xd9a06b, shoe: 0x2a2723, hair: 0x3a2a1e },
