@@ -9,11 +9,22 @@
       href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><text y='26' font-size='26'>%F0%9F%93%90</text></svg>"
     />
     <style>
+      /* The blockout is linked from the title screen, so it is part of the
+         same product and wears the same face. Archivo only — there are no
+         quotes and no keycaps on a greybox. */
+      @font-face {
+        font-family: 'Archivo';
+        src: url('/fonts/archivo.woff2') format('woff2');
+        font-weight: 300 900; font-stretch: 62% 125%; font-style: normal;
+        font-display: swap;
+      }
+      :root { --ui: 'Archivo', 'Helvetica Neue', Arial, sans-serif; }
+
       html, body { margin: 0; height: 100%; overflow: hidden; background: #b9cddb; }
       #app { position: fixed; inset: 0; }
       canvas { display: block; }
       body {
-        font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+        font-family: var(--ui); font-variant-numeric: tabular-nums;
         color: #fff;
       }
       .panel {

@@ -256,10 +256,11 @@ async function main() {
 
   const swatFlash = document.getElementById('swatFlash');
   const expFill = document.getElementById('expFill');
-  const expLevel = document.getElementById('expLevel');
   const expQuote = document.getElementById('expQuote');
   const expBox = document.getElementById('exposure');
   const expSeen = document.getElementById('expSeen');
+  const expNum = document.getElementById('expNum');
+  const expTier = document.getElementById('expTier');
 
   function flashSwat() {
     if (!swatFlash) return;
@@ -444,6 +445,7 @@ async function main() {
   }
 
   let lastLevel = -1;
+  let lastShape = -1;
   let lastWatchers = '';
   function updateExposureHud(sense: HouseholdSense) {
     if (expFill) expFill.style.width = `${exposure.value}%`;
@@ -466,6 +468,20 @@ async function main() {
         }
       }
     }
+    // The one piece of type that moves. Weight and width ride the meter
+    // itself rather than the rung, so the word thickens and spreads as the
+    // household makes up its mind — the rungs are where it changes colour and
+    // what it SAYS, this is the pressure in between. Quantised to whole
+    // percent so a smooth meter is not a style write every frame.
+    const shape = Math.round(exposure.value);
+    if (expTier && shape !== lastShape) {
+      lastShape = shape;
+      const p = shape / 100;
+      expTier.style.fontVariationSettings =
+        `'wght' ${Math.round(400 + 500 * p)}, 'wdth' ${(84 + 41 * p).toFixed(1)}`;
+      expTier.style.letterSpacing = `${(0.16 - 0.15 * p).toFixed(3)}em`;
+      expTier.style.fontSize = `${(11 + 2.6 * p).toFixed(2)}px`;
+    }
     const lvl = exposure.level;
     if (lvl !== lastLevel) {
       lastLevel = lvl;
@@ -473,7 +489,8 @@ async function main() {
       // ONE-BASED on screen. The rungs are talked about as "level 5 is when
       // the agents come", and a HUD that calls the first rung 0 makes the top
       // one 4 — off by one from every conversation anyone has about it.
-      if (expLevel) expLevel.textContent = `EXPOSURE ${lvl + 1} · ${info.name}`;
+      if (expNum) expNum.textContent = `EXPOSURE ${lvl + 1} ·`;
+      if (expTier) expTier.textContent = info.name;
       if (expQuote) expQuote.textContent = info.quote;
       if (expBox) {
         expBox.classList.remove('lvl1', 'lvl2', 'lvl3', 'lvl4');

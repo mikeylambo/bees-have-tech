@@ -76,6 +76,7 @@ Every menu is fully drivable by pad alone and by keyboard alone.
 - **M10 — The mower** ✅ A roaming, hackable hazard that leaves the lawn cut behind it
 - **Refinement** ✅ Save tick, fuller settings, the Journal, and a renamed exposure ladder
 - **Premium pass** ✅ The honeycomb objective tag and cast cards — patterns studied from *Dumpster Gang*
+- **Type** ✅ Archivo / Fraunces / JetBrains Mono, and an exposure tier that changes shape as it escalates
 
 ## The property
 
@@ -155,6 +156,23 @@ that proximity read is the difference between a waypoint and a direction.
 
 The quest tracker keeps the full sentence; the tag keeps the verb; the toast
 keeps the confirmation. Three surfaces, three jobs, one column.
+
+## Type
+
+Three faces, each with a rule. **Archivo** is the machinery — menus, HUD,
+quest titles. **Fraunces Italic** is the voice, used only for quotes, because
+every quote in this game is somebody's opinion. **JetBrains Mono** is for keys
+and nothing else: a monospace that means "press this" is doing work, one that
+means "this is an interface" is a placeholder.
+
+The exposure tier is the only word on screen that changes shape. Archivo's
+width axis is driven straight off the meter, so NATURAL sits light and
+wide-set and THREAT is black, fully extended and nearly touching itself —
+continuously, not stepped, so the word thickens while the household is still
+making up its mind.
+
+Self-hosted (199 KB, latin subset) rather than pulled from a CDN: the boot
+screen paints before any JavaScript, and it should not do that in a fallback.
 
 ## Scale and speed
 

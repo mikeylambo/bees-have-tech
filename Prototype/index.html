@@ -8,7 +8,57 @@
       rel="icon"
       href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><text y='26' font-size='26'>%F0%9F%90%9D</text></svg>"
     />
+    <link rel="preload" as="font" type="font/woff2" href="/fonts/archivo.woff2" crossorigin />
     <style>
+      /* ---- TYPE ----
+         Everything in this build was ui-monospace, which is the typeface of a
+         terminal: fine for a tuning panel, and it made the finished screens
+         read as a dev tool with a game behind it. Three faces now, each with a
+         job, all self-hosted so nothing renders in a fallback while a CDN
+         answers — and, on a page whose boot screen paints before any
+         JavaScript, so nothing reflows a second after it appears.
+
+         ARCHIVO is the machinery: menus, HUD, quest titles, the objective verb.
+         An industrial grotesque, which is what a bee wearing tech should sound
+         like. It carries a WIDTH axis as well as weight, and that is the one
+         that earns its keep below.
+
+         FRAUNCES ITALIC is the voice. Every quote in this game is somebody's
+         opinion — "just a bee", "I have had ENOUGH of this bee" — and a soft,
+         faintly wonky old-style italic gives those a human register against
+         the hard grotesque of everything they are reacting to. Its SOFT and
+         WONK axes are pinned at 60 and 1 in the file itself: one voice is
+         wanted here, not a slider.
+
+         JETBRAINS MONO is for KEYS, and only keys. A monospace that means
+         "this is a thing you press" is doing work; a monospace that means
+         "this is a user interface" is a placeholder. */
+      @font-face {
+        font-family: 'Archivo';
+        src: url('/fonts/archivo.woff2') format('woff2');
+        font-weight: 300 900; font-stretch: 62% 125%; font-style: normal;
+        font-display: swap;
+      }
+      @font-face {
+        font-family: 'Fraunces';
+        src: url('/fonts/fraunces-italic.woff2') format('woff2');
+        font-weight: 400 700; font-style: italic; font-display: swap;
+      }
+      @font-face {
+        font-family: 'JetBrains Mono';
+        src: url('/fonts/jetbrains-mono.woff2') format('woff2');
+        font-weight: 400 700; font-style: normal; font-display: swap;
+      }
+      :root {
+        --ui: 'Archivo', 'Helvetica Neue', Arial, sans-serif;
+        --voice: 'Fraunces', Georgia, 'Times New Roman', serif;
+        --mono: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
+      }
+      /* Counters, distances and salvage totals all live in proportional type
+         now. Tabular figures stop them jittering as the digits change, which
+         is the whole reason a HUD would otherwise reach for a monospace. */
+      body { font-variant-numeric: tabular-nums; }
+
       /* ---- BOOT ----
          Inlined and first in the file so it paints before a single byte of
          JavaScript arrives. Physics, an estate, 325 colliders and a grass
@@ -19,7 +69,7 @@
         position: fixed; inset: 0; z-index: 60; display: flex;
         flex-direction: column; align-items: center; justify-content: center;
         gap: 10px; background: #12160f; color: #ffd75e;
-        font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+        font-family: var(--ui);
         transition: opacity 320ms ease-out;
       }
       #boot.gone { opacity: 0; pointer-events: none; }
@@ -33,7 +83,7 @@
       canvas { display: block; }
       .hud {
         position: fixed; left: 16px; bottom: 16px; z-index: 10;
-        font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+        font-family: var(--ui);
         font-size: 12px; line-height: 1.6; color: #fff;
         background: rgba(20, 24, 18, 0.65); border-radius: 10px;
         padding: 10px 14px; pointer-events: none; user-select: none;
@@ -42,7 +92,7 @@
       #lockHint {
         position: fixed; inset: 0; display: flex; align-items: center; justify-content: center;
         z-index: 5; pointer-events: none;
-        font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+        font-family: var(--ui);
         font-size: 18px; color: #fff; text-shadow: 0 2px 8px rgba(0,0,0,0.6);
       }
       #lockHint.hidden { display: none; }
@@ -124,12 +174,12 @@
         flex: 1; width: 100%; resize: none;
         background: #10160f; color: #e6efe2; border: 1px solid #4a5a45;
         border-radius: 8px; padding: 12px;
-        font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 12px;
+        font-family: var(--ui); font-size: 12px;
       }
       #jsonDump button {
         align-self: flex-end; padding: 8px 16px; cursor: pointer;
         background: #ffd75e; color: #1a1a1a; border: 0; border-radius: 6px;
-        font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-weight: 700;
+        font-family: var(--ui); font-weight: 700;
       }
 
       /* Small viewports: the tuning panel would otherwise eat the screen. */
@@ -143,7 +193,7 @@
         position: fixed; inset: 0; z-index: 30; display: none;
         align-items: center; justify-content: center; text-align: center;
         padding: 24px; background: rgba(12, 18, 10, 0.94); color: #fff;
-        font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+        font-family: var(--ui);
         font-size: 14px; line-height: 1.7;
       }
       @media (pointer: coarse) {
@@ -154,7 +204,7 @@
       #exposure {
         position: fixed; top: 14px; left: 50%; transform: translateX(-50%);
         z-index: 9; width: min(330px, 46vw); pointer-events: none;
-        font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+        font-family: var(--ui);
         color: #fff; text-shadow: 0 1px 3px rgba(0, 0, 0, 0.8);
       }
       #exposure .label {
@@ -212,7 +262,7 @@
         position: fixed; inset: 0; z-index: 50; display: none;
         align-items: center; justify-content: center;
         background: rgba(8, 12, 6, 0.55);
-        font-family: ui-monospace, SFMono-Regular, Menlo, monospace; color: #fff;
+        font-family: var(--ui); color: #fff;
       }
       #shellScreen.show { display: flex; }
       /* The title sits over a live camera drifting the property, so it leans
@@ -330,7 +380,7 @@
         padding: 3px 9px; border-radius: 999px;
         background: rgba(20, 24, 18, 0.72);
         border: 1px solid rgba(99, 255, 168, 0.4);
-        font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+        font-family: var(--ui);
         font-size: 9px; letter-spacing: 0.18em; color: #63ffa8;
         pointer-events: none; opacity: 0;
         transition: opacity 220ms ease-out;
@@ -347,7 +397,7 @@
         transform: translateX(-50%); display: flex; flex-direction: column;
         align-items: center; gap: 4px; pointer-events: none;
         opacity: 0; transition: opacity 120ms linear;
-        font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+        font-family: var(--ui);
         font-size: 9px; letter-spacing: 0.22em; color: #ffd75e;
         text-shadow: 0 1px 3px rgba(0, 0, 0, 0.8);
       }
@@ -386,7 +436,7 @@
         display: flex; align-items: baseline; gap: 10px;
         padding: 8px 13px; border-radius: 10px;
         background: rgba(20, 24, 18, 0.65);
-        font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+        font-family: var(--ui);
         font-size: 11px; color: #fff; pointer-events: none; user-select: none;
       }
       #bank .salvage { color: #ffd75e; font-size: 14px; font-weight: 700; }
@@ -397,7 +447,7 @@
         position: fixed; left: 50%; top: 38%; z-index: 25;
         transform: translate(-50%, -50%); text-align: center;
         pointer-events: none; opacity: 0;
-        font-family: ui-monospace, SFMono-Regular, Menlo, monospace; color: #fff;
+        font-family: var(--ui); color: #fff;
         text-shadow: 0 2px 10px rgba(0, 0, 0, 0.8);
       }
       #unlock .kicker {
@@ -422,7 +472,7 @@
         display: flex; align-items: center; gap: 9px;
         padding: 8px 14px 8px 10px; border-radius: 10px;
         background: rgba(20, 24, 18, 0.65);
-        font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+        font-family: var(--ui);
         font-size: 12px; color: #fff; pointer-events: none; user-select: none;
       }
       #techIcon { font-size: 20px; line-height: 1; }
@@ -434,7 +484,7 @@
         pointer-events: none;
         background: radial-gradient(circle at center,
           rgba(8, 12, 6, 0.34) 0%, rgba(8, 12, 6, 0.72) 70%);
-        font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+        font-family: var(--ui);
       }
       #radial.show { display: block; }
       .radial-ring {
@@ -478,7 +528,7 @@
         width: 268px; padding: 10px 13px; border-radius: 10px;
         background: rgba(20, 24, 18, 0.66);
         border-left: 3px solid #ffd75e;
-        font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+        font-family: var(--ui);
         font-size: 11px; color: #fff; line-height: 1.55;
         pointer-events: none; user-select: none;
         opacity: 0; transform: translateX(-8px);
@@ -506,7 +556,7 @@
         background: rgba(14, 19, 12, 0.92);
         border: 1px solid rgba(255, 215, 94, 0.4);
         box-shadow: 0 18px 50px rgba(0, 0, 0, 0.5);
-        font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+        font-family: var(--ui);
         color: #fff; pointer-events: none; opacity: 0;
       }
       #questCard.show { animation: questCard 7200ms ease-out forwards; }
@@ -543,7 +593,7 @@
         background: rgba(20, 24, 18, 0.88);
         border: 1px solid rgba(255, 215, 94, 0.4);
         box-shadow: 0 18px 46px rgba(0, 0, 0, 0.55);
-        font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+        font-family: var(--ui);
         color: #fff; pointer-events: none;
         opacity: 0; transform: translateX(-14px);
       }
@@ -586,7 +636,7 @@
         position: fixed; left: 50%; top: 62px; z-index: 10;
         transform: translateX(-50%) translateY(-6px);
         display: flex; align-items: center;
-        font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+        font-family: var(--ui);
         color: #fff; pointer-events: none; opacity: 0;
         transition: opacity 220ms ease-out, transform 220ms ease-out;
       }
@@ -650,7 +700,7 @@
         transform: translateX(-50%); padding: 6px 14px; border-radius: 999px;
         background: rgba(14, 19, 12, 0.86);
         border: 1px solid rgba(255, 215, 94, 0.45);
-        font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+        font-family: var(--ui);
         font-size: 11.5px; color: #ffd75e; white-space: nowrap;
         pointer-events: none; opacity: 0;
         transition: opacity 180ms ease-out, transform 180ms ease-out;
@@ -664,7 +714,7 @@
         position: fixed; left: 50%; top: 36%; z-index: 25;
         transform: translate(-50%, -50%); text-align: center;
         pointer-events: none; opacity: 0;
-        font-family: ui-monospace, SFMono-Regular, Menlo, monospace; color: #fff;
+        font-family: var(--ui); color: #fff;
         text-shadow: 0 2px 10px rgba(0, 0, 0, 0.85);
       }
       #questBanner .kicker {
@@ -681,7 +731,7 @@
         padding: 3px 8px 3px 5px; border-radius: 999px;
         background: rgba(14, 19, 12, 0.62);
         border: 1px solid rgba(255, 215, 94, 0.5);
-        font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+        font-family: var(--ui);
         font-size: 10px; letter-spacing: 0.1em; color: #ffd75e;
         pointer-events: none; user-select: none; white-space: nowrap;
       }
@@ -700,7 +750,7 @@
         transform: translateX(-50%); padding: 7px 15px; border-radius: 999px;
         background: rgba(14, 19, 12, 0.82);
         border: 1px solid rgba(255, 215, 94, 0.5);
-        font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+        font-family: var(--ui);
         font-size: 12px; color: #fff; pointer-events: none;
         opacity: 0; transition: opacity 160ms linear;
       }
@@ -712,7 +762,7 @@
         align-items: center; justify-content: center; pointer-events: none;
         background: radial-gradient(circle at center,
           rgba(8, 12, 6, 0.4) 0%, rgba(8, 12, 6, 0.78) 75%);
-        font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+        font-family: var(--ui);
       }
       #shop.show { display: flex; }
       /* The workshop predates the shell's menus and looked it. Same panel
@@ -784,7 +834,95 @@
         .shop-list .ef { display: none; }
       }
 
+
+      /* ---- TYPE ROLES ----
+         Three faces are only a system if each one has a rule about when it is
+         used. These are the rules. */
+
+      /* THE VOICE. Quotes, asides, and the lines the game says in its own
+         register rather than the interface's. */
+      #exposure .quote,
+      #castCard .cc-quote,
+      .qc-pitch,
+      .qt-hint,
+      .sm-note,
+      .sm-tag,
+      .shop-empty,
+      .shop-blurb {
+        font-family: var(--voice); font-style: italic; font-weight: 500;
+      }
+      /* Fraunces sits smaller on the line than Archivo at the same px, so the
+         quotes need a nudge or they read as an afterthought. */
+      #exposure .quote { font-size: 12px; }
+      #castCard .cc-quote { font-size: 13px; }
+      .sm-tag { font-size: 13.5px; }
+
+      /* KEYS. Anything depicting a thing you physically press. */
+      .hud b,
+      #lockHint,
+      .sm-keys,
+      .shop-keys,
+      #shopPrompt b,
+      #questTrack .qt-key {
+        font-family: var(--mono); font-weight: 500;
+      }
+
+      /* DISPLAY. Where the width axis is allowed to shout. Archivo goes to
+         125% wide, and a title that uses it looks pressed rather than typed —
+         which is the difference between a game's name and a heading. */
+      .sm-title {
+        font-variation-settings: 'wght' 900, 'wdth' 125;
+        letter-spacing: -0.005em; font-weight: 900;
+      }
+      #boot .b-name { font-variation-settings: 'wght' 700, 'wdth' 118; }
+      .sm-h2, #questBanner .kicker, #castCard .cc-role, .qc-giver {
+        font-variation-settings: 'wght' 650, 'wdth' 125;
+      }
+      #castCard .cc-name, #questBanner .name {
+        font-variation-settings: 'wght' 800, 'wdth' 118;
+        letter-spacing: -0.005em;
+      }
+      .qc-title, .qt-title, #objPill .op-verb {
+        font-variation-settings: 'wght' 750, 'wdth' 112;
+      }
+      /* Menu rows: a shade heavier and a shade wider than body text. A game's
+         menu is a list of things you are about to DO, and Archivo at its
+         regular weight reads like a settings pane in a web app. */
+      .sm-row, .shop-list li { font-variation-settings: 'wght' 550, 'wdth' 104; }
+      /* Archivo's x-height sits lower than the monospace this replaced, so the
+         smallest reading text — not the labels, which are meant to be small —
+         needs the point back or it costs legibility at a glance. */
+      .qt-objs, .qt-hint, .sm-sub, .shop-blurb { font-size: 12.5px; }
+      .qc-pitch { font-size: 13px; }
+
+      /* ---- THE ONE PIECE OF TYPE THAT MOVES ----
+         The exposure tier is the only word on screen whose MEANING escalates,
+         so it is the only one that gets to change shape. Weight and width are
+         driven straight off the meter, continuously — not stepped at the rung
+         — so the word visibly thickens and spreads as the household makes up
+         its mind about you, and the tracking closes as it does.
+
+         NATURAL is light, wide-set and airy: it does not want your attention.
+         THREAT is black and fully extended and nearly touching itself. Same
+         five letters of the alphabet doing the work a colour swap was doing
+         alone. This is what a variable font is FOR, and it is the reason the
+         width axis was worth the bytes. */
+      #expTier {
+        font-variation-settings: 'wght' 400, 'wdth' 84;
+        transition: font-size 400ms ease-out, color 260ms linear;
+        color: #cfe0ca;
+      }
+      #expLevel { display: flex; align-items: baseline; gap: 6px; }
+      #expNum { color: #9aa89a; letter-spacing: 0.08em; }
+      #exposure.lvl1 #expTier { color: #ffd75e; }
+      #exposure.lvl2 #expTier { color: #ff9b42; }
+      #exposure.lvl3 #expTier { color: #ff5f4d; }
+      #exposure.lvl4 #expTier { color: #ff3ba0; }
+      @media (prefers-reduced-motion: reduce) {
+        #expTier { transition: none; }
+      }
     </style>
+
   </head>
   <body>
     <div id="boot">
@@ -800,7 +938,7 @@
     <div id="speedVignette"></div>
     <div id="exposure">
       <div class="label">
-        <span id="expLevel">EXPOSURE 1 · NATURAL</span>
+        <span id="expLevel"><span id="expNum">EXPOSURE 1</span><span id="expTier">NATURAL</span></span>
         <span class="quote" id="expQuote">"just a bee"</span>
       </div>
       <div class="track"><div class="fill" id="expFill"></div></div>
